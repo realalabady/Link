@@ -1,0 +1,126 @@
+{
+  "common": {
+    "appName": "Link",
+    "tagline": "Connect with trusted service providers",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "noResults": "No results found",
+    "seeAll": "See all",
+    "viewMore": "View more"
+  },
+  "auth": {
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset password",
+    "orContinueWith": "Or continue with",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "createAccount": "Create account",
+    "welcomeBack": "Welcome back",
+    "getStarted": "Get started"
+  },
+  "onboarding": {
+    "chooseRole": "How would you like to use Link?",
+    "roleClient": "I'm looking for services",
+    "roleProvider": "I'm a service provider",
+    "clientDescription": "Find and book trusted female service providers in your area",
+    "providerDescription": "Offer your services and grow your business"
+  },
+  "roles": {
+    "client": "Client",
+    "provider": "Provider",
+    "admin": "Admin"
+  },
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "bookings": "Bookings",
+    "chats": "Chats",
+    "profile": "Profile",
+    "requests": "Requests",
+    "services": "Services",
+    "schedule": "Schedule",
+    "wallet": "Wallet"
+  },
+  "home": {
+    "greeting": "Hello",
+    "categories": "Categories",
+    "featuredProviders": "Featured Providers",
+    "nearYou": "Near you",
+    "topRated": "Top rated"
+  },
+  "provider": {
+    "verified": "Verified",
+    "reviews": "reviews",
+    "services": "Services",
+    "about": "About",
+    "availability": "Availability",
+    "bookNow": "Book now",
+    "messageProvider": "Message"
+  },
+  "booking": {
+    "selectDate": "Select date",
+    "selectTime": "Select time",
+    "selectService": "Select service",
+    "bookingDetails": "Booking details",
+    "confirmBooking": "Confirm booking",
+    "paymentRequired": "Payment required",
+    "bookingConfirmed": "Booking confirmed!",
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "confirmed": "Confirmed",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "noShow": "No show",
+      "refunded": "Refunded"
+    }
+  },
+  "chat": {
+    "typeMessage": "Type a message...",
+    "send": "Send",
+    "noChats": "No conversations yet",
+    "startChat": "Start a conversation by booking a service"
+  },
+  "wallet": {
+    "balance": "Balance",
+    "pendingBalance": "Pending",
+    "requestPayout": "Request payout",
+    "transactions": "Transactions",
+    "payoutHistory": "Payout history"
+  },
+  "landing": {
+    "heroTitle": "Your trusted connection to",
+    "heroHighlight": "quality services",
+    "heroSubtitle": "Discover and book verified female service providers in your city. Safe, easy, and reliable.",
+    "getStarted": "Get started",
+    "learnMore": "Learn more",
+    "forClients": "For Clients",
+    "forProviders": "For Providers",
+    "clientBenefit1": "Find trusted providers",
+    "clientBenefit2": "Easy booking & payments",
+    "clientBenefit3": "Secure in-app messaging",
+    "providerBenefit1": "Grow your business",
+    "providerBenefit2": "Manage bookings easily",
+    "providerBenefit3": "Get paid securely"
+  }
+}

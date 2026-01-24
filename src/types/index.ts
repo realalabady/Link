@@ -1,0 +1,217 @@
+// User roles in the app
+export type UserRole = 'CLIENT' | 'PROVIDER' | 'ADMIN';
+
+// User status
+export type UserStatus = 'ACTIVE' | 'SUSPENDED';
+
+// Booking status
+export type BookingStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'CONFIRMED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED_BY_CLIENT'
+  | 'CANCELLED_BY_PROVIDER'
+  | 'NO_SHOW'
+  | 'REFUNDED'
+  | 'DISPUTED';
+
+// Payment status
+export type PaymentStatus = 'INITIATED' | 'PAID' | 'FAILED' | 'REFUNDED';
+
+// Payment type
+export type PayType = 'DEPOSIT' | 'FULL';
+
+// Payment gateway
+export type PaymentGateway = 'STRIPE' | 'STUB';
+
+// Payout status
+export type PayoutStatus = 'REQUESTED' | 'APPROVED' | 'PAID' | 'REJECTED';
+
+// Location type for services
+export type LocationType = 'AT_PROVIDER' | 'AT_CLIENT' | 'BOTH';
+
+// Availability exception type
+export type AvailabilityExceptionType = 'BLOCK' | 'EXTRA';
+
+// Chat message type
+export type MessageType = 'TEXT' | 'IMAGE';
+
+// Report target type
+export type ReportTargetType = 'USER' | 'PROVIDER' | 'SERVICE' | 'BOOKING' | 'MESSAGE';
+
+// Report status
+export type ReportStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+
+// User interface
+export interface User {
+  uid: string;
+  role: UserRole;
+  status: UserStatus;
+  name: string;
+  email: string;
+  createdAt: Date;
+}
+
+// Provider profile
+export interface ProviderProfile {
+  uid: string;
+  bio: string;
+  city: string;
+  area: string;
+  isVerified: boolean;
+  ratingAvg: number;
+  ratingCount: number;
+  radiusKm?: number;
+  travelFeeBase?: number;
+  updatedAt: Date;
+}
+
+// Category
+export interface Category {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  parentId?: string;
+  isActive: boolean;
+  icon?: string;
+}
+
+// Service
+export interface Service {
+  id: string;
+  providerId: string;
+  categoryId: string;
+  title: string;
+  description: string;
+  priceFrom: number;
+  priceTo: number;
+  durationMin: number;
+  locationType: LocationType;
+  isActive: boolean;
+  mediaUrls: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Availability rule (weekly schedule)
+export interface AvailabilityRule {
+  id: string;
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  startTime: string; // "HH:mm"
+  endTime: string; // "HH:mm"
+  breakStart?: string; // "HH:mm"
+  breakEnd?: string; // "HH:mm"
+}
+
+// Availability exception (specific date overrides)
+export interface AvailabilityException {
+  id: string;
+  date: string; // "YYYY-MM-DD"
+  startTime: string; // "HH:mm"
+  endTime: string; // "HH:mm"
+  type: AvailabilityExceptionType;
+}
+
+// Booking
+export interface Booking {
+  id: string;
+  clientId: string;
+  providerId: string;
+  serviceId: string;
+  startAt: Date;
+  endAt: Date;
+  bookingDate: string; // "YYYY-MM-DD"
+  status: BookingStatus;
+  priceTotal: number;
+  depositAmount: number;
+  expiresAt?: Date;
+  notes?: string;
+  addressText?: string;
+  lat?: number;
+  lng?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Payment
+export interface Payment {
+  id: string;
+  bookingId: string;
+  payType: PayType;
+  status: PaymentStatus;
+  gateway: PaymentGateway;
+  reference?: string;
+  platformFee: number;
+  gatewayFee: number;
+  providerAmount: number;
+  createdAt: Date;
+}
+
+// Provider wallet
+export interface ProviderWallet {
+  uid: string;
+  balance: number;
+  pendingBalance: number;
+  updatedAt: Date;
+}
+
+// Payout request
+export interface Payout {
+  id: string;
+  providerId: string;
+  amount: number;
+  status: PayoutStatus;
+  createdAt: Date;
+}
+
+// Chat
+export interface Chat {
+  id: string;
+  clientId: string;
+  providerId: string;
+  participants: string[];
+  createdAt: Date;
+  lastMessageAt: Date;
+}
+
+// Chat message
+export interface Message {
+  id: string;
+  senderId: string;
+  type: MessageType;
+  content: string;
+  createdAt: Date;
+  readAt?: Date;
+}
+
+// Review
+export interface Review {
+  id: string;
+  bookingId: string;
+  clientId: string;
+  providerId: string;
+  stars: number; // 1-5
+  comment: string;
+  createdAt: Date;
+}
+
+// Report
+export interface Report {
+  id: string;
+  reporterId: string;
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: string;
+  status: ReportStatus;
+  createdAt: Date;
+}
+
+// Time slot for booking
+export interface TimeSlot {
+  startTime: string; // "HH:mm"
+  endTime: string; // "HH:mm"
+  isAvailable: boolean;
+}
