@@ -1,0 +1,126 @@
+{
+  "common": {
+    "appName": "لينك",
+    "tagline": "تواصلي مع مقدمات خدمات موثوقات",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ ما",
+    "retry": "حاولي مرة أخرى",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "back": "رجوع",
+    "next": "التالي",
+    "done": "تم",
+    "search": "بحث",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "noResults": "لم يتم العثور على نتائج",
+    "seeAll": "عرض الكل",
+    "viewMore": "عرض المزيد"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "signup": "إنشاء حساب",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "forgotPassword": "نسيتِ كلمة المرور؟",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "orContinueWith": "أو تابعي باستخدام",
+    "alreadyHaveAccount": "لديكِ حساب بالفعل؟",
+    "dontHaveAccount": "ليس لديكِ حساب؟",
+    "createAccount": "إنشاء حساب",
+    "welcomeBack": "مرحباً بعودتك",
+    "getStarted": "ابدئي الآن"
+  },
+  "onboarding": {
+    "chooseRole": "كيف تريدين استخدام لينك؟",
+    "roleClient": "أبحث عن خدمات",
+    "roleProvider": "أنا مقدمة خدمات",
+    "clientDescription": "اعثري على مقدمات خدمات موثوقات واحجزي في منطقتك",
+    "providerDescription": "قدمي خدماتك وطوري عملك"
+  },
+  "roles": {
+    "client": "عميلة",
+    "provider": "مقدمة خدمات",
+    "admin": "مديرة"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "search": "بحث",
+    "bookings": "الحجوزات",
+    "chats": "المحادثات",
+    "profile": "الملف الشخصي",
+    "requests": "الطلبات",
+    "services": "خدماتي",
+    "schedule": "الجدول",
+    "wallet": "المحفظة"
+  },
+  "home": {
+    "greeting": "مرحباً",
+    "categories": "الفئات",
+    "featuredProviders": "مقدمات خدمات مميزات",
+    "nearYou": "بالقرب منك",
+    "topRated": "الأعلى تقييماً"
+  },
+  "provider": {
+    "verified": "موثقة",
+    "reviews": "تقييمات",
+    "services": "الخدمات",
+    "about": "نبذة",
+    "availability": "المواعيد المتاحة",
+    "bookNow": "احجزي الآن",
+    "messageProvider": "مراسلة"
+  },
+  "booking": {
+    "selectDate": "اختاري التاريخ",
+    "selectTime": "اختاري الوقت",
+    "selectService": "اختاري الخدمة",
+    "bookingDetails": "تفاصيل الحجز",
+    "confirmBooking": "تأكيد الحجز",
+    "paymentRequired": "الدفع مطلوب",
+    "bookingConfirmed": "تم تأكيد الحجز!",
+    "status": {
+      "pending": "قيد الانتظار",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "confirmed": "مؤكد",
+      "inProgress": "قيد التنفيذ",
+      "completed": "مكتمل",
+      "cancelled": "ملغي",
+      "noShow": "لم تحضر",
+      "refunded": "مسترد"
+    }
+  },
+  "chat": {
+    "typeMessage": "اكتبي رسالة...",
+    "send": "إرسال",
+    "noChats": "لا توجد محادثات بعد",
+    "startChat": "ابدئي محادثة بحجز خدمة"
+  },
+  "wallet": {
+    "balance": "الرصيد",
+    "pendingBalance": "قيد الانتظار",
+    "requestPayout": "طلب سحب",
+    "transactions": "المعاملات",
+    "payoutHistory": "سجل السحوبات"
+  },
+  "landing": {
+    "heroTitle": "وصلتك الموثوقة إلى",
+    "heroHighlight": "خدمات عالية الجودة",
+    "heroSubtitle": "اكتشفي واحجزي مع مقدمات خدمات موثوقات في مدينتك. آمن وسهل وموثوق.",
+    "getStarted": "ابدئي الآن",
+    "learnMore": "اعرفي المزيد",
+    "forClients": "للعميلات",
+    "forProviders": "لمقدمات الخدمات",
+    "clientBenefit1": "اعثري على مقدمات خدمات موثوقات",
+    "clientBenefit2": "حجز ودفع سهل",
+    "clientBenefit3": "مراسلة آمنة داخل التطبيق",
+    "providerBenefit1": "طوري عملك",
+    "providerBenefit2": "أديري حجوزاتك بسهولة",
+    "providerBenefit3": "احصلي على مدفوعاتك بأمان"
+  }
+}
