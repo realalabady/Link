@@ -1,11 +1,10 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* LINK App Design System - Dusty Rose/Mauve feminine palette */
 /* All colors MUST be HSL */
-
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -55,9 +54,21 @@
     --radius: 0.75rem;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(350 35% 60%), hsl(340 40% 55%));
-    --gradient-hero: linear-gradient(180deg, hsl(350 35% 65%) 0%, hsl(340 30% 58%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(350 25% 97%) 100%);
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(350 35% 60%),
+      hsl(340 40% 55%)
+    );
+    --gradient-hero: linear-gradient(
+      180deg,
+      hsl(350 35% 65%) 0%,
+      hsl(340 30% 58%) 100%
+    );
+    --gradient-card: linear-gradient(
+      145deg,
+      hsl(0 0% 100%) 0%,
+      hsl(350 25% 97%) 100%
+    );
 
     /* Shadows */
     --shadow-sm: 0 1px 3px hsl(350 30% 50% / 0.08);
@@ -117,11 +128,11 @@
 
   /* RTL Support */
   [dir="rtl"] {
-    font-family: 'Cairo', 'Poppins', sans-serif;
+    font-family: "Cairo", "Poppins", sans-serif;
   }
 
   [dir="ltr"] {
-    font-family: 'Poppins', 'Cairo', sans-serif;
+    font-family: "Poppins", "Cairo", sans-serif;
   }
 }
 
@@ -136,11 +147,11 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Poppins', 'Cairo', sans-serif;
+    font-family: "Poppins", "Cairo", sans-serif;
   }
 
   [dir="rtl"] body {
-    font-family: 'Cairo', 'Poppins', sans-serif;
+    font-family: "Cairo", "Poppins", sans-serif;
   }
 }
 
@@ -151,7 +162,8 @@
   }
 
   @keyframes linkPulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1) rotate(0deg);
     }
     50% {
@@ -167,7 +179,9 @@
   /* Card with glow effect */
   .card-glow {
     box-shadow: var(--shadow-md);
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
   }
 
   .card-glow:hover {
@@ -181,7 +195,8 @@
   }
 
   @keyframes float {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
     }
     50% {
