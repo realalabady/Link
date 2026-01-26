@@ -57,6 +57,10 @@ export interface User {
   status: UserStatus;
   name: string;
   email: string;
+  phone?: string;
+  region?: string;
+  city?: string;
+  district?: string;
   createdAt: Date;
 }
 
@@ -65,6 +69,7 @@ export interface ProviderProfile {
   uid: string;
   displayName?: string;
   bio: string;
+  region?: string;
   city: string;
   area: string;
   phone?: string;

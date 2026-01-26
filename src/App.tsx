@@ -15,6 +15,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import SignupPage from "@/pages/auth/SignupPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import NotFound from "@/pages/NotFound";
 
@@ -25,7 +26,7 @@ import ClientBookingsPage from "@/pages/client/ClientBookingsPage";
 import ClientChatsPage from "@/pages/client/ClientChatsPage";
 import ClientChatRoomPage from "@/pages/client/ClientChatRoomPage";
 import ClientProfilePage from "@/pages/client/ClientProfilePage";
-import ProviderProfilePage from "@/pages/client/ProviderProfilePage";
+import ProviderViewPage from "@/pages/client/ProviderProfilePage";
 import BookingPage from "@/pages/client/BookingPage";
 import BookingDetailsPage from "@/pages/client/BookingDetailsPage";
 
@@ -35,7 +36,7 @@ import ProviderServicesPage from "@/pages/provider/ProviderServicesPage";
 import ProviderSchedulePage from "@/pages/provider/ProviderSchedulePage";
 import ProviderChatsPage from "@/pages/provider/ProviderChatsPage";
 import ProviderChatRoomPage from "@/pages/provider/ProviderChatRoomPage";
-import ProviderWalletPage from "@/pages/provider/ProviderWalletPage";
+import ProviderProfilePage from "@/pages/provider/ProviderProfilePage";
 import ProviderBookingDetailsPage from "@/pages/provider/ProviderBookingDetailsPage";
 
 // Admin pages
@@ -81,6 +82,7 @@ const AppRoutes = () => {
       <Route path="/" element={<RoleBasedRedirect />} />
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/signup" element={<SignupPage />} />
+      <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
 
       {/* Onboarding */}
       <Route
@@ -108,7 +110,7 @@ const AppRoutes = () => {
         <Route path="chats" element={<ClientChatsPage />} />
         <Route path="chats/:chatId" element={<ClientChatRoomPage />} />
         <Route path="profile" element={<ClientProfilePage />} />
-        <Route path="provider/:id" element={<ProviderProfilePage />} />
+        <Route path="provider/:id" element={<ProviderViewPage />} />
         <Route path="book/:serviceId" element={<BookingPage />} />
       </Route>
 
@@ -122,12 +124,15 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<ProviderDashboardPage />} />
-        <Route path="booking/:bookingId" element={<ProviderBookingDetailsPage />} />
+        <Route
+          path="booking/:bookingId"
+          element={<ProviderBookingDetailsPage />}
+        />
         <Route path="services" element={<ProviderServicesPage />} />
         <Route path="schedule" element={<ProviderSchedulePage />} />
         <Route path="chats" element={<ProviderChatsPage />} />
         <Route path="chats/:chatId" element={<ProviderChatRoomPage />} />
-        <Route path="wallet" element={<ProviderWalletPage />} />
+        <Route path="profile" element={<ProviderProfilePage />} />
       </Route>
 
       {/* Admin routes */}

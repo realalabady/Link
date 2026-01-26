@@ -162,6 +162,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (role === "PROVIDER") {
           await createProviderProfile(firebaseUser.uid, {
             bio: "",
+            region: "",
             city: "",
             area: "",
           });

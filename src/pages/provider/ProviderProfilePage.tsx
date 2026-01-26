@@ -4,16 +4,20 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User,
-  Bell,
-  Globe,
-  Moon,
-  HelpCircle,
+  Settings,
   LogOut,
   ChevronRight,
+  Wallet,
+  Clock,
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertCircle,
+  Globe,
+  Bell,
   KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -26,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -33,10 +38,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateUserProfile } from "@/lib/firestore";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import {
+  useProviderProfile,
+  useUpdateProviderProfile,
+} from "@/hooks/queries/useProviders";
+
+// Mock data for wallet - would come from Firestore
+const mockWallet = {
+  balance: 1250.0,
+  pendingBalance: 350.0,
+  currency: "SAR",
+};
+
+const mockTransactions = [
+  {
+    id: "1",
+    type: "credit",
+    amount: 150,
+    description: "Booking #1234 completed",
+    date: new Date(Date.now() - 1000 * 60 * 60 * 2),
+    status: "completed",
+  },
+  {
+    id: "2",
+    type: "credit",
+    amount: 200,
+    description: "Booking #1233 completed",
+    date: new Date(Date.now() - 1000 * 60 * 60 * 24),
+    status: "completed",
+  },
+  {
+    id: "3",
+    type: "debit",
+    amount: 500,
+    description: "Payout to bank account",
+    date: new Date(Date.now() - 1000 * 60 * 60 * 48),
+    status: "completed",
+  },
+];
 
 const SAUDI_REGIONS = [
   {
@@ -323,53 +364,60 @@ const SAUDI_REGIONS = [
   },
 ];
 
-const ClientProfilePage: React.FC = () => {
+const ProviderProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
 
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+
+  const { data: providerProfile } = useProviderProfile(user?.uid || "");
+  const updateProviderProfileMutation = useUpdateProviderProfile();
+
   const [formValues, setFormValues] = useState({
-    name: user?.name || "",
+    displayName: providerProfile?.displayName || user?.name || "",
     email: user?.email || "",
-    phone: user?.phone || "",
-    region: user?.region || "",
-    city: user?.city || "",
-    district: user?.district || "",
+    phone: providerProfile?.phone || "",
+    region: providerProfile?.region || "",
+    city: providerProfile?.city || "",
+    district: providerProfile?.area || "",
+    bio: providerProfile?.bio || "",
   });
 
   useEffect(() => {
     const inferredRegion =
-      user?.region ||
-      (user?.city
+      providerProfile?.region ||
+      (providerProfile?.city
         ? SAUDI_REGIONS.find((region) =>
-            region.cities.some((city) => city.value === user.city),
+            region.cities.some((city) => city.value === providerProfile.city),
           )?.value || ""
         : "");
 
     setFormValues({
-      name: user?.name || "",
+      displayName: providerProfile?.displayName || user?.name || "",
       email: user?.email || "",
-      phone: user?.phone || "",
+      phone: providerProfile?.phone || "",
       region: inferredRegion,
-      city: user?.city || "",
-      district: user?.district || "",
+      city: providerProfile?.city || "",
+      district: providerProfile?.area || "",
+      bio: providerProfile?.bio || "",
     });
-  }, [user]);
+  }, [providerProfile, user]);
 
   const completionPercent = useMemo(() => {
     const fields = [
-      formValues.name,
+      formValues.displayName,
       formValues.email,
       formValues.phone,
       formValues.region,
       formValues.city,
       formValues.district,
+      formValues.bio,
     ];
     const filled = fields.filter((value) => value?.toString().trim()).length;
     return Math.round((filled / fields.length) * 100);
@@ -389,41 +437,81 @@ const ClientProfilePage: React.FC = () => {
 
   const districtOptions = selectedCity?.districts || [];
 
+  const formatCurrency = (amount: number) => {
+    return `${amount.toFixed(2)} ${mockWallet.currency}`;
+  };
+
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    const diffHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60),
+    );
+
+    if (diffHours < 24) {
+      return date.toLocaleTimeString(isArabic ? "ar-SA" : "en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } else if (diffHours < 48) {
+      return t("chat.yesterday");
+    } else {
+      return date.toLocaleDateString(isArabic ? "ar-SA" : "en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    }
+  };
+
   const getLabel = (item: { label: { en: string; ar: string } }) =>
     isArabic ? item.label.ar : item.label.en;
 
   const handleLogout = async () => {
     await logout();
-    setLogoutDialogOpen(false);
+    navigate("/");
+  };
+
+  const handleRequestPayout = async () => {
+    const amount = parseFloat(payoutAmount);
+    if (isNaN(amount) || amount <= 0 || amount > mockWallet.balance) return;
+
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setIsLoading(false);
+    setPayoutDialogOpen(false);
+    setPayoutAmount("");
+  };
+
+  const handleEditToggle = () => {
+    setIsEditing((prev) => !prev);
   };
 
   const handleCancelEdit = () => {
     setFormValues({
-      name: user?.name || "",
+      displayName: providerProfile?.displayName || user?.name || "",
       email: user?.email || "",
-      phone: user?.phone || "",
-      region: user?.region || "",
-      city: user?.city || "",
-      district: user?.district || "",
+      phone: providerProfile?.phone || "",
+      region: providerProfile?.region || "",
+      city: providerProfile?.city || "",
+      district: providerProfile?.area || "",
+      bio: providerProfile?.bio || "",
     });
     setIsEditing(false);
   };
 
   const handleSaveProfile = async () => {
     if (!user) return;
-    setIsSaving(true);
-    try {
-      await updateUserProfile(user.uid, {
-        name: formValues.name,
+    await updateProviderProfileMutation.mutateAsync({
+      uid: user.uid,
+      updates: {
+        displayName: formValues.displayName,
         phone: formValues.phone,
         region: formValues.region,
         city: formValues.city,
-        district: formValues.district,
-      });
-      setIsEditing(false);
-    } finally {
-      setIsSaving(false);
-    }
+        area: formValues.district,
+        bio: formValues.bio,
+      },
+    });
+    setIsEditing(false);
   };
 
   const fadeInUp = {
@@ -446,7 +534,7 @@ const ClientProfilePage: React.FC = () => {
         <motion.div
           initial="hidden"
           animate="visible"
-          variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+          variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
         >
           {/* Profile Completion */}
           <motion.div variants={fadeInUp} className="mb-6">
@@ -477,7 +565,7 @@ const ClientProfilePage: React.FC = () => {
                     {t("profile.personalInfo")}
                   </CardTitle>
                   {!isEditing ? (
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                    <Button variant="outline" size="sm" onClick={handleEditToggle}>
                       {t("profile.editProfile")}
                     </Button>
                   ) : (
@@ -485,8 +573,14 @@ const ClientProfilePage: React.FC = () => {
                       <Button variant="outline" size="sm" onClick={handleCancelEdit}>
                         {t("common.cancel")}
                       </Button>
-                      <Button size="sm" onClick={handleSaveProfile} disabled={isSaving}>
-                        {isSaving ? t("common.loading") : t("profile.save")}
+                      <Button
+                        size="sm"
+                        onClick={handleSaveProfile}
+                        disabled={updateProviderProfileMutation.isPending}
+                      >
+                        {updateProviderProfileMutation.isPending
+                          ? t("common.loading")
+                          : t("profile.save")}
                       </Button>
                     </div>
                   )}
@@ -494,16 +588,16 @@ const ClientProfilePage: React.FC = () => {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-3xl">
-                    👩
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                    <User className="h-8 w-8 text-primary-foreground" />
                   </div>
-
                   <div className="flex-1">
-                    <h2 className="text-xl font-bold text-foreground">
-                      {formValues.name || t("profile.guest")}
+                    <h2 className="text-xl font-semibold text-foreground">
+                      {formValues.displayName || t("profile.guest")}
                     </h2>
-                    <p className="text-muted-foreground">{formValues.email}</p>
-                    <p className="mt-1 text-sm text-primary">{t("roles.client")}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("common.provider")}
+                    </p>
                   </div>
                 </div>
 
@@ -511,33 +605,39 @@ const ClientProfilePage: React.FC = () => {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <Label htmlFor="client-name">{t("profile.fullName")}</Label>
+                    <Label htmlFor="profile-name">{t("profile.fullName")}</Label>
                     <Input
-                      id="client-name"
-                      value={formValues.name}
+                      id="profile-name"
+                      value={formValues.displayName}
                       onChange={(e) =>
-                        setFormValues((prev) => ({ ...prev, name: e.target.value }))
+                        setFormValues((prev) => ({
+                          ...prev,
+                          displayName: e.target.value,
+                        }))
                       }
                       disabled={!isEditing}
                       className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="client-email">{t("profile.email")}</Label>
+                    <Label htmlFor="profile-email">{t("profile.email")}</Label>
                     <Input
-                      id="client-email"
+                      id="profile-email"
                       value={formValues.email}
                       disabled
                       className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="client-phone">{t("profile.phone")}</Label>
+                    <Label htmlFor="profile-phone">{t("profile.phone")}</Label>
                     <Input
-                      id="client-phone"
+                      id="profile-phone"
                       value={formValues.phone}
                       onChange={(e) =>
-                        setFormValues((prev) => ({ ...prev, phone: e.target.value }))
+                        setFormValues((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
                       }
                       placeholder={t("profile.addPhone")}
                       disabled={!isEditing}
@@ -545,7 +645,7 @@ const ClientProfilePage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="client-region">{t("profile.region")}</Label>
+                    <Label htmlFor="profile-region">{t("profile.region")}</Label>
                     <Select
                       value={formValues.region}
                       onValueChange={(value) =>
@@ -558,7 +658,7 @@ const ClientProfilePage: React.FC = () => {
                       }
                       disabled={!isEditing}
                     >
-                      <SelectTrigger id="client-region" className="mt-1">
+                      <SelectTrigger id="profile-region" className="mt-1">
                         <SelectValue placeholder={t("profile.regionPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
@@ -571,7 +671,7 @@ const ClientProfilePage: React.FC = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="client-city">{t("profile.city")}</Label>
+                    <Label htmlFor="profile-city">{t("profile.city")}</Label>
                     <Select
                       value={formValues.city}
                       onValueChange={(value) =>
@@ -583,7 +683,7 @@ const ClientProfilePage: React.FC = () => {
                       }
                       disabled={!isEditing || !formValues.region}
                     >
-                      <SelectTrigger id="client-city" className="mt-1">
+                      <SelectTrigger id="profile-city" className="mt-1">
                         <SelectValue placeholder={t("profile.cityPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
@@ -596,7 +696,7 @@ const ClientProfilePage: React.FC = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="client-district">{t("profile.district")}</Label>
+                    <Label htmlFor="profile-district">{t("profile.district")}</Label>
                     <Select
                       value={formValues.district}
                       onValueChange={(value) =>
@@ -607,7 +707,7 @@ const ClientProfilePage: React.FC = () => {
                       }
                       disabled={!isEditing || !formValues.city}
                     >
-                      <SelectTrigger id="client-district" className="mt-1">
+                      <SelectTrigger id="profile-district" className="mt-1">
                         <SelectValue placeholder={t("profile.districtPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
@@ -620,20 +720,148 @@ const ClientProfilePage: React.FC = () => {
                     </Select>
                   </div>
                 </div>
+
+                <div className="mt-4">
+                  <Label htmlFor="profile-bio">{t("profile.bio")}</Label>
+                  <Textarea
+                    id="profile-bio"
+                    value={formValues.bio}
+                    onChange={(e) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        bio: e.target.value,
+                      }))
+                    }
+                    placeholder={t("profile.bioPlaceholder")}
+                    disabled={!isEditing}
+                    className="mt-1 min-h-[100px]"
+                  />
+                </div>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Preferences */}
-          <motion.section variants={fadeInUp} className="mb-6">
-            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-              {t("profile.preferences")}
-            </h3>
+          {/* Wallet Section */}
+          <motion.div variants={fadeInUp} className="mb-6">
+            <h2 className="mb-3 text-lg font-semibold text-foreground">
+              {t("nav.wallet")}
+            </h2>
+
+            {/* Balance Cards */}
+            <div className="grid gap-4 md:grid-cols-2 mb-4">
+              {/* Available Balance */}
+              <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground">
+                <div className="mb-3 flex items-center gap-2">
+                  <Wallet className="h-5 w-5" />
+                  <span className="text-sm opacity-90">
+                    {t("wallet.balance")}
+                  </span>
+                </div>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(mockWallet.balance)}
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-3 w-full"
+                  onClick={() => setPayoutDialogOpen(true)}
+                >
+                  {t("wallet.requestPayout")}
+                </Button>
+              </div>
+
+              {/* Pending Balance */}
+              <div className="rounded-2xl bg-card border p-5">
+                <div className="mb-3 flex items-center gap-2 text-muted-foreground">
+                  <Clock className="h-5 w-5" />
+                  <span className="text-sm">{t("wallet.pendingBalance")}</span>
+                </div>
+                <p className="text-2xl font-bold text-foreground">
+                  {formatCurrency(mockWallet.pendingBalance)}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {t("wallet.pendingNote")}
+                </p>
+              </div>
+            </div>
+
+            {/* Recent Transactions */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground mb-2">
+                {t("wallet.transactions")}
+              </p>
+              {mockTransactions.slice(0, 3).map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between rounded-xl bg-card p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                        transaction.type === "credit"
+                          ? "bg-green-100 text-green-600"
+                          : "bg-red-100 text-red-600"
+                      }`}
+                    >
+                      {transaction.type === "credit" ? (
+                        <ArrowDownRight className="h-4 w-4" />
+                      ) : (
+                        <ArrowUpRight className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {transaction.description}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(transaction.date)}
+                      </p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm font-semibold ${
+                      transaction.type === "credit"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {transaction.type === "credit" ? "+" : "-"}
+                    {formatCurrency(transaction.amount)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Settings Section */}
+          <motion.div variants={fadeInUp} className="mb-6">
+            <h2 className="mb-3 text-lg font-semibold text-foreground">
+              {t("profile.accountSettings")}
+            </h2>
             <Card>
               <CardContent className="p-0">
+                {/* Language */}
+                <div className="flex items-center justify-between p-4 border-b">
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-5 w-5 text-muted-foreground" />
+                    <span>{t("profile.language")}</span>
+                  </div>
+                  <LanguageSwitcher />
+                </div>
+
+                {/* Notifications */}
+                <div className="flex items-center justify-between p-4 border-b">
+                  <div className="flex items-center gap-3">
+                    <Bell className="h-5 w-5 text-muted-foreground" />
+                    <span>{t("profile.notifications")}</span>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
+
+                {/* Reset Password */}
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between p-4 border-b text-left transition-colors hover:bg-accent"
+                  className="flex w-full items-center justify-between p-4 border-b text-left"
                   onClick={() => navigate("/auth/forgot-password")}
                 >
                   <div className="flex items-center gap-3">
@@ -643,73 +871,33 @@ const ClientProfilePage: React.FC = () => {
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </button>
 
-                <div className="flex items-center justify-between p-4 border-b transition-colors hover:bg-accent">
+                {/* Help */}
+                <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <Bell className="h-5 w-5 text-muted-foreground" />
-                    <span>{t("profile.notifications")}</span>
-                  </div>
-                  <Switch
-                    checked={notificationsEnabled}
-                    onCheckedChange={setNotificationsEnabled}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 border-b transition-colors hover:bg-accent">
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5 text-muted-foreground" />
-                    <span>{t("profile.language")}</span>
-                  </div>
-                  <LanguageSwitcher />
-                </div>
-
-                <div className="flex items-center justify-between p-4 transition-colors hover:bg-accent">
-                  <div className="flex items-center gap-3">
-                    <Moon className="h-5 w-5 text-muted-foreground" />
-                    <span>{t("profile.darkMode")}</span>
-                  </div>
-                  <Switch checked={darkMode} onCheckedChange={setDarkMode} />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.section>
-
-          {/* Support */}
-          <motion.section variants={fadeInUp} className="mb-6">
-            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-              {t("profile.support")}
-            </h3>
-            <Card>
-              <CardContent className="p-0">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-accent"
-                  onClick={() => {}}
-                >
-                  <div className="flex items-center gap-3">
-                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                    <Settings className="h-5 w-5 text-muted-foreground" />
                     <span>{t("profile.helpCenter")}</span>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </button>
+                </div>
               </CardContent>
             </Card>
-          </motion.section>
+          </motion.div>
 
-          {/* Logout */}
+          {/* Logout Button */}
           <motion.div variants={fadeInUp}>
             <Button
-              variant="destructive"
-              className="w-full gap-2"
+              variant="outline"
+              className="w-full text-destructive border-destructive/50 hover:bg-destructive/10"
               onClick={() => setLogoutDialogOpen(true)}
             >
-              <LogOut className="h-5 w-5" />
-              {t("auth.logout")}
+              <LogOut className="h-4 w-4 mr-2" />
+              {t("common.logout")}
             </Button>
           </motion.div>
         </motion.div>
       </main>
 
-      {/* Logout Confirmation Dialog */}
+      {/* Logout Dialog */}
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -718,7 +906,7 @@ const ClientProfilePage: React.FC = () => {
               {t("profile.logoutDescription")}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2">
+          <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setLogoutDialogOpen(false)}
@@ -726,7 +914,61 @@ const ClientProfilePage: React.FC = () => {
               {t("common.cancel")}
             </Button>
             <Button variant="destructive" onClick={handleLogout}>
-              {t("auth.logout")}
+              {t("common.logout")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request Payout Dialog */}
+      <Dialog open={payoutDialogOpen} onOpenChange={setPayoutDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("wallet.requestPayout")}</DialogTitle>
+            <DialogDescription>
+              {t("wallet.payoutDescription")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="amount">{t("wallet.amount")}</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={payoutAmount}
+                onChange={(e) => setPayoutAmount(e.target.value)}
+                placeholder="0.00"
+                className="mt-1"
+              />
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("wallet.available")}: {formatCurrency(mockWallet.balance)}
+              </p>
+            </div>
+
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <p className="text-sm">{t("wallet.payoutWarning")}</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPayoutDialogOpen(false)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleRequestPayout}
+              disabled={
+                isLoading ||
+                !payoutAmount ||
+                parseFloat(payoutAmount) <= 0 ||
+                parseFloat(payoutAmount) > mockWallet.balance
+              }
+            >
+              {isLoading ? t("common.loading") : t("wallet.requestPayout")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -735,4 +977,4 @@ const ClientProfilePage: React.FC = () => {
   );
 };
 
-export default ClientProfilePage;
+export default ProviderProfilePage;

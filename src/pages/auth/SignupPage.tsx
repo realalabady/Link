@@ -34,12 +34,20 @@ const SignupPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isStrongPassword = (value: string) =>
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
+    if (!isStrongPassword(password)) {
+      setError(t("auth.passwordRequirements"));
+      return;
+    }
+
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("auth.passwordsDoNotMatch"));
       return;
     }
 
@@ -154,7 +162,7 @@ const SignupPage: React.FC = () => {
                   placeholder="••••••••"
                   className="ps-10 pe-10"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -169,6 +177,9 @@ const SignupPage: React.FC = () => {
                 </button>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {t("auth.passwordRequirements")}
+            </p>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">
@@ -184,7 +195,7 @@ const SignupPage: React.FC = () => {
                   placeholder="••••••••"
                   className="ps-10"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
             </div>

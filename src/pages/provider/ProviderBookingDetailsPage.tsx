@@ -62,7 +62,9 @@ const ProviderBookingDetailsPage: React.FC = () => {
   const { user } = useAuth();
   const isArabic = i18n.language === "ar";
 
-  const [dialogType, setDialogType] = useState<"complete" | "cancel" | null>(null);
+  const [dialogType, setDialogType] = useState<"complete" | "cancel" | null>(
+    null,
+  );
 
   const { data: booking, isLoading: loadingBooking } = useBooking(
     bookingId || "",
@@ -126,9 +128,13 @@ const ProviderBookingDetailsPage: React.FC = () => {
     }).format(new Date(date));
   };
 
-  const canComplete = booking && ["ACCEPTED", "CONFIRMED", "IN_PROGRESS"].includes(booking.status);
-  const canCancel = booking && ["PENDING", "ACCEPTED", "CONFIRMED"].includes(booking.status);
-  const canStartProgress = booking && ["ACCEPTED", "CONFIRMED"].includes(booking.status);
+  const canComplete =
+    booking &&
+    ["ACCEPTED", "CONFIRMED", "IN_PROGRESS"].includes(booking.status);
+  const canCancel =
+    booking && ["PENDING", "ACCEPTED", "CONFIRMED"].includes(booking.status);
+  const canStartProgress =
+    booking && ["ACCEPTED", "CONFIRMED"].includes(booking.status);
 
   if (loadingBooking) {
     return (
@@ -247,9 +253,7 @@ const ProviderBookingDetailsPage: React.FC = () => {
         >
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">
-                {t("chat.client")}
-              </CardTitle>
+              <CardTitle className="text-base">{t("chat.client")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
@@ -260,7 +264,9 @@ const ProviderBookingDetailsPage: React.FC = () => {
                   {loadingClient ? (
                     <Skeleton className="h-5 w-32" />
                   ) : (
-                    <p className="font-medium">{client?.name || t("chat.client")}</p>
+                    <p className="font-medium">
+                      {client?.name || t("chat.client")}
+                    </p>
                   )}
                 </div>
               </div>
@@ -300,7 +306,7 @@ const ProviderBookingDetailsPage: React.FC = () => {
                 {t("bookings.startProgress")}
               </Button>
             )}
-            
+
             <Button
               className="w-full"
               onClick={() => setDialogType("complete")}
@@ -333,7 +339,10 @@ const ProviderBookingDetailsPage: React.FC = () => {
       </div>
 
       {/* Confirmation Dialog */}
-      <Dialog open={dialogType !== null} onOpenChange={() => setDialogType(null)}>
+      <Dialog
+        open={dialogType !== null}
+        onOpenChange={() => setDialogType(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -355,7 +364,9 @@ const ProviderBookingDetailsPage: React.FC = () => {
               variant={dialogType === "cancel" ? "destructive" : "default"}
               onClick={() =>
                 handleStatusUpdate(
-                  dialogType === "complete" ? "COMPLETED" : "CANCELLED_BY_PROVIDER"
+                  dialogType === "complete"
+                    ? "COMPLETED"
+                    : "CANCELLED_BY_PROVIDER",
                 )
               }
               disabled={updateStatusMutation.isPending}

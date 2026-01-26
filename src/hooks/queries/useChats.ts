@@ -46,10 +46,7 @@ export const useClientChats = (clientId: string) => {
     queryFn: async () => {
       const chatsRef = collection(db, "chats");
       // Simple query without orderBy to avoid needing composite index
-      const q = query(
-        chatsRef,
-        where("clientId", "==", clientId),
-      );
+      const q = query(chatsRef, where("clientId", "==", clientId));
       const snapshot = await getDocs(q);
       const chats = snapshot.docs.map((doc) => {
         const data = doc.data();
@@ -81,10 +78,7 @@ export const useProviderChats = (providerId: string) => {
     queryFn: async () => {
       const chatsRef = collection(db, "chats");
       // Simple query without orderBy to avoid needing composite index
-      const q = query(
-        chatsRef,
-        where("providerId", "==", providerId),
-      );
+      const q = query(chatsRef, where("providerId", "==", providerId));
       const snapshot = await getDocs(q);
       const chats = snapshot.docs.map((doc) => {
         const data = doc.data();

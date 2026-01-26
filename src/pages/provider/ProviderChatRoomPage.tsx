@@ -204,14 +204,14 @@ const ProviderChatRoomPage: React.FC = () => {
                               : "bg-white border border-border/50"
                           }`}
                         >
-                          <p className={`text-sm ${isOwn ? "text-white" : "text-foreground"}`}>
+                          <p
+                            className={`text-sm ${isOwn ? "text-white" : "text-foreground"}`}
+                          >
                             {message.text}
                           </p>
                           <p
                             className={`mt-1 text-end text-[10px] ${
-                              isOwn
-                                ? "text-white/70"
-                                : "text-muted-foreground"
+                              isOwn ? "text-white/70" : "text-muted-foreground"
                             }`}
                           >
                             {formatTime(message.createdAt)}

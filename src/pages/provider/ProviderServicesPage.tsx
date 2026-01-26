@@ -52,6 +52,8 @@ import {
   useDeleteService,
 } from "@/hooks/queries/useServices";
 import { useCategories } from "@/hooks/queries/useCategories";
+import { useProviderProfile } from "@/hooks/queries/useProviders";
+import { toast } from "@/components/ui/sonner";
 import { Service, LocationType } from "@/types";
 
 const ProviderServicesPage: React.FC = () => {
@@ -81,6 +83,16 @@ const ProviderServicesPage: React.FC = () => {
     user?.uid || "",
   );
   const { data: categories = [] } = useCategories();
+  const { data: providerProfile } = useProviderProfile(user?.uid || "");
+
+  const isProfileComplete = !!(
+    (providerProfile?.displayName || user?.name) &&
+    providerProfile?.phone &&
+    providerProfile?.region &&
+    providerProfile?.city &&
+    providerProfile?.area &&
+    providerProfile?.bio
+  );
 
   // Mutations
   const createServiceMutation = useCreateService();
@@ -101,6 +113,12 @@ const ProviderServicesPage: React.FC = () => {
   };
 
   const openAddForm = () => {
+    if (!isProfileComplete) {
+      toast.error(t("services.profileIncompleteTitle"), {
+        description: t("services.profileIncompleteDescription"),
+      });
+      return;
+    }
     resetForm();
     setIsFormOpen(true);
   };
@@ -199,7 +217,12 @@ const ProviderServicesPage: React.FC = () => {
           <h1 className="text-xl font-semibold text-foreground">
             {t("nav.services")}
           </h1>
-          <Button onClick={openAddForm} size="sm" className="gap-2">
+          <Button
+            onClick={openAddForm}
+            size="sm"
+            className="gap-2"
+            disabled={!isProfileComplete}
+          >
             <Plus className="h-4 w-4" />
             {t("services.addService")}
           </Button>
@@ -223,7 +246,11 @@ const ProviderServicesPage: React.FC = () => {
               <Plus className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground">{t("services.noServices")}</p>
-            <Button onClick={openAddForm} className="mt-4 gap-2">
+            <Button
+              onClick={openAddForm}
+              className="mt-4 gap-2"
+              disabled={!isProfileComplete}
+            >
               <Plus className="h-4 w-4" />
               {t("services.addFirst")}
             </Button>

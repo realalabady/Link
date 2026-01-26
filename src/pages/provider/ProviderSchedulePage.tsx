@@ -327,9 +327,17 @@ const ProviderSchedulePage: React.FC = () => {
             <motion.section variants={fadeInUp}>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-medium text-foreground">
-                  {t("schedule.bookingsFor")} {selectedDate.toLocaleDateString(isArabic ? "ar-SA" : "en-US", { weekday: "long", month: "short", day: "numeric" })}
+                  {t("schedule.bookingsFor")}{" "}
+                  {selectedDate.toLocaleDateString(
+                    isArabic ? "ar-SA" : "en-US",
+                    { weekday: "long", month: "short", day: "numeric" },
+                  )}
                 </h2>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedDate(null)}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -354,10 +362,15 @@ const ProviderSchedulePage: React.FC = () => {
                         return (
                           bookingDate.getDate() === selectedDate.getDate() &&
                           bookingDate.getMonth() === selectedDate.getMonth() &&
-                          bookingDate.getFullYear() === selectedDate.getFullYear()
+                          bookingDate.getFullYear() ===
+                            selectedDate.getFullYear()
                         );
                       })
-                      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+                      .sort(
+                        (a, b) =>
+                          new Date(a.startAt).getTime() -
+                          new Date(b.startAt).getTime(),
+                      )
                       .map((booking) => (
                         <div
                           key={booking.id}
@@ -367,15 +380,21 @@ const ProviderSchedulePage: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium">
-                                {new Date(booking.startAt).toLocaleTimeString(isArabic ? "ar-SA" : "en-US", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                {new Date(booking.startAt).toLocaleTimeString(
+                                  isArabic ? "ar-SA" : "en-US",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
                                 {" - "}
-                                {new Date(booking.endAt).toLocaleTimeString(isArabic ? "ar-SA" : "en-US", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                {new Date(booking.endAt).toLocaleTimeString(
+                                  isArabic ? "ar-SA" : "en-US",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
                               </span>
                             </div>
                             <p className="mt-1 text-sm text-muted-foreground">
@@ -384,7 +403,8 @@ const ProviderSchedulePage: React.FC = () => {
                           </div>
                           <Badge
                             variant={
-                              booking.status === "ACCEPTED" || booking.status === "CONFIRMED"
+                              booking.status === "ACCEPTED" ||
+                              booking.status === "CONFIRMED"
                                 ? "default"
                                 : booking.status === "PENDING"
                                   ? "secondary"

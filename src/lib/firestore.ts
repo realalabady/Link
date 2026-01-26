@@ -53,6 +53,10 @@ export interface FirestoreUser {
   name: string;
   role: UserRole | null;
   status: UserStatus;
+  phone?: string;
+  region?: string;
+  city?: string;
+  district?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -74,6 +78,10 @@ export const createUserDocument = async (
     name,
     role: null, // Will be set during onboarding
     status: "ACTIVE",
+    phone: "",
+    region: "",
+    city: "",
+    district: "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -86,6 +94,10 @@ export const createUserDocument = async (
     name,
     role: null, // User needs to complete onboarding to set role
     status: "ACTIVE",
+    phone: "",
+    region: "",
+    city: "",
+    district: "",
     createdAt: new Date(),
   };
 };
@@ -107,6 +119,10 @@ export const getUserDocument = async (uid: string): Promise<User | null> => {
     name: data.name,
     role: data.role, // Can be null if user hasn't completed onboarding
     status: data.status,
+    phone: data.phone || "",
+    region: data.region || "",
+    city: data.city || "",
+    district: data.district || "",
     createdAt: timestampToDate(data.createdAt),
   };
 };
@@ -126,7 +142,7 @@ export const updateUserRole = async (
 // Update user profile in Firestore
 export const updateUserProfile = async (
   uid: string,
-  updates: Partial<Pick<User, "name" | "email">>,
+  updates: Partial<Pick<User, "name" | "email" | "phone" | "region" | "city" | "district">>,
 ): Promise<void> => {
   const userRef = doc(db, COLLECTIONS.USERS, uid);
   await updateDoc(userRef, {
@@ -271,6 +287,7 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     uid: "provider-1",
     displayName: "Sara Ahmed",
     bio: "Professional makeup artist with 5+ years of experience",
+    region: "Riyadh",
     city: "Riyadh",
     area: "Al Olaya",
     radiusKm: 15,
@@ -283,6 +300,7 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     uid: "provider-2",
     displayName: "Fatima Al-Hassan",
     bio: "Certified hair stylist specializing in bridal looks",
+    region: "Makkah",
     city: "Jeddah",
     area: "Al Hamra",
     radiusKm: 20,
@@ -295,6 +313,7 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     uid: "provider-3",
     displayName: "Nora Mohammed",
     bio: "Nail artist and henna specialist",
+    region: "Riyadh",
     city: "Riyadh",
     area: "Al Malqa",
     radiusKm: 10,
@@ -335,11 +354,16 @@ export const getProviderProfile = async (
       if (userDoc && userDoc.role === "PROVIDER") {
         // Create a basic provider profile for existing providers
         // Note: user doc may have 'name' or 'displayName' field
-        const userName = (userDoc as any).name || userDoc.displayName || userDoc.email?.split("@")[0] || "Provider";
+        const userName =
+          (userDoc as any).name ||
+          userDoc.displayName ||
+          userDoc.email?.split("@")[0] ||
+          "Provider";
         const newProfile: ProviderProfile = {
           uid,
           displayName: userName,
           bio: "",
+          region: "",
           city: "",
           area: "",
           isVerified: false,
@@ -347,7 +371,7 @@ export const getProviderProfile = async (
           ratingCount: 0,
           updatedAt: new Date(),
         };
-        
+
         // Try to save to Firestore (may fail if current user isn't the provider)
         try {
           await setDoc(providerRef, {
@@ -356,9 +380,11 @@ export const getProviderProfile = async (
           });
           console.log("Created new provider profile:", newProfile);
         } catch (saveError) {
-          console.log("Could not save provider profile (permission issue), returning in-memory profile");
+          console.log(
+            "Could not save provider profile (permission issue), returning in-memory profile",
+          );
         }
-        
+
         // Return the profile regardless of save success
         return newProfile;
       }
@@ -368,7 +394,11 @@ export const getProviderProfile = async (
       console.log("Creating fallback profile for uid:", uid);
       const fallbackProfile: ProviderProfile = {
         uid,
-        displayName: (userDoc as any)?.name || userDoc?.displayName || userDoc?.email?.split("@")[0] || "Provider",
+        displayName:
+          (userDoc as any)?.name ||
+          userDoc?.displayName ||
+          userDoc?.email?.split("@")[0] ||
+          "Provider",
         bio: "",
         city: "",
         area: "",
@@ -388,8 +418,11 @@ export const getProviderProfile = async (
       const userDoc = await getUserDocument(uid);
       // Note: user doc may have 'name' or 'displayName' field
       displayName =
-        (userDoc as any)?.name || userDoc?.displayName || userDoc?.email?.split("@")[0] || "Provider";
-      
+        (userDoc as any)?.name ||
+        userDoc?.displayName ||
+        userDoc?.email?.split("@")[0] ||
+        "Provider";
+
       // Update the provider document with the displayName for future queries
       await setDoc(providerRef, { displayName }, { merge: true });
     }
@@ -401,16 +434,20 @@ export const getProviderProfile = async (
     };
   } catch (error) {
     console.warn("Error fetching provider, checking mock data:", error);
-    
+
     // Check mock providers first
     const mockProvider = DEFAULT_PROVIDERS.find((p) => p.uid === uid);
     if (mockProvider) return mockProvider;
-    
+
     // Try to create profile from user document (handles permission errors)
     try {
       const userDoc = await getUserDocument(uid);
       if (userDoc) {
-        const userName = (userDoc as any).name || userDoc.displayName || userDoc.email?.split("@")[0] || "Provider";
+        const userName =
+          (userDoc as any).name ||
+          userDoc.displayName ||
+          userDoc.email?.split("@")[0] ||
+          "Provider";
         const fallbackProfile: ProviderProfile = {
           uid,
           displayName: userName,
@@ -428,7 +465,7 @@ export const getProviderProfile = async (
     } catch (userError) {
       console.warn("Could not fetch user document:", userError);
     }
-    
+
     return null;
   }
 };
@@ -496,11 +533,12 @@ export const updateProviderProfile = async (
 // Fix provider displayName by fetching from user document
 export const fixProviderDisplayName = async (uid: string): Promise<string> => {
   const userDoc = await getUserDocument(uid);
-  const displayName = userDoc?.displayName || userDoc?.email?.split("@")[0] || "Provider";
-  
+  const displayName =
+    userDoc?.displayName || userDoc?.email?.split("@")[0] || "Provider";
+
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
   await setDoc(providerRef, { displayName }, { merge: true });
-  
+
   console.log(`Fixed provider ${uid} displayName to: ${displayName}`);
   return displayName;
 };

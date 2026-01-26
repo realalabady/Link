@@ -51,13 +51,19 @@ const ProviderDashboardPage: React.FC = () => {
   const { data: pendingBookings = [], isLoading } = usePendingBookings(
     user?.uid || "",
   );
-  
+
   // Fetch all bookings and filter for upcoming (accepted/confirmed)
   const { data: allBookings = [] } = useProviderBookings(user?.uid || "");
-  const upcomingBookings = allBookings.filter(
-    (b) => (b.status === "ACCEPTED" || b.status === "CONFIRMED") && new Date(b.startAt) >= new Date()
-  ).sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
-  
+  const upcomingBookings = allBookings
+    .filter(
+      (b) =>
+        (b.status === "ACCEPTED" || b.status === "CONFIRMED") &&
+        new Date(b.startAt) >= new Date(),
+    )
+    .sort(
+      (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    );
+
   const updateStatusMutation = useUpdateBookingStatus();
 
   const handleAction = (booking: Booking, action: "accept" | "reject") => {
@@ -354,10 +360,12 @@ const ProviderDashboardPage: React.FC = () => {
                 ) : (
                   <div className="space-y-4">
                     {upcomingBookings.map((booking) => (
-                      <div 
-                        key={booking.id} 
+                      <div
+                        key={booking.id}
                         className="rounded-2xl bg-card p-4 cursor-pointer hover:bg-card/80 transition-colors"
-                        onClick={() => navigate(`/provider/booking/${booking.id}`)}
+                        onClick={() =>
+                          navigate(`/provider/booking/${booking.id}`)
+                        }
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">

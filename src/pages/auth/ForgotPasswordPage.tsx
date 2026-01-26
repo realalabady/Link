@@ -2,46 +2,36 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
+import { Mail, ArrowRight, ArrowLeft } from "lucide-react";
+import { sendPasswordResetEmail } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { useAuth } from "@/contexts/AuthContext";
+import { auth } from "@/lib/firebase";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 import logo from "@/assets/logo.jpeg";
 
-const LoginPage: React.FC = () => {
+const ForgotPasswordPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { login } = useAuth();
   const isRTL = i18n.dir() === "rtl";
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const isStrongPassword = (value: string) =>
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
+  const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    if (!isStrongPassword(password)) {
-      setError(t("auth.passwordRequirements"));
-      return;
-    }
-
+    setSuccess("");
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      // Navigate to root - RoleBasedRedirect will handle routing based on user's role
-      navigate("/");
+      await sendPasswordResetEmail(auth, email);
+      setSuccess(t("auth.resetEmailSent"));
     } catch (err) {
       setError(getAuthErrorMessage(err, t));
     } finally {
@@ -72,9 +62,11 @@ const LoginPage: React.FC = () => {
               />
             </Link>
             <h1 className="mt-4 text-2xl font-bold text-foreground">
-              {t("auth.welcomeBack")}
+              {t("auth.resetPassword")}
             </h1>
-            <p className="mt-2 text-muted-foreground">{t("auth.login")}</p>
+            <p className="mt-2 text-muted-foreground">
+              {t("auth.resetPasswordDescription")}
+            </p>
           </div>
 
           {/* Form */}
@@ -82,6 +74,11 @@ const LoginPage: React.FC = () => {
             {error && (
               <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="rounded-lg bg-primary/10 p-3 text-sm text-primary">
+                {success}
               </div>
             )}
 
@@ -101,66 +98,30 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">{t("auth.password")}</Label>
-              <div className="relative">
-                <Lock className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="ps-10 pe-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("auth.passwordRequirements")}
-            </p>
-
-            <div className="text-end">
-              <Link
-                to="/auth/forgot-password"
-                className="text-sm text-primary hover:underline"
-              >
-                {t("auth.forgotPassword")}
-              </Link>
-            </div>
-
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
               ) : (
                 <>
-                  {t("auth.login")}
+                  {t("auth.sendResetLink")}
                   <ArrowIcon className="ms-2 h-4 w-4" />
                 </>
               )}
             </Button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-muted-foreground">
-            {t("auth.dontHaveAccount")}{" "}
-            <Link
-              to="/auth/signup"
-              className="font-medium text-primary hover:underline"
+          <div className="mt-8 flex items-center justify-between text-sm">
+            <Button
+              variant="ghost"
+              className="px-0"
+              onClick={() => navigate("/auth/login")}
             >
+              {t("auth.backToLogin")}
+            </Button>
+            <Link to="/auth/signup" className="text-primary hover:underline">
               {t("auth.signup")}
             </Link>
-          </p>
+          </div>
         </motion.div>
       </div>
 
@@ -184,4 +145,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default ForgotPasswordPage;
