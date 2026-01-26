@@ -63,9 +63,11 @@ export interface User {
 // Provider profile
 export interface ProviderProfile {
   uid: string;
+  displayName?: string;
   bio: string;
   city: string;
   area: string;
+  phone?: string;
   isVerified: boolean;
   ratingAvg: number;
   ratingCount: number;

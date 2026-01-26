@@ -151,10 +151,17 @@
     "dateTime": "Date & Time",
     "provider": "Service Provider",
     "messageProvider": "Message Provider",
+    "messageClient": "Message Client",
     "cancelBooking": "Cancel Booking",
     "cancelConfirmTitle": "Cancel this booking?",
     "cancelConfirmDesc": "Are you sure you want to cancel this booking? This action cannot be undone.",
-    "confirmCancel": "Yes, Cancel"
+    "cancelConfirmDescProvider": "Are you sure you want to cancel this booking? The client will be notified.",
+    "confirmCancel": "Yes, Cancel",
+    "startProgress": "Start Service",
+    "markComplete": "Mark as Complete",
+    "completeConfirmTitle": "Mark booking as complete?",
+    "completeConfirmDesc": "Confirm that you have completed this service. The client will be notified.",
+    "confirmComplete": "Yes, Complete"
   },
   "chat": {
     "typeMessage": "Type a message...",
@@ -243,7 +250,9 @@
     "hasBooking": "Has booking",
     "workingThisDay": "Working this day",
     "startTime": "Start time",
-    "endTime": "End time"
+    "endTime": "End time",
+    "bookingsFor": "Bookings for",
+    "noBookings": "No bookings on this day"
   },
   "chat": {
     "typeMessage": "Type a message...",
@@ -339,6 +348,9 @@
     "setAvailability": "Set Availability",
     "noRequests": "No booking requests yet",
     "requestsWillAppear": "New booking requests will appear here",
+    "upcomingBookings": "Upcoming",
+    "noUpcomingBookings": "No upcoming bookings",
+    "acceptedBookingsAppear": "Accepted bookings will appear here",
     "accept": "Accept",
     "reject": "Reject",
     "acceptTitle": "Accept Booking?",

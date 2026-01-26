@@ -45,13 +45,13 @@ export const useClientChats = (clientId: string) => {
     queryKey: chatKeys.byClient(clientId),
     queryFn: async () => {
       const chatsRef = collection(db, "chats");
+      // Simple query without orderBy to avoid needing composite index
       const q = query(
         chatsRef,
         where("clientId", "==", clientId),
-        orderBy("lastMessageAt", "desc"),
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => {
+      const chats = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -62,8 +62,15 @@ export const useClientChats = (clientId: string) => {
             : undefined,
         } as Chat;
       });
+      // Sort client-side
+      return chats.sort((a, b) => {
+        const aTime = a.lastMessageAt?.getTime() || a.createdAt.getTime();
+        const bTime = b.lastMessageAt?.getTime() || b.createdAt.getTime();
+        return bTime - aTime;
+      });
     },
     enabled: !!clientId,
+    refetchOnMount: "always",
   });
 };
 
@@ -73,13 +80,13 @@ export const useProviderChats = (providerId: string) => {
     queryKey: chatKeys.byProvider(providerId),
     queryFn: async () => {
       const chatsRef = collection(db, "chats");
+      // Simple query without orderBy to avoid needing composite index
       const q = query(
         chatsRef,
         where("providerId", "==", providerId),
-        orderBy("lastMessageAt", "desc"),
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => {
+      const chats = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -90,8 +97,15 @@ export const useProviderChats = (providerId: string) => {
             : undefined,
         } as Chat;
       });
+      // Sort client-side
+      return chats.sort((a, b) => {
+        const aTime = a.lastMessageAt?.getTime() || a.createdAt.getTime();
+        const bTime = b.lastMessageAt?.getTime() || b.createdAt.getTime();
+        return bTime - aTime;
+      });
     },
     enabled: !!providerId,
+    refetchOnMount: "always",
   });
 };
 

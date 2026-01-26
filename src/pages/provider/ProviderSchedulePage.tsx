@@ -8,6 +8,7 @@ import {
   Trash2,
   Clock,
   Save,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePendingBookings } from "@/hooks/queries/useBookings";
+import { useProviderBookings } from "@/hooks/queries/useBookings";
 import { AvailabilityRule } from "@/types";
 
 // Days of the week
@@ -80,8 +81,8 @@ const ProviderSchedulePage: React.FC = () => {
     endTime: "17:00",
   });
 
-  // Fetch pending bookings
-  const { data: bookings = [] } = usePendingBookings(user?.uid || "");
+  // Fetch all bookings for this provider
+  const { data: bookings = [] } = useProviderBookings(user?.uid || "");
 
   // Calendar navigation
   const goToPreviousMonth = () => {
@@ -320,6 +321,87 @@ const ProviderSchedulePage: React.FC = () => {
               </div>
             </div>
           </motion.section>
+
+          {/* Selected Date Bookings */}
+          {selectedDate && (
+            <motion.section variants={fadeInUp}>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-medium text-foreground">
+                  {t("schedule.bookingsFor")} {selectedDate.toLocaleDateString(isArabic ? "ar-SA" : "en-US", { weekday: "long", month: "short", day: "numeric" })}
+                </h2>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="rounded-2xl bg-card p-4">
+                {bookings.filter((b) => {
+                  const bookingDate = new Date(b.startAt);
+                  return (
+                    bookingDate.getDate() === selectedDate.getDate() &&
+                    bookingDate.getMonth() === selectedDate.getMonth() &&
+                    bookingDate.getFullYear() === selectedDate.getFullYear()
+                  );
+                }).length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    {t("schedule.noBookings")}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {bookings
+                      .filter((b) => {
+                        const bookingDate = new Date(b.startAt);
+                        return (
+                          bookingDate.getDate() === selectedDate.getDate() &&
+                          bookingDate.getMonth() === selectedDate.getMonth() &&
+                          bookingDate.getFullYear() === selectedDate.getFullYear()
+                        );
+                      })
+                      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+                      .map((booking) => (
+                        <div
+                          key={booking.id}
+                          className="flex items-center justify-between rounded-xl bg-muted p-3"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">
+                                {new Date(booking.startAt).toLocaleTimeString(isArabic ? "ar-SA" : "en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                                {" - "}
+                                {new Date(booking.endAt).toLocaleTimeString(isArabic ? "ar-SA" : "en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {booking.addressText}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={
+                              booking.status === "ACCEPTED" || booking.status === "CONFIRMED"
+                                ? "default"
+                                : booking.status === "PENDING"
+                                  ? "secondary"
+                                  : booking.status === "COMPLETED"
+                                    ? "outline"
+                                    : "destructive"
+                            }
+                          >
+                            {t(`bookingStatus.${booking.status}`)}
+                          </Badge>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </motion.section>
+          )}
         </motion.div>
       </main>
 

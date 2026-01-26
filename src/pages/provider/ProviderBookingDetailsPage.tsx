@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
@@ -8,8 +8,8 @@ import {
   Clock,
   MapPin,
   MessageCircle,
-  Phone,
   User,
+  CheckCircle,
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,23 +18,19 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useBooking,
   useUpdateBookingStatus,
 } from "@/hooks/queries/useBookings";
 import { useService } from "@/hooks/queries/useServices";
-import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { useCreateChat } from "@/hooks/queries/useChats";
 import { BookingStatus } from "@/types";
 
@@ -58,12 +54,14 @@ const getStatusBadgeVariant = (status: BookingStatus) => {
   }
 };
 
-const BookingDetailsPage: React.FC = () => {
+const ProviderBookingDetailsPage: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const isArabic = i18n.language === "ar";
+
+  const [dialogType, setDialogType] = useState<"complete" | "cancel" | null>(null);
 
   const { data: booking, isLoading: loadingBooking } = useBooking(
     bookingId || "",
@@ -71,15 +69,12 @@ const BookingDetailsPage: React.FC = () => {
   const { data: service, isLoading: loadingService } = useService(
     booking?.serviceId || "",
   );
-  const { data: provider, isLoading: loadingProvider } = useProviderProfile(
-    booking?.providerId || "",
-  );
 
   const createChatMutation = useCreateChat();
   const updateStatusMutation = useUpdateBookingStatus();
 
   const handleBack = () => {
-    navigate("/client/bookings");
+    navigate("/provider");
   };
 
   const handleMessage = async () => {
@@ -87,26 +82,27 @@ const BookingDetailsPage: React.FC = () => {
 
     try {
       const chatId = await createChatMutation.mutateAsync({
-        clientId: user.uid,
-        providerId: booking.providerId,
+        clientId: booking.clientId,
+        providerId: user.uid,
         bookingId: booking.id,
       });
-      navigate(`/client/chats/${chatId}`);
+      navigate(`/provider/chats/${chatId}`);
     } catch (error) {
       console.error("Failed to create chat:", error);
     }
   };
 
-  const handleCancelBooking = async () => {
+  const handleStatusUpdate = async (status: BookingStatus) => {
     if (!booking) return;
 
     try {
       await updateStatusMutation.mutateAsync({
         id: booking.id,
-        status: "CANCELLED_BY_CLIENT",
+        status,
       });
+      setDialogType(null);
     } catch (error) {
-      console.error("Failed to cancel booking:", error);
+      console.error("Failed to update booking:", error);
     }
   };
 
@@ -126,8 +122,9 @@ const BookingDetailsPage: React.FC = () => {
     }).format(new Date(date));
   };
 
-  const canCancel =
-    booking && ["PENDING", "ACCEPTED", "CONFIRMED"].includes(booking.status);
+  const canComplete = booking && ["ACCEPTED", "CONFIRMED", "IN_PROGRESS"].includes(booking.status);
+  const canCancel = booking && ["PENDING", "ACCEPTED", "CONFIRMED"].includes(booking.status);
+  const canStartProgress = booking && ["ACCEPTED", "CONFIRMED"].includes(booking.status);
 
   if (loadingBooking) {
     return (
@@ -224,11 +221,21 @@ const BookingDetailsPage: React.FC = () => {
                   <span>{booking.addressText}</span>
                 </div>
               )}
+              {service?.locationType && (
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                  <span>
+                    {t(
+                      `services.${service.locationType === "AT_PROVIDER" ? "atProvider" : "atClient"}`,
+                    )}
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Provider Card */}
+        {/* Client Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -237,7 +244,7 @@ const BookingDetailsPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                {t("bookings.provider")}
+                {t("chat.client")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -246,93 +253,114 @@ const BookingDetailsPage: React.FC = () => {
                   <User className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  {loadingProvider ? (
-                    <>
-                      <Skeleton className="h-5 w-32 mb-1" />
-                      <Skeleton className="h-4 w-24" />
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-medium">
-                        {provider?.displayName || t("bookings.provider")}
-                      </p>
-                      {(provider?.city || provider?.area) && (
-                        <p className="text-sm text-muted-foreground">
-                          {[provider.city, provider.area]
-                            .filter(Boolean)
-                            .join(", ")}
-                        </p>
-                      )}
-                    </>
-                  )}
+                  <p className="font-medium">{t("chat.client")}</p>
                 </div>
               </div>
 
               <Separator className="my-4" />
 
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleMessage}
-                  disabled={createChatMutation.isPending}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  {t("bookings.messageProvider")}
-                </Button>
-                {provider?.phone && (
-                  <Button variant="outline" size="icon" asChild>
-                    <a href={`tel:${provider.phone}`}>
-                      <Phone className="h-4 w-4" />
-                    </a>
-                  </Button>
-                )}
-              </div>
+              {/* Action Button */}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleMessage}
+                disabled={createChatMutation.isPending}
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                {t("bookings.messageClient")}
+              </Button>
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Status Actions */}
+        {(canStartProgress || canComplete) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-3"
+          >
+            {canStartProgress && booking.status !== "IN_PROGRESS" && (
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => handleStatusUpdate("IN_PROGRESS")}
+                disabled={updateStatusMutation.isPending}
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                {t("bookings.startProgress")}
+              </Button>
+            )}
+            
+            <Button
+              className="w-full"
+              onClick={() => setDialogType("complete")}
+              disabled={updateStatusMutation.isPending}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              {t("bookings.markComplete")}
+            </Button>
+          </motion.div>
+        )}
 
         {/* Cancel Booking */}
         {canCancel && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
           >
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  disabled={updateStatusMutation.isPending}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  {t("bookings.cancelBooking")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    {t("bookings.cancelConfirmTitle")}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t("bookings.cancelConfirmDesc")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancelBooking}>
-                    {t("bookings.confirmCancel")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => setDialogType("cancel")}
+              disabled={updateStatusMutation.isPending}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              {t("bookings.cancelBooking")}
+            </Button>
           </motion.div>
         )}
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={dialogType !== null} onOpenChange={() => setDialogType(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dialogType === "complete"
+                ? t("bookings.completeConfirmTitle")
+                : t("bookings.cancelConfirmTitle")}
+            </DialogTitle>
+            <DialogDescription>
+              {dialogType === "complete"
+                ? t("bookings.completeConfirmDesc")
+                : t("bookings.cancelConfirmDescProvider")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDialogType(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant={dialogType === "cancel" ? "destructive" : "default"}
+              onClick={() =>
+                handleStatusUpdate(
+                  dialogType === "complete" ? "COMPLETED" : "CANCELLED_BY_PROVIDER"
+                )
+              }
+              disabled={updateStatusMutation.isPending}
+            >
+              {dialogType === "complete"
+                ? t("bookings.confirmComplete")
+                : t("bookings.confirmCancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default BookingDetailsPage;
+export default ProviderBookingDetailsPage;

@@ -151,10 +151,17 @@
     "dateTime": "التاريخ والوقت",
     "provider": "مقدمة الخدمة",
     "messageProvider": "مراسلة مقدمة الخدمة",
+    "messageClient": "مراسلة العميلة",
     "cancelBooking": "إلغاء الحجز",
     "cancelConfirmTitle": "إلغاء هذا الحجز؟",
     "cancelConfirmDesc": "هل أنتِ متأكدة من إلغاء هذا الحجز؟ لا يمكن التراجع عن هذا الإجراء.",
-    "confirmCancel": "نعم، إلغاء"
+    "cancelConfirmDescProvider": "هل أنتِ متأكدة من إلغاء هذا الحجز؟ سيتم إشعار العميلة.",
+    "confirmCancel": "نعم، إلغاء",
+    "startProgress": "بدء الخدمة",
+    "markComplete": "تحديد كمكتمل",
+    "completeConfirmTitle": "تحديد الحجز كمكتمل؟",
+    "completeConfirmDesc": "تأكيد إتمام هذه الخدمة. سيتم إشعار العميلة.",
+    "confirmComplete": "نعم، إتمام"
   },
   "chat": {
     "typeMessage": "اكتبي رسالة...",
@@ -243,7 +250,9 @@
     "hasBooking": "يوجد حجز",
     "workingThisDay": "العمل في هذا اليوم",
     "startTime": "وقت البدء",
-    "endTime": "وقت الانتهاء"
+    "endTime": "وقت الانتهاء",
+    "bookingsFor": "الحجوزات في",
+    "noBookings": "لا توجد حجوزات في هذا اليوم"
   },
   "landing": {
     "heroTitle": "وصلتك الموثوقة إلى",
@@ -325,6 +334,9 @@
     "setAvailability": "تعيين المواعيد",
     "noRequests": "لا توجد طلبات حجز بعد",
     "requestsWillAppear": "ستظهر طلبات الحجز الجديدة هنا",
+    "upcomingBookings": "القادمة",
+    "noUpcomingBookings": "لا توجد حجوزات قادمة",
+    "acceptedBookingsAppear": "ستظهر الحجوزات المقبولة هنا",
     "accept": "قبول",
     "reject": "رفض",
     "acceptTitle": "قبول الحجز؟",

@@ -28,6 +28,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   usePendingBookings,
+  useProviderBookings,
   useUpdateBookingStatus,
 } from "@/hooks/queries/useBookings";
 import logo from "@/assets/logo.jpeg";
@@ -44,11 +45,19 @@ const ProviderDashboardPage: React.FC = () => {
     null,
   );
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"pending" | "upcoming">("pending");
 
   // Fetch pending bookings
   const { data: pendingBookings = [], isLoading } = usePendingBookings(
     user?.uid || "",
   );
+  
+  // Fetch all bookings and filter for upcoming (accepted/confirmed)
+  const { data: allBookings = [] } = useProviderBookings(user?.uid || "");
+  const upcomingBookings = allBookings.filter(
+    (b) => (b.status === "ACCEPTED" || b.status === "CONFIRMED") && new Date(b.startAt) >= new Date()
+  ).sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+  
   const updateStatusMutation = useUpdateBookingStatus();
 
   const handleAction = (booking: Booking, action: "accept" | "reject") => {
@@ -62,7 +71,7 @@ const ProviderDashboardPage: React.FC = () => {
 
     try {
       await updateStatusMutation.mutateAsync({
-        bookingId: selectedBooking.id,
+        id: selectedBooking.id,
         status: actionType === "accept" ? "ACCEPTED" : "REJECTED",
       });
       setDialogOpen(false);
@@ -210,92 +219,187 @@ const ProviderDashboardPage: React.FC = () => {
             </div>
           </motion.section>
 
-          {/* Pending booking requests */}
+          {/* Bookings Section with Tabs */}
           <motion.section variants={fadeInUp}>
-            <h2 className="mb-4 text-lg font-semibold text-foreground">
-              {t("nav.requests")}
-            </h2>
+            {/* Tab buttons */}
+            <div className="mb-4 flex gap-2">
+              <Button
+                variant={activeTab === "pending" ? "default" : "outline"}
+                className="flex-1 gap-2"
+                onClick={() => setActiveTab("pending")}
+              >
+                {t("nav.requests")}
+                {pendingBookings.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {pendingBookings.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant={activeTab === "upcoming" ? "default" : "outline"}
+                className="flex-1 gap-2"
+                onClick={() => setActiveTab("upcoming")}
+              >
+                {t("dashboard.upcomingBookings")}
+                {upcomingBookings.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {upcomingBookings.length}
+                  </Badge>
+                )}
+              </Button>
+            </div>
 
-            {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2].map((i) => (
-                  <Skeleton key={i} className="h-32 w-full rounded-2xl" />
-                ))}
-              </div>
-            ) : pendingBookings.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-12 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                  <Calendar className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="text-muted-foreground">
-                  {t("dashboard.noRequests")}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t("dashboard.requestsWillAppear")}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingBookings.map((booking) => (
-                  <div key={booking.id} className="rounded-2xl bg-card p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                            <User className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-foreground">
-                              {t("chat.client")}
-                            </h3>
-                            <Badge variant="outline">
-                              {t("booking.status.pending")}
-                            </Badge>
+            {/* Pending Requests Tab */}
+            {activeTab === "pending" && (
+              <>
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2].map((i) => (
+                      <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+                    ))}
+                  </div>
+                ) : pendingBookings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-12 text-center">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                      <Calendar className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">
+                      {t("dashboard.noRequests")}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t("dashboard.requestsWillAppear")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingBookings.map((booking) => (
+                      <div key={booking.id} className="rounded-2xl bg-card p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                                <User className="h-5 w-5 text-primary" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-foreground">
+                                  {t("chat.client")}
+                                </h3>
+                                <Badge variant="outline">
+                                  {t("booking.status.pending")}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{formatDate(booking.startAt)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{formatTime(booking.startAt)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4" />
+                                <span>
+                                  {t(
+                                    `services.${booking.locationType === "AT_PROVIDER" ? "atProvider" : "atClient"}`,
+                                  )}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>{formatDate(booking.startAt)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            <span>{formatTime(booking.startAt)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4" />
-                            <span>
-                              {t(
-                                `services.${booking.locationType === "AT_PROVIDER" ? "atProvider" : "atClient"}`,
-                              )}
-                            </span>
+                        {/* Action buttons */}
+                        <div className="mt-4 flex gap-2">
+                          <Button
+                            className="flex-1 gap-2"
+                            onClick={() => handleAction(booking, "accept")}
+                          >
+                            <Check className="h-4 w-4" />
+                            {t("dashboard.accept")}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="flex-1 gap-2"
+                            onClick={() => handleAction(booking, "reject")}
+                          >
+                            <X className="h-4 w-4" />
+                            {t("dashboard.reject")}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Upcoming Bookings Tab */}
+            {activeTab === "upcoming" && (
+              <>
+                {upcomingBookings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-12 text-center">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                      <CheckCircle className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">
+                      {t("dashboard.noUpcomingBookings")}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t("dashboard.acceptedBookingsAppear")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {upcomingBookings.map((booking) => (
+                      <div 
+                        key={booking.id} 
+                        className="rounded-2xl bg-card p-4 cursor-pointer hover:bg-card/80 transition-colors"
+                        onClick={() => navigate(`/provider/booking/${booking.id}`)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
+                                <CheckCircle className="h-5 w-5 text-green-500" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-foreground">
+                                  {t("chat.client")}
+                                </h3>
+                                <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
+                                  {t(`bookingStatus.${booking.status}`)}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{formatDate(booking.startAt)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{formatTime(booking.startAt)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4" />
+                                <span>
+                                  {t(
+                                    `services.${booking.locationType === "AT_PROVIDER" ? "atProvider" : "atClient"}`,
+                                  )}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="mt-4 flex gap-2">
-                      <Button
-                        className="flex-1 gap-2"
-                        onClick={() => handleAction(booking, "accept")}
-                      >
-                        <Check className="h-4 w-4" />
-                        {t("dashboard.accept")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1 gap-2"
-                        onClick={() => handleAction(booking, "reject")}
-                      >
-                        <X className="h-4 w-4" />
-                        {t("dashboard.reject")}
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </motion.section>
         </motion.div>
