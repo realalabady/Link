@@ -1,15 +1,107 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { Calendar, Clock, CheckCircle, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { useAuth } from '@/contexts/AuthContext';
-import logo from '@/assets/logo.jpeg';
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  Calendar,
+  Clock,
+  CheckCircle,
+  Plus,
+  LogOut,
+  X,
+  Check,
+  MapPin,
+  User,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  usePendingBookings,
+  useUpdateBookingStatus,
+} from "@/hooks/queries/useBookings";
+import logo from "@/assets/logo.jpeg";
+import { Booking } from "@/types";
 
 const ProviderDashboardPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { user } = useAuth();
+  const { t, i18n } = useTranslation();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const isArabic = i18n.language === "ar";
+
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [actionType, setActionType] = useState<"accept" | "reject" | null>(
+    null,
+  );
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Fetch pending bookings
+  const { data: pendingBookings = [], isLoading } = usePendingBookings(
+    user?.uid || "",
+  );
+  const updateStatusMutation = useUpdateBookingStatus();
+
+  const handleAction = (booking: Booking, action: "accept" | "reject") => {
+    setSelectedBooking(booking);
+    setActionType(action);
+    setDialogOpen(true);
+  };
+
+  const confirmAction = async () => {
+    if (!selectedBooking || !actionType) return;
+
+    try {
+      await updateStatusMutation.mutateAsync({
+        bookingId: selectedBooking.id,
+        status: actionType === "accept" ? "ACCEPTED" : "REJECTED",
+      });
+      setDialogOpen(false);
+      setSelectedBooking(null);
+      setActionType(null);
+    } catch (error) {
+      console.error("Failed to update booking:", error);
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString(isArabic ? "ar-SA" : "en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatTime = (date: Date) => {
+    return new Date(date).toLocaleTimeString(isArabic ? "ar-SA" : "en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  // Calculate stats from real data
+  const todayBookings = pendingBookings.filter((b) => {
+    const today = new Date();
+    const bookingDate = new Date(b.startAt);
+    return (
+      bookingDate.getDate() === today.getDate() &&
+      bookingDate.getMonth() === today.getMonth() &&
+      bookingDate.getFullYear() === today.getFullYear()
+    );
+  });
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
@@ -17,9 +109,21 @@ const ProviderDashboardPage: React.FC = () => {
   };
 
   const stats = [
-    { icon: <Calendar className="h-6 w-6" />, label: 'Bookings today', value: '0' },
-    { icon: <Clock className="h-6 w-6" />, label: 'Pending requests', value: '0' },
-    { icon: <CheckCircle className="h-6 w-6" />, label: 'Completed', value: '0' },
+    {
+      icon: <Calendar className="h-6 w-6" />,
+      label: t("dashboard.bookingsToday"),
+      value: todayBookings.length.toString(),
+    },
+    {
+      icon: <Clock className="h-6 w-6" />,
+      label: t("dashboard.pendingRequests"),
+      value: pendingBookings.length.toString(),
+    },
+    {
+      icon: <CheckCircle className="h-6 w-6" />,
+      label: t("dashboard.completed"),
+      value: "0",
+    },
   ];
 
   return (
@@ -28,13 +132,31 @@ const ProviderDashboardPage: React.FC = () => {
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-md">
         <div className="container flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Link" className="h-10 w-10 rounded-lg object-cover" />
+            <img
+              src={logo}
+              alt="Link"
+              className="h-10 w-10 rounded-lg object-cover"
+            />
             <div>
-              <p className="text-sm text-muted-foreground">{t('home.greeting')}</p>
-              <h1 className="font-semibold text-foreground">{user?.name || 'Provider'}</h1>
+              <p className="text-sm text-muted-foreground">
+                {t("home.greeting")}
+              </p>
+              <h1 className="font-semibold text-foreground">
+                {user?.name || "Provider"}
+              </h1>
             </div>
           </div>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              title={t("auth.logout")}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -45,14 +167,19 @@ const ProviderDashboardPage: React.FC = () => {
           variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
         >
           {/* Stats */}
-          <motion.div variants={fadeInUp} className="mb-8 grid grid-cols-3 gap-4">
+          <motion.div
+            variants={fadeInUp}
+            className="mb-8 grid grid-cols-3 gap-4"
+          >
             {stats.map((stat, index) => (
               <div
                 key={index}
                 className="flex flex-col items-center rounded-2xl bg-card p-4 text-center card-glow"
               >
                 <div className="mb-2 text-primary">{stat.icon}</div>
-                <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
+                <p className="text-2xl font-bold text-card-foreground">
+                  {stat.value}
+                </p>
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             ))}
@@ -60,32 +187,151 @@ const ProviderDashboardPage: React.FC = () => {
 
           {/* Quick actions */}
           <motion.section variants={fadeInUp} className="mb-8">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">Quick Actions</h2>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
+              {t("dashboard.quickActions")}
+            </h2>
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="h-24 flex-col gap-2 rounded-2xl">
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-2 rounded-2xl"
+                onClick={() => navigate("/provider/services")}
+              >
                 <Plus className="h-6 w-6" />
-                Add Service
+                {t("services.addService")}
               </Button>
-              <Button variant="outline" className="h-24 flex-col gap-2 rounded-2xl">
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-2 rounded-2xl"
+                onClick={() => navigate("/provider/schedule")}
+              >
                 <Clock className="h-6 w-6" />
-                Set Availability
+                {t("dashboard.setAvailability")}
               </Button>
             </div>
           </motion.section>
 
-          {/* Recent bookings */}
+          {/* Pending booking requests */}
           <motion.section variants={fadeInUp}>
-            <h2 className="mb-4 text-lg font-semibold text-foreground">{t('nav.requests')}</h2>
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-12 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <Calendar className="h-8 w-8 text-muted-foreground" />
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
+              {t("nav.requests")}
+            </h2>
+
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2].map((i) => (
+                  <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+                ))}
               </div>
-              <p className="text-muted-foreground">No booking requests yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">Connect to backend to receive bookings</p>
-            </div>
+            ) : pendingBookings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-12 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                  <Calendar className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">
+                  {t("dashboard.noRequests")}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("dashboard.requestsWillAppear")}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingBookings.map((booking) => (
+                  <div key={booking.id} className="rounded-2xl bg-card p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                            <User className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-foreground">
+                              {t("chat.client")}
+                            </h3>
+                            <Badge variant="outline">
+                              {t("booking.status.pending")}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            <span>{formatDate(booking.startAt)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            <span>{formatTime(booking.startAt)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            <span>
+                              {t(
+                                `services.${booking.locationType === "AT_PROVIDER" ? "atProvider" : "atClient"}`,
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        className="flex-1 gap-2"
+                        onClick={() => handleAction(booking, "accept")}
+                      >
+                        <Check className="h-4 w-4" />
+                        {t("dashboard.accept")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={() => handleAction(booking, "reject")}
+                      >
+                        <X className="h-4 w-4" />
+                        {t("dashboard.reject")}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.section>
         </motion.div>
       </main>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {actionType === "accept"
+                ? t("dashboard.acceptTitle")
+                : t("dashboard.rejectTitle")}
+            </DialogTitle>
+            <DialogDescription>
+              {actionType === "accept"
+                ? t("dashboard.acceptDescription")
+                : t("dashboard.rejectDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant={actionType === "reject" ? "destructive" : "default"}
+              onClick={confirmAction}
+              disabled={updateStatusMutation.isPending}
+            >
+              {actionType === "accept"
+                ? t("dashboard.accept")
+                : t("dashboard.reject")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

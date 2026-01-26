@@ -1,27 +1,32 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { Sparkles, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { useAuth } from '@/contexts/AuthContext';
-import logo from '@/assets/logo.jpeg';
-
-// Mock categories for display
-const mockCategories = [
-  { id: '1', nameEn: 'Beauty', nameAr: 'الجمال', icon: '💄' },
-  { id: '2', nameEn: 'Hair', nameAr: 'الشعر', icon: '💇‍♀️' },
-  { id: '3', nameEn: 'Nails', nameAr: 'الأظافر', icon: '💅' },
-  { id: '4', nameEn: 'Massage', nameAr: 'المساج', icon: '💆‍♀️' },
-  { id: '5', nameEn: 'Fitness', nameAr: 'اللياقة', icon: '🏋️‍♀️' },
-  { id: '6', nameEn: 'Photography', nameAr: 'التصوير', icon: '📷' },
-];
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Sparkles, Search, LogOut, Star, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCategories } from "@/hooks/queries/useCategories";
+import { useVerifiedProviders } from "@/hooks/queries/useProviders";
+import logo from "@/assets/logo.jpeg";
 
 const ClientHomePage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
-  const isArabic = i18n.language === 'ar';
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const isArabic = i18n.language === "ar";
+
+  const { data: categories = [], isLoading: loadingCategories } =
+    useCategories();
+  const { data: providers = [], isLoading: loadingProviders } =
+    useVerifiedProviders(6);
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
@@ -34,13 +39,31 @@ const ClientHomePage: React.FC = () => {
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-md">
         <div className="container flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Link" className="h-10 w-10 rounded-lg object-cover" />
+            <img
+              src={logo}
+              alt="Link"
+              className="h-10 w-10 rounded-lg object-cover"
+            />
             <div>
-              <p className="text-sm text-muted-foreground">{t('home.greeting')}</p>
-              <h1 className="font-semibold text-foreground">{user?.name || 'Guest'}</h1>
+              <p className="text-sm text-muted-foreground">
+                {t("home.greeting")}
+              </p>
+              <h1 className="font-semibold text-foreground">
+                {user?.name || "Guest"}
+              </h1>
             </div>
           </div>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              title={t("auth.logout")}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -54,7 +77,7 @@ const ClientHomePage: React.FC = () => {
           <motion.div variants={fadeInUp} className="relative mb-8">
             <Search className="absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder={t('common.search') + '...'}
+              placeholder={t("common.search") + "..."}
               className="h-14 rounded-2xl border-2 ps-12 text-lg"
             />
           </motion.div>
@@ -62,24 +85,42 @@ const ClientHomePage: React.FC = () => {
           {/* Categories */}
           <motion.section variants={fadeInUp} className="mb-8">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">{t('home.categories')}</h2>
-              <Button variant="ghost" size="sm" className="text-primary">
-                {t('common.seeAll')}
+              <h2 className="text-lg font-semibold text-foreground">
+                {t("home.categories")}
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary"
+                onClick={() => navigate("/client/search")}
+              >
+                {t("common.seeAll")}
               </Button>
             </div>
-            <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
-              {mockCategories.map((category) => (
-                <button
-                  key={category.id}
-                  className="flex flex-col items-center rounded-2xl bg-card p-4 transition-all hover:bg-accent card-glow"
-                >
-                  <span className="mb-2 text-3xl">{category.icon}</span>
-                  <span className="text-sm font-medium text-card-foreground">
-                    {isArabic ? category.nameAr : category.nameEn}
-                  </span>
-                </button>
-              ))}
-            </div>
+            {loadingCategories ? (
+              <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="h-24 rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
+                {categories.slice(0, 6).map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() =>
+                      navigate(`/client/search?category=${category.id}`)
+                    }
+                    className="flex flex-col items-center rounded-2xl bg-card p-4 transition-all hover:bg-accent card-glow"
+                  >
+                    <span className="mb-2 text-3xl">{category.icon}</span>
+                    <span className="text-sm font-medium text-card-foreground">
+                      {isArabic ? category.nameAr : category.nameEn}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.section>
 
           {/* Featured Providers */}
@@ -87,21 +128,71 @@ const ClientHomePage: React.FC = () => {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">
                 <Sparkles className="me-2 inline h-5 w-5 text-primary" />
-                {t('home.featuredProviders')}
+                {t("home.featuredProviders")}
               </h2>
-              <Button variant="ghost" size="sm" className="text-primary">
-                {t('common.seeAll')}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary"
+                onClick={() => navigate("/client/search")}
+              >
+                {t("common.seeAll")}
               </Button>
             </div>
-            
-            {/* Empty state */}
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-12 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <Search className="h-8 w-8 text-muted-foreground" />
+
+            {loadingProviders ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[1, 2].map((i) => (
+                  <Skeleton key={i} className="h-32 rounded-2xl" />
+                ))}
               </div>
-              <p className="text-muted-foreground">{t('common.noResults')}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Connect to backend to see providers</p>
-            </div>
+            ) : providers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-12 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                  <Search className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">{t("common.noResults")}</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {providers.map((provider) => (
+                  <button
+                    key={provider.uid}
+                    onClick={() => navigate(`/client/provider/${provider.uid}`)}
+                    className="flex items-start gap-4 rounded-2xl bg-card p-4 text-start transition-all hover:bg-accent card-glow"
+                  >
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xl">
+                      👩‍💼
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground truncate">
+                          {provider.displayName || t("provider.provider")}
+                        </h3>
+                        {provider.isVerified && (
+                          <Badge variant="secondary" className="shrink-0">
+                            ✓ {t("provider.verified")}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span>{provider.ratingAvg.toFixed(1)}</span>
+                        <span>
+                          ({provider.ratingCount} {t("provider.reviews")})
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        <span className="truncate">
+                          {provider.city}, {provider.area}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.section>
         </motion.div>
       </main>

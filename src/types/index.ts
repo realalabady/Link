@@ -1,54 +1,59 @@
 // User roles in the app
-export type UserRole = 'CLIENT' | 'PROVIDER' | 'ADMIN';
+export type UserRole = "CLIENT" | "PROVIDER" | "ADMIN";
 
 // User status
-export type UserStatus = 'ACTIVE' | 'SUSPENDED';
+export type UserStatus = "ACTIVE" | "SUSPENDED";
 
 // Booking status
 export type BookingStatus =
-  | 'PENDING'
-  | 'ACCEPTED'
-  | 'REJECTED'
-  | 'CONFIRMED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'CANCELLED_BY_CLIENT'
-  | 'CANCELLED_BY_PROVIDER'
-  | 'NO_SHOW'
-  | 'REFUNDED'
-  | 'DISPUTED';
+  | "PENDING"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "CONFIRMED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED_BY_CLIENT"
+  | "CANCELLED_BY_PROVIDER"
+  | "NO_SHOW"
+  | "REFUNDED"
+  | "DISPUTED";
 
 // Payment status
-export type PaymentStatus = 'INITIATED' | 'PAID' | 'FAILED' | 'REFUNDED';
+export type PaymentStatus = "INITIATED" | "PAID" | "FAILED" | "REFUNDED";
 
 // Payment type
-export type PayType = 'DEPOSIT' | 'FULL';
+export type PayType = "DEPOSIT" | "FULL";
 
 // Payment gateway
-export type PaymentGateway = 'STRIPE' | 'STUB';
+export type PaymentGateway = "STRIPE" | "STUB";
 
 // Payout status
-export type PayoutStatus = 'REQUESTED' | 'APPROVED' | 'PAID' | 'REJECTED';
+export type PayoutStatus = "REQUESTED" | "APPROVED" | "PAID" | "REJECTED";
 
 // Location type for services
-export type LocationType = 'AT_PROVIDER' | 'AT_CLIENT' | 'BOTH';
+export type LocationType = "AT_PROVIDER" | "AT_CLIENT" | "BOTH";
 
 // Availability exception type
-export type AvailabilityExceptionType = 'BLOCK' | 'EXTRA';
+export type AvailabilityExceptionType = "BLOCK" | "EXTRA";
 
 // Chat message type
-export type MessageType = 'TEXT' | 'IMAGE';
+export type MessageType = "TEXT" | "IMAGE";
 
 // Report target type
-export type ReportTargetType = 'USER' | 'PROVIDER' | 'SERVICE' | 'BOOKING' | 'MESSAGE';
+export type ReportTargetType =
+  | "USER"
+  | "PROVIDER"
+  | "SERVICE"
+  | "BOOKING"
+  | "MESSAGE";
 
 // Report status
-export type ReportStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+export type ReportStatus = "PENDING" | "REVIEWED" | "RESOLVED" | "DISMISSED";
 
 // User interface
 export interface User {
   uid: string;
-  role: UserRole;
+  role: UserRole | null;
   status: UserStatus;
   name: string;
   email: string;
@@ -172,9 +177,11 @@ export interface Chat {
   id: string;
   clientId: string;
   providerId: string;
-  participants: string[];
+  bookingId?: string;
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  unreadCount: number;
   createdAt: Date;
-  lastMessageAt: Date;
 }
 
 // Chat message
@@ -182,7 +189,8 @@ export interface Message {
   id: string;
   senderId: string;
   type: MessageType;
-  content: string;
+  text?: string;
+  imageUrl?: string;
   createdAt: Date;
   readAt?: Date;
 }
@@ -193,8 +201,9 @@ export interface Review {
   bookingId: string;
   clientId: string;
   providerId: string;
-  stars: number; // 1-5
-  comment: string;
+  serviceId?: string;
+  rating: number; // 1-5
+  comment?: string;
   createdAt: Date;
 }
 

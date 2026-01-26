@@ -1,8 +1,30 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '@/types';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  User as FirebaseUser,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import {
+  createUserDocument,
+  getUserDocument,
+  updateUserRole as updateUserRoleInFirestore,
+  userDocumentExists,
+  createProviderProfile,
+} from "@/lib/firestore";
+import { User, UserRole } from "@/types";
 
 interface AuthContextType {
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -16,7 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -27,43 +49,69 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Listen for Firebase auth state changes
   useEffect(() => {
-    // TODO: Replace with Firebase auth state listener
-    // Check for existing session
-    const checkAuth = async () => {
-      try {
-        // Simulated auth check - will be replaced with Firebase
-        const storedUser = localStorage.getItem('link_user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setFirebaseUser(fbUser);
 
-    checkAuth();
+      if (fbUser) {
+        try {
+          // Get user document from Firestore
+          const userDoc = await getUserDocument(fbUser.uid);
+
+          if (userDoc) {
+            setUser(userDoc);
+          } else {
+            // User exists in Firebase Auth but not in Firestore
+            // This shouldn't happen in normal flow, but handle it
+            console.warn("User authenticated but no Firestore document found");
+            setUser(null);
+          }
+        } catch (error) {
+          console.error("Error fetching user document:", error);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with Firebase auth
-      // Simulated login
-      const mockUser: User = {
-        uid: 'mock-uid-' + Date.now(),
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
         email,
-        name: email.split('@')[0],
-        role: 'CLIENT', // Default, will be set in onboarding
-        status: 'ACTIVE',
-        createdAt: new Date(),
-      };
-      setUser(mockUser);
-      localStorage.setItem('link_user', JSON.stringify(mockUser));
+        password,
+      );
+      const fbUser = userCredential.user;
+
+      // Get user document from Firestore
+      const userDoc = await getUserDocument(fbUser.uid);
+
+      if (userDoc) {
+        setUser(userDoc);
+      } else {
+        // Create user document if it doesn't exist (edge case)
+        const newUser = await createUserDocument(
+          fbUser.uid,
+          fbUser.email || email,
+          fbUser.displayName || email.split("@")[0],
+        );
+        setUser(newUser);
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -72,17 +120,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with Firebase auth
-      const mockUser: User = {
-        uid: 'mock-uid-' + Date.now(),
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
         email,
-        name,
-        role: 'CLIENT', // Will be set in onboarding
-        status: 'ACTIVE',
-        createdAt: new Date(),
-      };
-      setUser(mockUser);
-      localStorage.setItem('link_user', JSON.stringify(mockUser));
+        password,
+      );
+      const fbUser = userCredential.user;
+
+      // Create user document in Firestore
+      const newUser = await createUserDocument(fbUser.uid, email, name);
+      setUser(newUser);
+    } catch (error) {
+      console.error("Signup error:", error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -91,20 +141,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with Firebase signOut
+      await signOut(auth);
       setUser(null);
-      localStorage.removeItem('link_user');
+      setFirebaseUser(null);
+    } catch (error) {
+      console.error("Logout error:", error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   const setUserRole = async (role: UserRole) => {
-    if (user) {
-      const updatedUser = { ...user, role };
-      setUser(updatedUser);
-      localStorage.setItem('link_user', JSON.stringify(updatedUser));
-      // TODO: Update in Firestore
+    if (user && firebaseUser) {
+      try {
+        // Update role in Firestore
+        await updateUserRoleInFirestore(firebaseUser.uid, role);
+
+        // If becoming a provider, create provider profile
+        if (role === "PROVIDER") {
+          await createProviderProfile(firebaseUser.uid, {
+            bio: "",
+            city: "",
+            area: "",
+          });
+        }
+
+        // Update local state
+        const updatedUser = { ...user, role };
+        setUser(updatedUser);
+      } catch (error) {
+        console.error("Error updating user role:", error);
+        throw error;
+      }
     }
   };
 
@@ -112,6 +181,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        firebaseUser,
         isLoading,
         isAuthenticated: !!user,
         login,

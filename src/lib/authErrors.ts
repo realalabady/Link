@@ -1,0 +1,64 @@
+// Firebase Auth error code mappings
+// Maps Firebase error codes to translation keys or default messages
+
+export const getAuthErrorMessage = (
+  error: any,
+  t: (key: string) => string,
+): string => {
+  const errorCode = error?.code || "";
+
+  switch (errorCode) {
+    // Sign up errors
+    case "auth/email-already-in-use":
+      return (
+        t("auth.errors.emailInUse") ||
+        "This email is already registered. Try logging in instead."
+      );
+    case "auth/invalid-email":
+      return (
+        t("auth.errors.invalidEmail") || "Please enter a valid email address."
+      );
+    case "auth/weak-password":
+      return (
+        t("auth.errors.weakPassword") ||
+        "Password should be at least 6 characters."
+      );
+    case "auth/operation-not-allowed":
+      return (
+        t("auth.errors.operationNotAllowed") ||
+        "Email/password sign up is not enabled."
+      );
+
+    // Login errors
+    case "auth/user-not-found":
+      return (
+        t("auth.errors.userNotFound") || "No account found with this email."
+      );
+    case "auth/wrong-password":
+      return (
+        t("auth.errors.wrongPassword") ||
+        "Incorrect password. Please try again."
+      );
+    case "auth/invalid-credential":
+      return t("auth.errors.invalidCredential") || "Invalid email or password.";
+    case "auth/user-disabled":
+      return t("auth.errors.userDisabled") || "This account has been disabled.";
+    case "auth/too-many-requests":
+      return (
+        t("auth.errors.tooManyRequests") ||
+        "Too many failed attempts. Please try again later."
+      );
+
+    // Network errors
+    case "auth/network-request-failed":
+      return (
+        t("auth.errors.networkError") ||
+        "Network error. Please check your connection."
+      );
+
+    // Default
+    default:
+      console.error("Unhandled auth error:", errorCode, error);
+      return t("common.error") || "Something went wrong. Please try again.";
+  }
+};

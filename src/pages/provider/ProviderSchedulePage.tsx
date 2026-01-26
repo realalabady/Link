@@ -1,0 +1,414 @@
+import React, { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Clock,
+  Save,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePendingBookings } from "@/hooks/queries/useBookings";
+import { AvailabilityRule } from "@/types";
+
+// Days of the week
+const DAYS = [
+  { key: 0, labelKey: "schedule.sunday" },
+  { key: 1, labelKey: "schedule.monday" },
+  { key: 2, labelKey: "schedule.tuesday" },
+  { key: 3, labelKey: "schedule.wednesday" },
+  { key: 4, labelKey: "schedule.thursday" },
+  { key: 5, labelKey: "schedule.friday" },
+  { key: 6, labelKey: "schedule.saturday" },
+];
+
+// Time slots for select
+const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
+  const hours = Math.floor(i / 2);
+  const minutes = (i % 2) * 30;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+});
+
+const ProviderSchedulePage: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const isArabic = i18n.language === "ar";
+
+  // Current month/year for calendar
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+
+  // Weekly availability rules (local state - would be stored in Firestore)
+  const [weeklySchedule, setWeeklySchedule] = useState<
+    Record<number, AvailabilityRule | null>
+  >({
+    0: null, // Sunday - off
+    1: { id: "1", dayOfWeek: 1, startTime: "09:00", endTime: "17:00" },
+    2: { id: "2", dayOfWeek: 2, startTime: "09:00", endTime: "17:00" },
+    3: { id: "3", dayOfWeek: 3, startTime: "09:00", endTime: "17:00" },
+    4: { id: "4", dayOfWeek: 4, startTime: "09:00", endTime: "17:00" },
+    5: { id: "5", dayOfWeek: 5, startTime: "09:00", endTime: "17:00" },
+    6: null, // Saturday - off
+  });
+
+  // Editing day
+  const [editingDay, setEditingDay] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({
+    enabled: false,
+    startTime: "09:00",
+    endTime: "17:00",
+  });
+
+  // Fetch pending bookings
+  const { data: bookings = [] } = usePendingBookings(user?.uid || "");
+
+  // Calendar navigation
+  const goToPreviousMonth = () => {
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
+    );
+  };
+
+  const goToNextMonth = () => {
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
+    );
+  };
+
+  // Generate calendar days
+  const calendarDays = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+    const days: Date[] = [];
+    const current = new Date(startDate);
+
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+
+    return days;
+  }, [currentDate]);
+
+  const monthName = currentDate.toLocaleDateString(
+    isArabic ? "ar-SA" : "en-US",
+    {
+      month: "long",
+      year: "numeric",
+    },
+  );
+
+  const openDayEditor = (day: number) => {
+    const rule = weeklySchedule[day];
+    setEditingDay(day);
+    setEditForm({
+      enabled: !!rule,
+      startTime: rule?.startTime || "09:00",
+      endTime: rule?.endTime || "17:00",
+    });
+    setScheduleDialogOpen(true);
+  };
+
+  const saveDaySchedule = () => {
+    if (editingDay === null) return;
+
+    if (editForm.enabled) {
+      setWeeklySchedule({
+        ...weeklySchedule,
+        [editingDay]: {
+          id: editingDay.toString(),
+          dayOfWeek: editingDay,
+          startTime: editForm.startTime,
+          endTime: editForm.endTime,
+        },
+      });
+    } else {
+      setWeeklySchedule({
+        ...weeklySchedule,
+        [editingDay]: null,
+      });
+    }
+
+    setScheduleDialogOpen(false);
+    setEditingDay(null);
+  };
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const isCurrentMonth = (date: Date) => {
+    return date.getMonth() === currentDate.getMonth();
+  };
+
+  const hasBooking = (date: Date) => {
+    return bookings.some((booking) => {
+      const bookingDate = new Date(booking.startAt);
+      return (
+        bookingDate.getDate() === date.getDate() &&
+        bookingDate.getMonth() === date.getMonth() &&
+        bookingDate.getFullYear() === date.getFullYear()
+      );
+    });
+  };
+
+  const isWorkDay = (date: Date) => {
+    const day = date.getDay();
+    return !!weeklySchedule[day];
+  };
+
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-md">
+        <div className="container py-4">
+          <h1 className="text-xl font-semibold text-foreground">
+            {t("nav.schedule")}
+          </h1>
+        </div>
+      </header>
+
+      <main className="container py-4">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+        >
+          {/* Weekly Schedule */}
+          <motion.section variants={fadeInUp} className="mb-6">
+            <h2 className="mb-3 font-medium text-foreground">
+              {t("schedule.weeklyHours")}
+            </h2>
+            <div className="space-y-2">
+              {DAYS.map((day) => {
+                const rule = weeklySchedule[day.key];
+                return (
+                  <button
+                    key={day.key}
+                    onClick={() => openDayEditor(day.key)}
+                    className="flex w-full items-center justify-between rounded-xl bg-card p-4 transition-colors hover:bg-accent"
+                  >
+                    <span className="font-medium text-foreground">
+                      {t(day.labelKey)}
+                    </span>
+                    {rule ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="gap-1">
+                          <Clock className="h-3 w-3" />
+                          {rule.startTime} - {rule.endTime}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <Badge variant="outline">{t("schedule.off")}</Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.section>
+
+          {/* Calendar View */}
+          <motion.section variants={fadeInUp}>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-medium text-foreground">
+                {t("schedule.calendar")}
+              </h2>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={goToPreviousMonth}>
+                  <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
+                </Button>
+                <span className="min-w-32 text-center font-medium">
+                  {monthName}
+                </span>
+                <Button variant="ghost" size="icon" onClick={goToNextMonth}>
+                  <ChevronRight className="h-5 w-5 rtl:rotate-180" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-card p-4">
+              {/* Day headers */}
+              <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
+                {DAYS.map((day) => (
+                  <div key={day.key}>{t(day.labelKey).slice(0, 3)}</div>
+                ))}
+              </div>
+
+              {/* Calendar grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((date, index) => {
+                  const isWork = isWorkDay(date);
+                  const hasAppt = hasBooking(date);
+                  const today = isToday(date);
+                  const inMonth = isCurrentMonth(date);
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedDate(date)}
+                      className={`relative flex h-10 items-center justify-center rounded-lg text-sm transition-colors ${
+                        !inMonth
+                          ? "text-muted-foreground/50"
+                          : today
+                            ? "bg-primary text-primary-foreground font-bold"
+                            : isWork
+                              ? "bg-primary/10 text-foreground hover:bg-primary/20"
+                              : "text-muted-foreground hover:bg-accent"
+                      }`}
+                    >
+                      {date.getDate()}
+                      {hasAppt && (
+                        <span className="absolute bottom-1 h-1 w-1 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Legend */}
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded bg-primary/10" />
+                  <span>{t("schedule.workDay")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded bg-muted" />
+                  <span>{t("schedule.dayOff")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative h-3 w-3">
+                    <span className="absolute bottom-0 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-primary" />
+                  </div>
+                  <span>{t("schedule.hasBooking")}</span>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+        </motion.div>
+      </main>
+
+      {/* Edit Day Schedule Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingDay !== null && t(DAYS[editingDay].labelKey)}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Working this day */}
+            <div className="flex items-center justify-between">
+              <Label>{t("schedule.workingThisDay")}</Label>
+              <Switch
+                checked={editForm.enabled}
+                onCheckedChange={(checked) =>
+                  setEditForm({ ...editForm, enabled: checked })
+                }
+              />
+            </div>
+
+            {editForm.enabled && (
+              <>
+                {/* Start Time */}
+                <div>
+                  <Label>{t("schedule.startTime")}</Label>
+                  <Select
+                    value={editForm.startTime}
+                    onValueChange={(value) =>
+                      setEditForm({ ...editForm, startTime: value })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_SLOTS.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* End Time */}
+                <div>
+                  <Label>{t("schedule.endTime")}</Label>
+                  <Select
+                    value={editForm.endTime}
+                    onValueChange={(value) =>
+                      setEditForm({ ...editForm, endTime: value })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_SLOTS.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setScheduleDialogOpen(false)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={saveDaySchedule} className="gap-2">
+              <Save className="h-4 w-4" />
+              {t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ProviderSchedulePage;

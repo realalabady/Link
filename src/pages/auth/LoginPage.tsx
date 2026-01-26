@@ -1,38 +1,40 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { useAuth } from '@/contexts/AuthContext';
-import logo from '@/assets/logo.jpeg';
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useAuth } from "@/contexts/AuthContext";
+import { getAuthErrorMessage } from "@/lib/authErrors";
+import logo from "@/assets/logo.jpeg";
 
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
-  const isRTL = i18n.dir() === 'rtl';
+  const isRTL = i18n.dir() === "rtl";
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
       await login(email, password);
-      navigate('/onboarding');
+      // Navigate to root - RoleBasedRedirect will handle routing based on user's role
+      navigate("/");
     } catch (err) {
-      setError(t('common.error'));
+      setError(getAuthErrorMessage(err, t));
     } finally {
       setIsLoading(false);
     }
@@ -54,10 +56,16 @@ const LoginPage: React.FC = () => {
           {/* Logo */}
           <div className="mb-8 flex flex-col items-center">
             <Link to="/">
-              <img src={logo} alt="Link" className="h-16 w-16 rounded-xl object-cover" />
+              <img
+                src={logo}
+                alt="Link"
+                className="h-16 w-16 rounded-xl object-cover"
+              />
             </Link>
-            <h1 className="mt-4 text-2xl font-bold text-foreground">{t('auth.welcomeBack')}</h1>
-            <p className="mt-2 text-muted-foreground">{t('auth.login')}</p>
+            <h1 className="mt-4 text-2xl font-bold text-foreground">
+              {t("auth.welcomeBack")}
+            </h1>
+            <p className="mt-2 text-muted-foreground">{t("auth.login")}</p>
           </div>
 
           {/* Form */}
@@ -69,7 +77,7 @@ const LoginPage: React.FC = () => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">{t('auth.email')}</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <div className="relative">
                 <Mail className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -85,12 +93,12 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">{t('auth.password')}</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <div className="relative">
                 <Lock className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -102,14 +110,21 @@ const LoginPage: React.FC = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             <div className="text-end">
-              <Link to="/auth/forgot-password" className="text-sm text-primary hover:underline">
-                {t('auth.forgotPassword')}
+              <Link
+                to="/auth/forgot-password"
+                className="text-sm text-primary hover:underline"
+              >
+                {t("auth.forgotPassword")}
               </Link>
             </div>
 
@@ -118,7 +133,7 @@ const LoginPage: React.FC = () => {
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
               ) : (
                 <>
-                  {t('auth.login')}
+                  {t("auth.login")}
                   <ArrowIcon className="ms-2 h-4 w-4" />
                 </>
               )}
@@ -126,9 +141,12 @@ const LoginPage: React.FC = () => {
           </form>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            {t('auth.dontHaveAccount')}{' '}
-            <Link to="/auth/signup" className="font-medium text-primary hover:underline">
-              {t('auth.signup')}
+            {t("auth.dontHaveAccount")}{" "}
+            <Link
+              to="/auth/signup"
+              className="font-medium text-primary hover:underline"
+            >
+              {t("auth.signup")}
             </Link>
           </p>
         </motion.div>
@@ -137,9 +155,17 @@ const LoginPage: React.FC = () => {
       {/* Right side - Decorative */}
       <div className="hidden flex-1 hero-gradient lg:flex lg:items-center lg:justify-center">
         <div className="p-12 text-center">
-          <img src={logo} alt="Link" className="mx-auto h-40 w-40 rounded-3xl object-cover shadow-2xl float" />
-          <h2 className="mt-8 text-3xl font-bold text-primary-foreground">{t('common.appName')}</h2>
-          <p className="mt-4 max-w-md text-lg text-primary-foreground/80">{t('common.tagline')}</p>
+          <img
+            src={logo}
+            alt="Link"
+            className="mx-auto h-40 w-40 rounded-3xl object-cover shadow-2xl float"
+          />
+          <h2 className="mt-8 text-3xl font-bold text-primary-foreground">
+            {t("common.appName")}
+          </h2>
+          <p className="mt-4 max-w-md text-lg text-primary-foreground/80">
+            {t("common.tagline")}
+          </p>
         </div>
       </div>
     </div>

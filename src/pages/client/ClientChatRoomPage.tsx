@@ -1,0 +1,267 @@
+import React, { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowLeft, Send, Image as ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useChat,
+  useChatMessages,
+  useSendMessage,
+} from "@/hooks/queries/useChats";
+import { Message } from "@/types";
+
+const ClientChatRoomPage: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const { chatId } = useParams<{ chatId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isArabic = i18n.language === "ar";
+
+  const [messageText, setMessageText] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch data
+  const { data: chat, isLoading: loadingChat } = useChat(chatId || "");
+  const { data: messages = [], isLoading: loadingMessages } = useChatMessages(
+    chatId || "",
+  );
+  const sendMessageMutation = useSendMessage();
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !chatId || !user) return;
+
+    try {
+      await sendMessageMutation.mutateAsync({
+        chatId,
+        senderId: user.uid,
+        text: messageText.trim(),
+      });
+      setMessageText("");
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const formatTime = (date: Date) => {
+    return new Date(date).toLocaleTimeString(isArabic ? "ar-SA" : "en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDateDivider = (date: Date) => {
+    const now = new Date();
+    const messageDate = new Date(date);
+    const diffDays = Math.floor(
+      (now.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (diffDays === 0) {
+      return t("chat.today");
+    } else if (diffDays === 1) {
+      return t("chat.yesterday");
+    } else {
+      return messageDate.toLocaleDateString(isArabic ? "ar-SA" : "en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      });
+    }
+  };
+
+  // Group messages by date
+  const groupedMessages = messages.reduce(
+    (groups, message) => {
+      const date = new Date(message.createdAt).toDateString();
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(message);
+      return groups;
+    },
+    {} as Record<string, Message[]>,
+  );
+
+  if (loadingChat) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="border-b border-border bg-card p-4">
+          <Skeleton className="h-8 w-48" />
+        </header>
+        <div className="flex-1 p-4">
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-3/4" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!chat) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        <p className="text-muted-foreground">{t("chat.notFound")}</p>
+        <Button variant="outline" onClick={handleBack} className="mt-4">
+          {t("common.back")}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-md">
+        <div className="flex items-center gap-4 p-4">
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
+          </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-lg">
+              👩‍💼
+            </div>
+            <div>
+              <h1 className="font-semibold text-foreground">
+                {t("provider.provider")}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {t("chat.online")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Messages */}
+      <main className="flex-1 overflow-y-auto p-4 pb-24">
+        {loadingMessages ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className={`flex ${i % 2 === 0 ? "justify-end" : "justify-start"}`}
+              >
+                <Skeleton className="h-16 w-3/4 rounded-2xl" />
+              </div>
+            ))}
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <p className="text-muted-foreground">{t("chat.noMessages")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("chat.startConversation")}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+              <div key={date}>
+                {/* Date Divider */}
+                <div className="mb-4 flex items-center justify-center">
+                  <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                    {formatDateDivider(new Date(date))}
+                  </span>
+                </div>
+
+                {/* Messages */}
+                <div className="space-y-3">
+                  {dateMessages.map((message) => {
+                    const isOwn = message.senderId === user?.uid;
+                    return (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                            isOwn
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card"
+                          }`}
+                        >
+                          {message.type === "IMAGE" && message.imageUrl ? (
+                            <img
+                              src={message.imageUrl}
+                              alt=""
+                              className="mb-2 max-h-48 rounded-lg object-cover"
+                            />
+                          ) : null}
+                          {message.text && (
+                            <p className="text-sm">{message.text}</p>
+                          )}
+                          <p
+                            className={`mt-1 text-end text-[10px] ${
+                              isOwn
+                                ? "text-primary-foreground/70"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {formatTime(message.createdAt)}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </main>
+
+      {/* Message Input */}
+      <div className="fixed bottom-20 left-0 right-0 border-t border-border bg-card p-4">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="shrink-0">
+            <ImageIcon className="h-5 w-5" />
+          </Button>
+
+          <Input
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={t("chat.typeMessage")}
+            className="flex-1 rounded-full"
+          />
+
+          <Button
+            size="icon"
+            className="shrink-0 rounded-full"
+            onClick={handleSendMessage}
+            disabled={!messageText.trim() || sendMessageMutation.isPending}
+          >
+            <Send className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ClientChatRoomPage;
