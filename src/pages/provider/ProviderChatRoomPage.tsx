@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -198,26 +198,19 @@ const ProviderChatRoomPage: React.FC = () => {
                         className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
                       >
                         <div
-                          className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                          className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${
                             isOwn
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-card"
+                              ? "bg-gradient-to-br from-primary to-primary/90 text-white"
+                              : "bg-white border border-border/50"
                           }`}
                         >
-                          {message.type === "IMAGE" && message.imageUrl ? (
-                            <img
-                              src={message.imageUrl}
-                              alt=""
-                              className="mb-2 max-h-48 rounded-lg object-cover"
-                            />
-                          ) : null}
-                          {message.text && (
-                            <p className="text-sm">{message.text}</p>
-                          )}
+                          <p className={`text-sm ${isOwn ? "text-white" : "text-foreground"}`}>
+                            {message.text}
+                          </p>
                           <p
                             className={`mt-1 text-end text-[10px] ${
                               isOwn
-                                ? "text-primary-foreground/70"
+                                ? "text-white/70"
                                 : "text-muted-foreground"
                             }`}
                           >
@@ -238,10 +231,6 @@ const ProviderChatRoomPage: React.FC = () => {
       {/* Message Input */}
       <div className="fixed bottom-20 left-0 right-0 border-t border-border bg-card p-4">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="shrink-0">
-            <ImageIcon className="h-5 w-5" />
-          </Button>
-
           <Input
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}

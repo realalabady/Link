@@ -32,6 +32,7 @@ import {
 } from "@/hooks/queries/useBookings";
 import { useService } from "@/hooks/queries/useServices";
 import { useCreateChat } from "@/hooks/queries/useChats";
+import { useUser } from "@/hooks/queries/useUsers";
 import { BookingStatus } from "@/types";
 
 const getStatusBadgeVariant = (status: BookingStatus) => {
@@ -68,6 +69,9 @@ const ProviderBookingDetailsPage: React.FC = () => {
   );
   const { data: service, isLoading: loadingService } = useService(
     booking?.serviceId || "",
+  );
+  const { data: client, isLoading: loadingClient } = useUser(
+    booking?.clientId || "",
   );
 
   const createChatMutation = useCreateChat();
@@ -253,7 +257,11 @@ const ProviderBookingDetailsPage: React.FC = () => {
                   <User className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium">{t("chat.client")}</p>
+                  {loadingClient ? (
+                    <Skeleton className="h-5 w-32" />
+                  ) : (
+                    <p className="font-medium">{client?.name || t("chat.client")}</p>
+                  )}
                 </div>
               </div>
 

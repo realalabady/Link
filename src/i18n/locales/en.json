@@ -175,7 +175,8 @@
     "online": "Online",
     "notFound": "Chat not found",
     "client": "Client",
-    "chatsWillAppear": "Chats with clients will appear here"
+    "chatsWillAppear": "Chats with clients will appear here",
+    "imageTooLarge": "Image is too large. Maximum size is 5MB."
   },
   "profile": {
     "guest": "Guest",

@@ -5,6 +5,7 @@ import {
   query,
   getDocs,
   doc,
+  getDoc,
   updateDoc,
   orderBy,
 } from "firebase/firestore";
@@ -78,6 +79,40 @@ export const useUsers = () => {
       // Return mock data
       return mockUsers;
     },
+  });
+};
+
+// Fetch single user by ID
+export const useUser = (userId: string) => {
+  return useQuery<User | null, Error>({
+    queryKey: userKeys.detail(userId),
+    queryFn: async () => {
+      if (!userId) return null;
+
+      try {
+        const userRef = doc(db, "users", userId);
+        const snapshot = await getDoc(userRef);
+
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          return {
+            uid: snapshot.id,
+            email: data.email || "",
+            name: data.name || "",
+            role: data.role || null,
+            status: data.status || "ACTIVE",
+            createdAt: data.createdAt?.toDate() || new Date(),
+          } as User;
+        }
+      } catch (error) {
+        console.warn("Error fetching user:", error);
+      }
+
+      // Check mock data
+      const mockUser = mockUsers.find((u) => u.uid === userId);
+      return mockUser || null;
+    },
+    enabled: !!userId,
   });
 };
 
