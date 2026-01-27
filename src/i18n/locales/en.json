@@ -18,6 +18,13 @@
     "sort": "Sort",
     "noResults": "No results found",
     "seeAll": "See all",
+    "accept": "Accept",
+    "decline": "Decline",
+    "cookieTitle": "Your privacy matters.",
+    "cookieDescription": "Link uses essential cookies to keep things running smoothly. If you accept, we may also use your approximate location to show nearby services and improve recommendations. By accepting, you agree to this use. For more details, see our Privacy Notice.",
+    "cookieDetailsTitle": "Cookies used in this app",
+    "viewCookies": "View cookies",
+    "hideCookies": "Hide cookies",
     "viewMore": "View more",
     "currency": "SAR"
   },
@@ -87,8 +94,10 @@
     "chats": "Chats",
     "profile": "Profile",
     "requests": "Requests",
-    "services": "Services",
-    "schedule": "Schedule",
+      "accept": "Accept",
+      "decline": "Decline",
+      "cookieTitle": "We use cookies",
+      "cookieDescription": "We use cookies to improve your experience and, if you allow, access your approximate location for nearby results.",
     "wallet": "Wallet"
   },
   "home": {
@@ -102,6 +111,9 @@
     "placeholder": "Search services...",
     "all": "All",
     "results": "Results",
+    "sortBy": "Sort by",
+    "nearest": "Nearest",
+    "topRated": "Top rated",
     "priceRange": "Price range",
     "applyFilters": "Apply filters",
     "tryDifferent": "Try a different search term",
@@ -143,6 +155,10 @@
       "noshow": "No show",
       "refunded": "Refunded"
     }
+  },
+  "payment": {
+    "applePay": "Pay with Apple Pay",
+    "processing": "Processing..."
   },
   "bookings": {
     "upcoming": "Upcoming",
@@ -213,7 +229,70 @@
     "cityPlaceholder": "Select your city",
     "districtPlaceholder": "Neighborhood or district",
     "bio": "About you",
-    "bioPlaceholder": "Tell clients about your experience"
+    "bioPlaceholder": "Tell clients about your experience",
+    "useCurrentLocation": "Use current location",
+    "locationSaved": "Location saved"
+  },
+  "help": {
+    "title": "Help Center",
+    "subtitle": "Quick answers to common questions.",
+    "sections": {
+      "booking": {
+        "title": "Booking & cancellations",
+        "items": [
+          "View or reschedule your bookings from the Bookings tab.",
+          "Cancellations may be subject to the provider’s policy.",
+          "Contact the provider if you need to adjust timing."
+        ]
+      },
+      "payments": {
+        "title": "Payments & payouts",
+        "items": [
+          "Prices are shown before you confirm a booking.",
+          "Providers receive payouts after service completion.",
+          "Refunds follow the cancellation rules." 
+        ]
+      },
+      "account": {
+        "title": "Account & profile",
+        "items": [
+          "Keep your profile updated for better matches.",
+          "Use Reset Password if you can’t log in.",
+          "You can change language from Profile settings."
+        ]
+      },
+      "safety": {
+        "title": "Safety & disputes",
+        "items": [
+          "Use in-app chat to keep records of agreements.",
+          "Report issues promptly to help resolve disputes.",
+          "Only meet in safe, agreed locations."
+        ]
+      },
+      "messaging": {
+        "title": "Messaging",
+        "items": [
+          "Chat is available after a booking is created.",
+          "Keep conversations respectful and on-topic.",
+          "Notifications can be managed in Profile preferences."
+        ]
+      }
+    },
+    "faqTitle": "Frequently asked questions",
+    "faqs": [
+      {
+        "q": "How do I find nearby services?",
+        "a": "Enable location access and sort by Nearest in Search filters."
+      },
+      {
+        "q": "Can I edit my booking?",
+        "a": "Yes, open the booking to reschedule or message the provider."
+      },
+      {
+        "q": "How do I change my password?",
+        "a": "Go to Profile and select Reset password."
+      }
+    ]
   },
   "wallet": {
     "balance": "Balance",

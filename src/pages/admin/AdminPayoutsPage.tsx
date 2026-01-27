@@ -25,8 +25,12 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { usePayouts, useProcessPayout } from "@/hooks/queries/usePayouts";
-import { Payout, PayoutStatus } from "@/types";
+import {
+  usePayouts,
+  useProcessPayout,
+  PayoutWithProvider,
+} from "@/hooks/queries/usePayouts";
+import { PayoutStatus } from "@/types";
 
 const AdminPayoutsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -34,7 +38,8 @@ const AdminPayoutsPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState("requested");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
+  const [selectedPayout, setSelectedPayout] =
+    useState<PayoutWithProvider | null>(null);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<
     "approve" | "reject" | "paid" | null
@@ -62,7 +67,7 @@ const AdminPayoutsPage: React.FC = () => {
   const rejectedPayouts = filterPayouts("REJECTED");
 
   const handleAction = (
-    payout: Payout,
+    payout: PayoutWithProvider,
     action: "approve" | "reject" | "paid",
   ) => {
     setSelectedPayout(payout);

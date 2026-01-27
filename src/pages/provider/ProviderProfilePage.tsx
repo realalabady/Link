@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import {
   User,
@@ -15,11 +16,13 @@ import {
   Globe,
   Bell,
   KeyRound,
+  Moon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { updateUserProfile } from "@/lib/firestore";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   useProviderProfile,
@@ -120,7 +124,10 @@ const SAUDI_REGIONS = [
         label: { en: "Makkah", ar: "مكة" },
         districts: [
           { value: "Ajyad", label: { en: "Ajyad", ar: "أجياد" } },
-          { value: "Al Aziziyah", label: { en: "Al Aziziyah", ar: "العزيزية" } },
+          {
+            value: "Al Aziziyah",
+            label: { en: "Al Aziziyah", ar: "العزيزية" },
+          },
         ],
       },
       {
@@ -163,7 +170,10 @@ const SAUDI_REGIONS = [
         value: "Dammam",
         label: { en: "Dammam", ar: "الدمام" },
         districts: [
-          { value: "Al Faisaliyah", label: { en: "Al Faisaliyah", ar: "الفيصلية" } },
+          {
+            value: "Al Faisaliyah",
+            label: { en: "Al Faisaliyah", ar: "الفيصلية" },
+          },
           { value: "Al Shati", label: { en: "Al Shati", ar: "الشاطئ" } },
         ],
       },
@@ -201,8 +211,14 @@ const SAUDI_REGIONS = [
         value: "Unaizah",
         label: { en: "Unaizah", ar: "عنيزة" },
         districts: [
-          { value: "Al Salhiyah", label: { en: "Al Salhiyah", ar: "الصالحية" } },
-          { value: "Al Khalidiyah", label: { en: "Al Khalidiyah", ar: "الخالدية" } },
+          {
+            value: "Al Salhiyah",
+            label: { en: "Al Salhiyah", ar: "الصالحية" },
+          },
+          {
+            value: "Al Khalidiyah",
+            label: { en: "Al Khalidiyah", ar: "الخالدية" },
+          },
         ],
       },
     ],
@@ -216,7 +232,10 @@ const SAUDI_REGIONS = [
         label: { en: "Abha", ar: "أبها" },
         districts: [
           { value: "Al Nasb", label: { en: "Al Nasb", ar: "النصب" } },
-          { value: "Al Khaldiyah", label: { en: "Al Khaldiyah", ar: "الخالدية" } },
+          {
+            value: "Al Khaldiyah",
+            label: { en: "Al Khaldiyah", ar: "الخالدية" },
+          },
         ],
       },
       {
@@ -224,7 +243,10 @@ const SAUDI_REGIONS = [
         label: { en: "Khamis Mushait", ar: "خميس مشيط" },
         districts: [
           { value: "Al Dabab", label: { en: "Al Dabab", ar: "الضباب" } },
-          { value: "Al Thalatha", label: { en: "Al Thalatha", ar: "الثلاثاء" } },
+          {
+            value: "Al Thalatha",
+            label: { en: "Al Thalatha", ar: "الثلاثاء" },
+          },
         ],
       },
     ],
@@ -238,7 +260,10 @@ const SAUDI_REGIONS = [
         label: { en: "Tabuk", ar: "تبوك" },
         districts: [
           { value: "Al Wurud", label: { en: "Al Wurud", ar: "الورود" } },
-          { value: "Al Sulaymaniyah", label: { en: "Al Sulaymaniyah", ar: "السليمانية" } },
+          {
+            value: "Al Sulaymaniyah",
+            label: { en: "Al Sulaymaniyah", ar: "السليمانية" },
+          },
         ],
       },
       {
@@ -314,8 +339,14 @@ const SAUDI_REGIONS = [
         value: "Najran",
         label: { en: "Najran", ar: "نجران" },
         districts: [
-          { value: "Al Khalidiyah", label: { en: "Al Khalidiyah", ar: "الخالدية" } },
-          { value: "Al Faysaliyah", label: { en: "Al Faysaliyah", ar: "الفيصلية" } },
+          {
+            value: "Al Khalidiyah",
+            label: { en: "Al Khalidiyah", ar: "الخالدية" },
+          },
+          {
+            value: "Al Faysaliyah",
+            label: { en: "Al Faysaliyah", ar: "الفيصلية" },
+          },
         ],
       },
       {
@@ -349,7 +380,10 @@ const SAUDI_REGIONS = [
         value: "Sakaka",
         label: { en: "Sakaka", ar: "سكاكا" },
         districts: [
-          { value: "Al Suwaiflah", label: { en: "Al Suwaiflah", ar: "السويفلة" } },
+          {
+            value: "Al Suwaiflah",
+            label: { en: "Al Suwaiflah", ar: "السويفلة" },
+          },
           { value: "Al Badiah", label: { en: "Al Badiah", ar: "البادية" } },
         ],
       },
@@ -366,8 +400,9 @@ const SAUDI_REGIONS = [
 
 const ProviderProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const isArabic = i18n.language === "ar";
 
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -387,6 +422,8 @@ const ProviderProfilePage: React.FC = () => {
     city: providerProfile?.city || "",
     district: providerProfile?.area || "",
     bio: providerProfile?.bio || "",
+    latitude: providerProfile?.latitude,
+    longitude: providerProfile?.longitude,
   });
 
   useEffect(() => {
@@ -406,6 +443,8 @@ const ProviderProfilePage: React.FC = () => {
       city: providerProfile?.city || "",
       district: providerProfile?.area || "",
       bio: providerProfile?.bio || "",
+      latitude: providerProfile?.latitude,
+      longitude: providerProfile?.longitude,
     });
   }, [providerProfile, user]);
 
@@ -494,24 +533,51 @@ const ProviderProfilePage: React.FC = () => {
       city: providerProfile?.city || "",
       district: providerProfile?.area || "",
       bio: providerProfile?.bio || "",
+      latitude: providerProfile?.latitude,
+      longitude: providerProfile?.longitude,
     });
     setIsEditing(false);
   };
 
   const handleSaveProfile = async () => {
     if (!user) return;
-    await updateProviderProfileMutation.mutateAsync({
-      uid: user.uid,
-      updates: {
-        displayName: formValues.displayName,
-        phone: formValues.phone,
-        region: formValues.region,
-        city: formValues.city,
-        area: formValues.district,
-        bio: formValues.bio,
-      },
-    });
+    await Promise.all([
+      updateProviderProfileMutation.mutateAsync({
+        uid: user.uid,
+        updates: {
+          displayName: formValues.displayName,
+          phone: formValues.phone,
+          region: formValues.region,
+          city: formValues.city,
+          area: formValues.district,
+          bio: formValues.bio,
+          latitude: formValues.latitude,
+          longitude: formValues.longitude,
+        },
+      }),
+      updateUserProfile(user.uid, {
+        name: formValues.displayName,
+      }),
+    ]);
+    await refreshUser();
     setIsEditing(false);
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormValues((prev) => ({
+          ...prev,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }));
+      },
+      () => {
+        // Ignore location errors
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 600000 },
+    );
   };
 
   const fadeInUp = {
@@ -565,12 +631,20 @@ const ProviderProfilePage: React.FC = () => {
                     {t("profile.personalInfo")}
                   </CardTitle>
                   {!isEditing ? (
-                    <Button variant="outline" size="sm" onClick={handleEditToggle}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleEditToggle}
+                    >
                       {t("profile.editProfile")}
                     </Button>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                      >
                         {t("common.cancel")}
                       </Button>
                       <Button
@@ -605,7 +679,9 @@ const ProviderProfilePage: React.FC = () => {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <Label htmlFor="profile-name">{t("profile.fullName")}</Label>
+                    <Label htmlFor="profile-name">
+                      {t("profile.fullName")}
+                    </Label>
                     <Input
                       id="profile-name"
                       value={formValues.displayName}
@@ -645,7 +721,9 @@ const ProviderProfilePage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="profile-region">{t("profile.region")}</Label>
+                    <Label htmlFor="profile-region">
+                      {t("profile.region")}
+                    </Label>
                     <Select
                       value={formValues.region}
                       onValueChange={(value) =>
@@ -659,7 +737,9 @@ const ProviderProfilePage: React.FC = () => {
                       disabled={!isEditing}
                     >
                       <SelectTrigger id="profile-region" className="mt-1">
-                        <SelectValue placeholder={t("profile.regionPlaceholder")} />
+                        <SelectValue
+                          placeholder={t("profile.regionPlaceholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {SAUDI_REGIONS.map((region) => (
@@ -684,7 +764,9 @@ const ProviderProfilePage: React.FC = () => {
                       disabled={!isEditing || !formValues.region}
                     >
                       <SelectTrigger id="profile-city" className="mt-1">
-                        <SelectValue placeholder={t("profile.cityPlaceholder")} />
+                        <SelectValue
+                          placeholder={t("profile.cityPlaceholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {cityOptions.map((city) => (
@@ -696,7 +778,9 @@ const ProviderProfilePage: React.FC = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="profile-district">{t("profile.district")}</Label>
+                    <Label htmlFor="profile-district">
+                      {t("profile.district")}
+                    </Label>
                     <Select
                       value={formValues.district}
                       onValueChange={(value) =>
@@ -708,11 +792,16 @@ const ProviderProfilePage: React.FC = () => {
                       disabled={!isEditing || !formValues.city}
                     >
                       <SelectTrigger id="profile-district" className="mt-1">
-                        <SelectValue placeholder={t("profile.districtPlaceholder")} />
+                        <SelectValue
+                          placeholder={t("profile.districtPlaceholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {districtOptions.map((district) => (
-                          <SelectItem key={district.value} value={district.value}>
+                          <SelectItem
+                            key={district.value}
+                            value={district.value}
+                          >
                             {getLabel(district)}
                           </SelectItem>
                         ))}
@@ -736,6 +825,23 @@ const ProviderProfilePage: React.FC = () => {
                     disabled={!isEditing}
                     className="mt-1 min-h-[100px]"
                   />
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUseCurrentLocation}
+                    disabled={!isEditing}
+                  >
+                    {t("profile.useCurrentLocation")}
+                  </Button>
+                  {formValues.latitude && formValues.longitude && (
+                    <span className="text-xs text-muted-foreground">
+                      {t("profile.locationSaved")}
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -849,6 +955,20 @@ const ProviderProfilePage: React.FC = () => {
                   <LanguageSwitcher />
                 </div>
 
+                {/* Dark Mode */}
+                <div className="flex items-center justify-between p-4 border-b">
+                  <div className="flex items-center gap-3">
+                    <Moon className="h-5 w-5 text-muted-foreground" />
+                    <span>{t("profile.darkMode")}</span>
+                  </div>
+                  <Switch
+                    checked={theme === "dark"}
+                    onCheckedChange={(checked) =>
+                      setTheme(checked ? "dark" : "light")
+                    }
+                  />
+                </div>
+
                 {/* Notifications */}
                 <div className="flex items-center justify-between p-4 border-b">
                   <div className="flex items-center gap-3">
@@ -877,7 +997,13 @@ const ProviderProfilePage: React.FC = () => {
                     <Settings className="h-5 w-5 text-muted-foreground" />
                     <span>{t("profile.helpCenter")}</span>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  <button
+                    type="button"
+                    onClick={() => navigate("/help")}
+                    className="text-muted-foreground"
+                  >
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </button>
                 </div>
               </CardContent>
             </Card>

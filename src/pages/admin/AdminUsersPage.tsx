@@ -134,8 +134,6 @@ const AdminUsersPage: React.FC = () => {
         );
       case "SUSPENDED":
         return <Badge variant="destructive">{t("admin.suspended")}</Badge>;
-      case "PENDING":
-        return <Badge variant="secondary">{t("admin.pending")}</Badge>;
       default:
         return null;
     }

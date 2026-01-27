@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Clock, MapPin, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Dialog,
@@ -17,7 +16,10 @@ import {
 import { useService } from "@/hooks/queries/useServices";
 import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { useCreateBooking } from "@/hooks/queries/useBookings";
+import { useCreatePayment } from "@/hooks/queries/usePayments";
 import { useAuth } from "@/contexts/AuthContext";
+import PayPalCheckout from "@/components/payments/PayPalCheckout";
+import StripeApplePayButton from "@/components/payments/StripeApplePayButton";
 
 // Generate time slots
 const generateTimeSlots = () => {
@@ -48,6 +50,8 @@ const BookingPage: React.FC = () => {
   >(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
 
   // Fetch data
   const { data: service, isLoading: loadingService } = useService(
@@ -58,12 +62,23 @@ const BookingPage: React.FC = () => {
   );
 
   const createBookingMutation = useCreateBooking();
-
+  const createPaymentMutation = useCreatePayment();
   const handleBack = () => {
     navigate(-1);
   };
 
-  const handleConfirmBooking = async () => {
+  const handleConfirmBooking = () => {
+    setBookingSuccess(false);
+    setPaymentError(null);
+    setShowConfirmation(true);
+  };
+
+  const handlePaymentAuthorized = async (payload: {
+    orderId: string;
+    authorizationId: string;
+    amountUsd: number;
+    fxRate: number;
+  }) => {
     if (
       !service ||
       !selectedDate ||
@@ -73,6 +88,9 @@ const BookingPage: React.FC = () => {
     ) {
       return;
     }
+
+    setIsPaying(true);
+    setPaymentError(null);
 
     // Create start date/time
     const [hours, minutes] = selectedTime.split(":").map(Number);
@@ -84,7 +102,7 @@ const BookingPage: React.FC = () => {
     endAt.setMinutes(endAt.getMinutes() + service.durationMin);
 
     try {
-      await createBookingMutation.mutateAsync({
+      const bookingId = await createBookingMutation.mutateAsync({
         clientId: user.uid,
         providerId: service.providerId,
         serviceId: service.id,
@@ -100,9 +118,96 @@ const BookingPage: React.FC = () => {
             : t("services.atClient"),
       });
 
+      await createPaymentMutation.mutateAsync({
+        bookingId,
+        clientId: user.uid,
+        providerId: service.providerId,
+        payType: "FULL",
+        status: "AUTHORIZED",
+        gateway: "PAYPAL",
+        amount: payload.amountUsd,
+        currency: "USD",
+        amountSar: service.priceFrom,
+        amountUsd: payload.amountUsd,
+        fxRate: payload.fxRate,
+        orderId: payload.orderId,
+        authorizationId: payload.authorizationId,
+        platformFee: 0,
+        gatewayFee: 0,
+        providerAmount: service.priceFrom,
+      });
+
       setBookingSuccess(true);
     } catch (error) {
-      console.error("Failed to create booking:", error);
+      console.error("Failed to finalize booking:", error);
+      setPaymentError(t("common.error"));
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  const handleStripePaymentSuccess = async (payload: {
+    paymentIntentId: string;
+  }) => {
+    if (
+      !service ||
+      !selectedDate ||
+      !selectedTime ||
+      !selectedLocation ||
+      !user
+    ) {
+      return;
+    }
+
+    setIsPaying(true);
+    setPaymentError(null);
+
+    const [hours, minutes] = selectedTime.split(":").map(Number);
+    const startAt = new Date(selectedDate);
+    startAt.setHours(hours, minutes, 0, 0);
+
+    const endAt = new Date(startAt);
+    endAt.setMinutes(endAt.getMinutes() + service.durationMin);
+
+    try {
+      const bookingId = await createBookingMutation.mutateAsync({
+        clientId: user.uid,
+        providerId: service.providerId,
+        serviceId: service.id,
+        startAt,
+        endAt,
+        bookingDate: startAt.toISOString().split("T")[0],
+        status: "PENDING",
+        priceTotal: service.priceFrom,
+        depositAmount: 0,
+        addressText:
+          selectedLocation === "AT_PROVIDER"
+            ? t("services.atProvider")
+            : t("services.atClient"),
+      });
+
+      await createPaymentMutation.mutateAsync({
+        bookingId,
+        clientId: user.uid,
+        providerId: service.providerId,
+        payType: "FULL",
+        status: "CAPTURED",
+        gateway: "STRIPE",
+        amount: service.priceFrom,
+        currency: "SAR",
+        amountSar: service.priceFrom,
+        orderId: payload.paymentIntentId,
+        platformFee: 0,
+        gatewayFee: 0,
+        providerAmount: service.priceFrom,
+      });
+
+      setBookingSuccess(true);
+    } catch (error) {
+      console.error("Failed to finalize booking:", error);
+      setPaymentError(t("common.error"));
+    } finally {
+      setIsPaying(false);
     }
   };
 
@@ -303,54 +408,70 @@ const BookingPage: React.FC = () => {
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>{t("booking.confirmBooking")}</DialogTitle>
+                <DialogTitle>{t("booking.paymentRequired")}</DialogTitle>
                 <DialogDescription>
                   {service.title} - {service.priceFrom} SAR
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>
-                    {selectedDate?.toLocaleDateString(
-                      isArabic ? "ar-SA" : "en-US",
-                      {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      },
-                    )}
-                  </span>
+              <div className="space-y-3">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                      {selectedDate?.toLocaleDateString(
+                        isArabic ? "ar-SA" : "en-US",
+                        {
+                          weekday: "long",
+                          month: "long",
+                          day: "numeric",
+                        },
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedTime}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                      {selectedLocation === "AT_PROVIDER"
+                        ? t("services.atProvider")
+                        : t("services.atClient")}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{selectedTime}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>
-                    {selectedLocation === "AT_PROVIDER"
-                      ? t("services.atProvider")
-                      : t("services.atClient")}
-                  </span>
-                </div>
-              </div>
-              <div className="flex gap-2">
+
+                {paymentError && (
+                  <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                    {paymentError}
+                  </div>
+                )}
+
+                <StripeApplePayButton
+                  amountSar={service.priceFrom}
+                  onSuccess={handleStripePaymentSuccess}
+                  onError={(message) => setPaymentError(message)}
+                />
+
+                <PayPalCheckout
+                  amount={service.priceFrom}
+                  currency="USD"
+                  bookingMeta={{
+                    serviceId: service.id,
+                    providerId: service.providerId,
+                  }}
+                  onAuthorized={handlePaymentAuthorized}
+                  onError={(message) => setPaymentError(message)}
+                />
+
                 <Button
                   variant="outline"
-                  className="flex-1"
+                  className="w-full"
                   onClick={() => setShowConfirmation(false)}
+                  disabled={isPaying}
                 >
                   {t("common.cancel")}
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={handleConfirmBooking}
-                  disabled={createBookingMutation.isPending}
-                >
-                  {createBookingMutation.isPending
-                    ? t("common.loading")
-                    : t("common.confirm")}
                 </Button>
               </div>
             </>

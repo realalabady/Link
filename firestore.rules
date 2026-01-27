@@ -1,0 +1,126 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function role() {
+      return signedIn() ? userDoc().data.role : null;
+    }
+
+    function hasUserDoc() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return role() == "ADMIN";
+    }
+
+    function isProvider() {
+      return role() == "PROVIDER";
+    }
+
+    function isClient() {
+      return role() == "CLIENT";
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (userId == request.auth.uid || isAdmin());
+      allow create: if signedIn() && userId == request.auth.uid;
+      allow update: if signedIn() && userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /providers/{providerId} {
+      allow read: if true;
+      allow create, update: if signedIn() && (providerId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /services/{serviceId} {
+      allow read: if true;
+      allow create: if signedIn() && isProvider() && request.resource.data.providerId == request.auth.uid;
+      allow update, delete: if signedIn() && (isAdmin() || (isProvider() && resource.data.providerId == request.auth.uid));
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if signedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if (signedIn() && request.resource.data.clientId == request.auth.uid && (isClient() || !hasUserDoc()))
+        || (!signedIn() && request.resource.data.clientId != null);
+      allow update: if signedIn() && (
+        (isClient() && resource.data.clientId == request.auth.uid) ||
+        (isProvider() && resource.data.providerId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if signedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if (signedIn() && request.resource.data.clientId == request.auth.uid)
+        || (!signedIn() && request.resource.data.clientId != null);
+      allow update, delete: if isAdmin();
+    }
+
+    match /chats/{chatId} {
+      allow read: if signedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if signedIn() && (
+        request.resource.data.clientId == request.auth.uid ||
+        request.resource.data.providerId == request.auth.uid
+      );
+      allow update: if signedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read, create: if signedIn() && (
+          get(/databases/$(database)/documents/chats/$(chatId)).data.clientId == request.auth.uid ||
+          get(/databases/$(database)/documents/chats/$(chatId)).data.providerId == request.auth.uid ||
+          isAdmin()
+        );
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    match /payouts/{payoutId} {
+      allow read: if signedIn() && (
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if signedIn() && isProvider() && request.resource.data.providerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn() && isClient() && request.resource.data.clientId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

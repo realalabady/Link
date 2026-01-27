@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import {
   User,
@@ -79,7 +80,10 @@ const SAUDI_REGIONS = [
         label: { en: "Makkah", ar: "مكة" },
         districts: [
           { value: "Ajyad", label: { en: "Ajyad", ar: "أجياد" } },
-          { value: "Al Aziziyah", label: { en: "Al Aziziyah", ar: "العزيزية" } },
+          {
+            value: "Al Aziziyah",
+            label: { en: "Al Aziziyah", ar: "العزيزية" },
+          },
         ],
       },
       {
@@ -122,7 +126,10 @@ const SAUDI_REGIONS = [
         value: "Dammam",
         label: { en: "Dammam", ar: "الدمام" },
         districts: [
-          { value: "Al Faisaliyah", label: { en: "Al Faisaliyah", ar: "الفيصلية" } },
+          {
+            value: "Al Faisaliyah",
+            label: { en: "Al Faisaliyah", ar: "الفيصلية" },
+          },
           { value: "Al Shati", label: { en: "Al Shati", ar: "الشاطئ" } },
         ],
       },
@@ -160,8 +167,14 @@ const SAUDI_REGIONS = [
         value: "Unaizah",
         label: { en: "Unaizah", ar: "عنيزة" },
         districts: [
-          { value: "Al Salhiyah", label: { en: "Al Salhiyah", ar: "الصالحية" } },
-          { value: "Al Khalidiyah", label: { en: "Al Khalidiyah", ar: "الخالدية" } },
+          {
+            value: "Al Salhiyah",
+            label: { en: "Al Salhiyah", ar: "الصالحية" },
+          },
+          {
+            value: "Al Khalidiyah",
+            label: { en: "Al Khalidiyah", ar: "الخالدية" },
+          },
         ],
       },
     ],
@@ -175,7 +188,10 @@ const SAUDI_REGIONS = [
         label: { en: "Abha", ar: "أبها" },
         districts: [
           { value: "Al Nasb", label: { en: "Al Nasb", ar: "النصب" } },
-          { value: "Al Khaldiyah", label: { en: "Al Khaldiyah", ar: "الخالدية" } },
+          {
+            value: "Al Khaldiyah",
+            label: { en: "Al Khaldiyah", ar: "الخالدية" },
+          },
         ],
       },
       {
@@ -183,7 +199,10 @@ const SAUDI_REGIONS = [
         label: { en: "Khamis Mushait", ar: "خميس مشيط" },
         districts: [
           { value: "Al Dabab", label: { en: "Al Dabab", ar: "الضباب" } },
-          { value: "Al Thalatha", label: { en: "Al Thalatha", ar: "الثلاثاء" } },
+          {
+            value: "Al Thalatha",
+            label: { en: "Al Thalatha", ar: "الثلاثاء" },
+          },
         ],
       },
     ],
@@ -197,7 +216,10 @@ const SAUDI_REGIONS = [
         label: { en: "Tabuk", ar: "تبوك" },
         districts: [
           { value: "Al Wurud", label: { en: "Al Wurud", ar: "الورود" } },
-          { value: "Al Sulaymaniyah", label: { en: "Al Sulaymaniyah", ar: "السليمانية" } },
+          {
+            value: "Al Sulaymaniyah",
+            label: { en: "Al Sulaymaniyah", ar: "السليمانية" },
+          },
         ],
       },
       {
@@ -273,8 +295,14 @@ const SAUDI_REGIONS = [
         value: "Najran",
         label: { en: "Najran", ar: "نجران" },
         districts: [
-          { value: "Al Khalidiyah", label: { en: "Al Khalidiyah", ar: "الخالدية" } },
-          { value: "Al Faysaliyah", label: { en: "Al Faysaliyah", ar: "الفيصلية" } },
+          {
+            value: "Al Khalidiyah",
+            label: { en: "Al Khalidiyah", ar: "الخالدية" },
+          },
+          {
+            value: "Al Faysaliyah",
+            label: { en: "Al Faysaliyah", ar: "الفيصلية" },
+          },
         ],
       },
       {
@@ -308,7 +336,10 @@ const SAUDI_REGIONS = [
         value: "Sakaka",
         label: { en: "Sakaka", ar: "سكاكا" },
         districts: [
-          { value: "Al Suwaiflah", label: { en: "Al Suwaiflah", ar: "السويفلة" } },
+          {
+            value: "Al Suwaiflah",
+            label: { en: "Al Suwaiflah", ar: "السويفلة" },
+          },
           { value: "Al Badiah", label: { en: "Al Badiah", ar: "البادية" } },
         ],
       },
@@ -325,12 +356,12 @@ const SAUDI_REGIONS = [
 
 const ClientProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const isArabic = i18n.language === "ar";
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -360,6 +391,7 @@ const ClientProfilePage: React.FC = () => {
       city: user?.city || "",
       district: user?.district || "",
     });
+    setNotificationsEnabled(user?.notificationsEnabled ?? true);
   }, [user]);
 
   const completionPercent = useMemo(() => {
@@ -420,6 +452,7 @@ const ClientProfilePage: React.FC = () => {
         city: formValues.city,
         district: formValues.district,
       });
+      await refreshUser();
       setIsEditing(false);
     } finally {
       setIsSaving(false);
@@ -477,15 +510,27 @@ const ClientProfilePage: React.FC = () => {
                     {t("profile.personalInfo")}
                   </CardTitle>
                   {!isEditing ? (
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                    >
                       {t("profile.editProfile")}
                     </Button>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                      >
                         {t("common.cancel")}
                       </Button>
-                      <Button size="sm" onClick={handleSaveProfile} disabled={isSaving}>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveProfile}
+                        disabled={isSaving}
+                      >
                         {isSaving ? t("common.loading") : t("profile.save")}
                       </Button>
                     </div>
@@ -503,7 +548,9 @@ const ClientProfilePage: React.FC = () => {
                       {formValues.name || t("profile.guest")}
                     </h2>
                     <p className="text-muted-foreground">{formValues.email}</p>
-                    <p className="mt-1 text-sm text-primary">{t("roles.client")}</p>
+                    <p className="mt-1 text-sm text-primary">
+                      {t("roles.client")}
+                    </p>
                   </div>
                 </div>
 
@@ -516,7 +563,10 @@ const ClientProfilePage: React.FC = () => {
                       id="client-name"
                       value={formValues.name}
                       onChange={(e) =>
-                        setFormValues((prev) => ({ ...prev, name: e.target.value }))
+                        setFormValues((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
                       }
                       disabled={!isEditing}
                       className="mt-1"
@@ -537,7 +587,10 @@ const ClientProfilePage: React.FC = () => {
                       id="client-phone"
                       value={formValues.phone}
                       onChange={(e) =>
-                        setFormValues((prev) => ({ ...prev, phone: e.target.value }))
+                        setFormValues((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
                       }
                       placeholder={t("profile.addPhone")}
                       disabled={!isEditing}
@@ -559,7 +612,9 @@ const ClientProfilePage: React.FC = () => {
                       disabled={!isEditing}
                     >
                       <SelectTrigger id="client-region" className="mt-1">
-                        <SelectValue placeholder={t("profile.regionPlaceholder")} />
+                        <SelectValue
+                          placeholder={t("profile.regionPlaceholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {SAUDI_REGIONS.map((region) => (
@@ -584,7 +639,9 @@ const ClientProfilePage: React.FC = () => {
                       disabled={!isEditing || !formValues.region}
                     >
                       <SelectTrigger id="client-city" className="mt-1">
-                        <SelectValue placeholder={t("profile.cityPlaceholder")} />
+                        <SelectValue
+                          placeholder={t("profile.cityPlaceholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {cityOptions.map((city) => (
@@ -596,7 +653,9 @@ const ClientProfilePage: React.FC = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="client-district">{t("profile.district")}</Label>
+                    <Label htmlFor="client-district">
+                      {t("profile.district")}
+                    </Label>
                     <Select
                       value={formValues.district}
                       onValueChange={(value) =>
@@ -608,11 +667,16 @@ const ClientProfilePage: React.FC = () => {
                       disabled={!isEditing || !formValues.city}
                     >
                       <SelectTrigger id="client-district" className="mt-1">
-                        <SelectValue placeholder={t("profile.districtPlaceholder")} />
+                        <SelectValue
+                          placeholder={t("profile.districtPlaceholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {districtOptions.map((district) => (
-                          <SelectItem key={district.value} value={district.value}>
+                          <SelectItem
+                            key={district.value}
+                            value={district.value}
+                          >
                             {getLabel(district)}
                           </SelectItem>
                         ))}
@@ -633,7 +697,7 @@ const ClientProfilePage: React.FC = () => {
               <CardContent className="p-0">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between p-4 border-b text-left transition-colors hover:bg-accent"
+                  className="flex w-full items-center justify-between p-4 border-b text-start transition-colors hover:bg-accent"
                   onClick={() => navigate("/auth/forgot-password")}
                 >
                   <div className="flex items-center gap-3">
@@ -643,31 +707,48 @@ const ClientProfilePage: React.FC = () => {
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </button>
 
-                <div className="flex items-center justify-between p-4 border-b transition-colors hover:bg-accent">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 p-4 border-b transition-colors hover:bg-accent">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <Bell className="h-5 w-5 text-muted-foreground" />
-                    <span>{t("profile.notifications")}</span>
+                    <span className="truncate">
+                      {t("profile.notifications")}
+                    </span>
                   </div>
                   <Switch
+                    className="shrink-0"
                     checked={notificationsEnabled}
-                    onCheckedChange={setNotificationsEnabled}
+                    onCheckedChange={async (checked) => {
+                      setNotificationsEnabled(checked);
+                      if (user) {
+                        await updateUserProfile(user.uid, {
+                          notificationsEnabled: checked,
+                        });
+                        await refreshUser();
+                      }
+                    }}
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 border-b transition-colors hover:bg-accent">
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5 text-muted-foreground" />
-                    <span>{t("profile.language")}</span>
+                <div className="flex items-center gap-3 p-4 border-b transition-colors hover:bg-accent">
+                  <Globe className="h-5 w-5 text-muted-foreground" />
+                  <span>{t("profile.language")}</span>
+                  <div className="ms-auto">
+                    <LanguageSwitcher />
                   </div>
-                  <LanguageSwitcher />
                 </div>
 
-                <div className="flex items-center justify-between p-4 transition-colors hover:bg-accent">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 p-4 transition-colors hover:bg-accent">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <Moon className="h-5 w-5 text-muted-foreground" />
-                    <span>{t("profile.darkMode")}</span>
+                    <span className="truncate">{t("profile.darkMode")}</span>
                   </div>
-                  <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                  <Switch
+                    className="shrink-0"
+                    checked={theme === "dark"}
+                    onCheckedChange={(checked) =>
+                      setTheme(checked ? "dark" : "light")
+                    }
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -682,8 +763,8 @@ const ClientProfilePage: React.FC = () => {
               <CardContent className="p-0">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-accent"
-                  onClick={() => {}}
+                  className="flex w-full items-center justify-between p-4 text-start transition-colors hover:bg-accent"
+                  onClick={() => navigate("/help")}
                 >
                   <div className="flex items-center gap-3">
                     <HelpCircle className="h-5 w-5 text-muted-foreground" />

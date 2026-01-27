@@ -31,6 +31,7 @@ interface AuthContextType {
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   setUserRole: (role: UserRole) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -178,6 +179,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    if (!firebaseUser) return;
+    try {
+      const userDoc = await getUserDocument(firebaseUser.uid);
+      if (userDoc) {
+        setUser(userDoc);
+      }
+    } catch (error) {
+      console.error("Error refreshing user document:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -189,6 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         signup,
         logout,
         setUserRole,
+        refreshUser,
       }}
     >
       {children}

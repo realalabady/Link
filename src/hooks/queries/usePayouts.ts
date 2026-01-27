@@ -13,8 +13,9 @@ import { db } from "@/lib/firebase";
 import { Payout, PayoutStatus } from "@/types";
 
 // Extended payout with provider name for display
-interface PayoutWithProvider extends Payout {
+export interface PayoutWithProvider extends Payout {
   providerName?: string;
+  processedAt?: Date;
 }
 
 // Query keys

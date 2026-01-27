@@ -1,0 +1,256 @@
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const fetch = global.fetch || require("node-fetch");
+const Stripe = require("stripe");
+
+const app = express();
+const PORT = process.env.PORT || 4242;
+
+app.use(
+  cors({
+    origin: process.env.CLIENT_ORIGIN || true,
+  }),
+);
+app.use(express.json());
+
+const PAYPAL_API_BASE =
+  process.env.PAYPAL_ENV === "live"
+    ? "https://api-m.paypal.com"
+    : "https://api-m.sandbox.paypal.com";
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
+
+const orderMetaCache = new Map();
+
+const fetchJson = async (url) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`FX rate failed: ${response.status} ${error}`);
+  }
+  return response.json();
+};
+
+const getSarToUsdRate = async () => {
+  try {
+    const data = await fetchJson("https://open.er-api.com/v6/latest/SAR");
+    const rate = data?.rates?.USD;
+    if (rate) return Number(rate);
+  } catch (error) {
+    console.warn("ER-API FX failed:", error.message);
+  }
+
+  try {
+    const data = await fetchJson(
+      "https://api.exchangerate.host/latest?base=SAR&symbols=USD",
+    );
+    const rate = data?.rates?.USD;
+    if (rate) return Number(rate);
+  } catch (error) {
+    console.warn("ExchangeRate.host FX failed:", error.message);
+  }
+
+  const fallbackRate = 0.27;
+  console.warn("FX rate missing USD. Falling back to", fallbackRate);
+  return fallbackRate;
+};
+
+const getAccessToken = async () => {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const secret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!clientId || !secret) {
+    throw new Error("Missing PayPal credentials");
+  }
+
+  const auth = Buffer.from(`${clientId}:${secret}`).toString("base64");
+  const response = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`PayPal auth failed: ${response.status} ${error}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+};
+
+app.post("/paypal/create-order", async (req, res) => {
+  try {
+    const { amountSar } = req.body;
+    if (!amountSar) {
+      return res.status(400).json({ error: "Missing amountSar" });
+    }
+
+    const fxRate = await getSarToUsdRate();
+    const amountUsd = Number(amountSar) * fxRate;
+
+    if (!Number.isFinite(amountUsd)) {
+      return res.status(400).json({ error: "Invalid SAR amount" });
+    }
+
+    const accessToken = await getAccessToken();
+    const response = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        intent: "AUTHORIZE",
+        purchase_units: [
+          {
+            amount: {
+              currency_code: "USD",
+              value: Number(amountUsd).toFixed(2),
+            },
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("PayPal create order error:", response.status, error);
+      return res.status(500).json({ error });
+    }
+
+    const data = await response.json();
+    orderMetaCache.set(data.id, {
+      amountUsd: Number(amountUsd.toFixed(2)),
+      fxRate,
+    });
+    return res.json({
+      orderId: data.id,
+      amountUsd: Number(amountUsd.toFixed(2)),
+      fxRate,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to create order" });
+  }
+});
+
+app.post("/paypal/order-meta", async (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) {
+    return res.status(400).json({ error: "Missing orderId" });
+  }
+
+  const meta = orderMetaCache.get(orderId);
+  if (!meta) {
+    return res.status(404).json({ error: "Order meta not found" });
+  }
+
+  return res.json(meta);
+});
+
+app.post("/paypal/capture-authorization", async (req, res) => {
+  try {
+    const { authorizationId } = req.body;
+    if (!authorizationId) {
+      return res.status(400).json({ error: "Missing authorizationId" });
+    }
+
+    const accessToken = await getAccessToken();
+    const response = await fetch(
+      `${PAYPAL_API_BASE}/v2/payments/authorizations/${authorizationId}/capture`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("PayPal capture error:", response.status, error);
+      return res.status(500).json({ error });
+    }
+
+    const data = await response.json();
+    return res.json({ captureId: data.id, status: data.status });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to capture authorization" });
+  }
+});
+
+app.post("/paypal/void-authorization", async (req, res) => {
+  try {
+    const { authorizationId } = req.body;
+    if (!authorizationId) {
+      return res.status(400).json({ error: "Missing authorizationId" });
+    }
+
+    const accessToken = await getAccessToken();
+    const response = await fetch(
+      `${PAYPAL_API_BASE}/v2/payments/authorizations/${authorizationId}/void`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("PayPal void error:", response.status, error);
+      return res.status(500).json({ error });
+    }
+
+    return res.json({ status: "VOIDED" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to void authorization" });
+  }
+});
+
+app.post("/stripe/create-payment-intent", async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(500).json({ error: "Stripe not configured" });
+    }
+
+    const { amountSar } = req.body;
+    if (!amountSar) {
+      return res.status(400).json({ error: "Missing amountSar" });
+    }
+
+    const amount = Math.round(Number(amountSar) * 100);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: "sar",
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+
+    return res.json({
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+    });
+  } catch (error) {
+    console.error("Stripe create intent error:", error);
+    return res.status(500).json({ error: "Failed to create payment intent" });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`PayPal server running on port ${PORT}`);
+});

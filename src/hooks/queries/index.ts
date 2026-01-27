@@ -8,3 +8,4 @@ export * from "./useChats";
 export * from "./useUsers";
 export * from "./useVerifications";
 export * from "./usePayouts";
+export * from "./usePayments";

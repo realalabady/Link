@@ -25,18 +25,21 @@ import { Slider } from "@/components/ui/slider";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
+import { useAuth } from "@/contexts/AuthContext";
 import { Service, ProviderProfile } from "@/types";
 
 const ClientSearchPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
+  const { user } = useAuth();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<"nearest" | "rating">("nearest");
 
   // Fetch data
   const { data: categories = [], isLoading: loadingCategories } =
@@ -55,9 +58,39 @@ const ClientSearchPage: React.FC = () => {
     return map;
   }, [providers]);
 
+  const storedLocation = useMemo(() => {
+    const raw = localStorage.getItem("link_location");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as { lat: number; lng: number };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const distanceKm = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ) => {
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
   // Filter services based on search and price
   const filteredServices = useMemo(() => {
-    return services.filter((service) => {
+    const filtered = services.filter((service) => {
       const matchesSearch =
         !searchQuery ||
         service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -69,7 +102,75 @@ const ClientSearchPage: React.FC = () => {
 
       return matchesSearch && matchesPrice;
     });
-  }, [services, searchQuery, priceRange]);
+
+    if (sortBy === "rating") {
+      return [...filtered].sort((a, b) => {
+        const ratingA = providerMap[a.providerId]?.ratingAvg || 0;
+        const ratingB = providerMap[b.providerId]?.ratingAvg || 0;
+        return ratingB - ratingA;
+      });
+    }
+
+    const userRegion = user?.region || "";
+    const userCity = user?.city || "";
+
+    return [...filtered].sort((a, b) => {
+      const providerA = providerMap[a.providerId];
+      const providerB = providerMap[b.providerId];
+
+      if (
+        storedLocation &&
+        providerA?.latitude &&
+        providerA?.longitude &&
+        providerB?.latitude &&
+        providerB?.longitude
+      ) {
+        const distanceA = distanceKm(
+          storedLocation.lat,
+          storedLocation.lng,
+          providerA.latitude,
+          providerA.longitude,
+        );
+        const distanceB = distanceKm(
+          storedLocation.lat,
+          storedLocation.lng,
+          providerB.latitude,
+          providerB.longitude,
+        );
+        if (distanceA !== distanceB) return distanceA - distanceB;
+      }
+
+      const scoreA = providerA
+        ? providerA.city === userCity
+          ? 0
+          : providerA.region === userRegion
+            ? 1
+            : 2
+        : 3;
+      const scoreB = providerB
+        ? providerB.city === userCity
+          ? 0
+          : providerB.region === userRegion
+            ? 1
+            : 2
+        : 3;
+
+      if (scoreA !== scoreB) return scoreA - scoreB;
+
+      const ratingA = providerA?.ratingAvg || 0;
+      const ratingB = providerB?.ratingAvg || 0;
+      return ratingB - ratingA;
+    });
+  }, [
+    services,
+    searchQuery,
+    priceRange,
+    sortBy,
+    providerMap,
+    user?.region,
+    user?.city,
+    storedLocation,
+  ]);
 
   const handleServiceClick = (service: Service) => {
     navigate(`/client/provider/${service.providerId}`);
@@ -115,6 +216,31 @@ const ClientSearchPage: React.FC = () => {
                   <SheetTitle>{t("common.filter")}</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6 space-y-6">
+                  {/* Sort */}
+                  <div>
+                    <label className="mb-3 block text-sm font-medium">
+                      {t("search.sortBy")}
+                    </label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={sortBy === "nearest" ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setSortBy("nearest")}
+                      >
+                        {t("search.nearest")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={sortBy === "rating" ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setSortBy("rating")}
+                      >
+                        {t("search.topRated")}
+                      </Button>
+                    </div>
+                  </div>
+
                   {/* Price Range Filter */}
                   <div>
                     <label className="mb-3 block text-sm font-medium">

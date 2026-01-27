@@ -19,13 +19,19 @@ export type BookingStatus =
   | "DISPUTED";
 
 // Payment status
-export type PaymentStatus = "INITIATED" | "PAID" | "FAILED" | "REFUNDED";
+export type PaymentStatus =
+  | "CREATED"
+  | "AUTHORIZED"
+  | "CAPTURED"
+  | "VOIDED"
+  | "REFUNDED"
+  | "FAILED";
 
 // Payment type
 export type PayType = "DEPOSIT" | "FULL";
 
 // Payment gateway
-export type PaymentGateway = "STRIPE" | "STUB";
+export type PaymentGateway = "PAYPAL" | "STRIPE";
 
 // Payout status
 export type PayoutStatus = "REQUESTED" | "APPROVED" | "PAID" | "REJECTED";
@@ -56,11 +62,13 @@ export interface User {
   role: UserRole | null;
   status: UserStatus;
   name: string;
+  displayName?: string;
   email: string;
   phone?: string;
   region?: string;
   city?: string;
   district?: string;
+  notificationsEnabled?: boolean;
   createdAt: Date;
 }
 
@@ -73,6 +81,8 @@ export interface ProviderProfile {
   city: string;
   area: string;
   phone?: string;
+  latitude?: number;
+  longitude?: number;
   isVerified: boolean;
   ratingAvg: number;
   ratingCount: number;
@@ -152,9 +162,19 @@ export interface Booking {
 export interface Payment {
   id: string;
   bookingId: string;
+  clientId: string;
+  providerId: string;
   payType: PayType;
   status: PaymentStatus;
   gateway: PaymentGateway;
+  amount: number;
+  currency: string;
+  amountSar?: number;
+  amountUsd?: number;
+  fxRate?: number;
+  orderId: string;
+  authorizationId?: string;
+  captureId?: string;
   reference?: string;
   platformFee: number;
   gatewayFee: number;

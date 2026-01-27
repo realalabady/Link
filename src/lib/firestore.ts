@@ -26,6 +26,7 @@ import {
   Booking,
   BookingStatus,
   Review,
+  Payment,
 } from "@/types";
 
 // Collection names
@@ -35,6 +36,7 @@ export const COLLECTIONS = {
   SERVICES: "services",
   CATEGORIES: "categories",
   BOOKINGS: "bookings",
+  PAYMENTS: "payments",
   CHATS: "chats",
   MESSAGES: "messages",
   REVIEWS: "reviews",
@@ -51,12 +53,14 @@ export interface FirestoreUser {
   uid: string;
   email: string;
   name: string;
+  displayName?: string;
   role: UserRole | null;
   status: UserStatus;
   phone?: string;
   region?: string;
   city?: string;
   district?: string;
+  notificationsEnabled?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -76,12 +80,14 @@ export const createUserDocument = async (
     uid,
     email,
     name,
+    displayName: name,
     role: null, // Will be set during onboarding
     status: "ACTIVE",
     phone: "",
     region: "",
     city: "",
     district: "",
+    notificationsEnabled: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -123,6 +129,7 @@ export const getUserDocument = async (uid: string): Promise<User | null> => {
     region: data.region || "",
     city: data.city || "",
     district: data.district || "",
+    notificationsEnabled: data.notificationsEnabled ?? true,
     createdAt: timestampToDate(data.createdAt),
   };
 };
@@ -142,7 +149,18 @@ export const updateUserRole = async (
 // Update user profile in Firestore
 export const updateUserProfile = async (
   uid: string,
-  updates: Partial<Pick<User, "name" | "email" | "phone" | "region" | "city" | "district">>,
+  updates: Partial<
+    Pick<
+      User,
+      | "name"
+      | "email"
+      | "phone"
+      | "region"
+      | "city"
+      | "district"
+      | "notificationsEnabled"
+    >
+  >,
 ): Promise<void> => {
   const userRef = doc(db, COLLECTIONS.USERS, uid);
   await updateDoc(userRef, {
@@ -290,6 +308,8 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     region: "Riyadh",
     city: "Riyadh",
     area: "Al Olaya",
+    latitude: 24.7136,
+    longitude: 46.6753,
     radiusKm: 15,
     isVerified: true,
     ratingAvg: 4.8,
@@ -303,6 +323,8 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     region: "Makkah",
     city: "Jeddah",
     area: "Al Hamra",
+    latitude: 21.4858,
+    longitude: 39.1925,
     radiusKm: 20,
     isVerified: true,
     ratingAvg: 4.9,
@@ -316,6 +338,8 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     region: "Riyadh",
     city: "Riyadh",
     area: "Al Malqa",
+    latitude: 24.8103,
+    longitude: 46.6766,
     radiusKm: 10,
     isVerified: true,
     ratingAvg: 4.7,
@@ -889,6 +913,31 @@ export const updateBookingStatus = async (
   await updateDoc(bookingRef, {
     status,
     updatedAt: serverTimestamp(),
+  });
+};
+
+// ============================================
+// PAYMENTS
+// ============================================
+
+export const createPayment = async (
+  payment: Omit<Payment, "id" | "createdAt">,
+): Promise<string> => {
+  const paymentsRef = collection(db, COLLECTIONS.PAYMENTS);
+  const docRef = await addDoc(paymentsRef, {
+    ...payment,
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+};
+
+export const updatePayment = async (
+  id: string,
+  updates: Partial<Payment>,
+): Promise<void> => {
+  const paymentRef = doc(db, COLLECTIONS.PAYMENTS, id);
+  await updateDoc(paymentRef, {
+    ...updates,
   });
 };
 
