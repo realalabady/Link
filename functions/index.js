@@ -2,9 +2,7 @@ require("dotenv").config();
 const admin = require("firebase-admin");
 const { Resend } = require("resend");
 const { defineSecret, defineString } = require("firebase-functions/params");
-const {
-  onDocumentCreated,
-} = require("firebase-functions/v2/firestore");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 
 admin.initializeApp();

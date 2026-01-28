@@ -18,34 +18,6 @@ export const userKeys = {
   detail: (id: string) => ["users", id] as const,
 };
 
-// Mock data store for demo purposes
-let mockUsers: User[] = [
-  {
-    uid: "mock-user-1",
-    email: "client@example.com",
-    name: "Amira Hassan",
-    role: "CLIENT",
-    status: "ACTIVE",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-  },
-  {
-    uid: "mock-user-2",
-    email: "provider@example.com",
-    name: "Fatima Salem",
-    role: "PROVIDER",
-    status: "ACTIVE",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14),
-  },
-  {
-    uid: "mock-user-3",
-    email: "suspended@example.com",
-    name: "Noor Ahmed",
-    role: "CLIENT",
-    status: "SUSPENDED",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30),
-  },
-];
-
 // Fetch all users
 export const useUsers = () => {
   return useQuery<User[], Error>({
@@ -62,22 +34,23 @@ export const useUsers = () => {
             uid: doc.id,
             email: data.email || "",
             name: data.name || "",
+            displayName: data.displayName || data.name || "",
             role: data.role || null,
             status: data.status || "ACTIVE",
+            phone: data.phone || "",
+            region: data.region || "",
+            city: data.city || "",
+            district: data.district || "",
+            notificationsEnabled: data.notificationsEnabled ?? true,
             createdAt: data.createdAt?.toDate() || new Date(),
           } as User;
         });
 
-        // Return real data if exists, otherwise mock data
-        if (users.length > 0) {
-          return users;
-        }
+        return users;
       } catch (error) {
-        console.warn("Error fetching users, using mock data:", error);
+        console.warn("Error fetching users:", error);
       }
-
-      // Return mock data
-      return mockUsers;
+      return [];
     },
   });
 };
@@ -99,8 +72,14 @@ export const useUser = (userId: string) => {
             uid: snapshot.id,
             email: data.email || "",
             name: data.name || "",
+            displayName: data.displayName || data.name || "",
             role: data.role || null,
             status: data.status || "ACTIVE",
+            phone: data.phone || "",
+            region: data.region || "",
+            city: data.city || "",
+            district: data.district || "",
+            notificationsEnabled: data.notificationsEnabled ?? true,
             createdAt: data.createdAt?.toDate() || new Date(),
           } as User;
         }
@@ -108,9 +87,7 @@ export const useUser = (userId: string) => {
         console.warn("Error fetching user:", error);
       }
 
-      // Check mock data
-      const mockUser = mockUsers.find((u) => u.uid === userId);
-      return mockUser || null;
+      return null;
     },
     enabled: !!userId,
   });
@@ -128,17 +105,6 @@ export const useUpdateUserStatus = () => {
       userId: string;
       status: UserStatus;
     }) => {
-      // Check if this is mock data
-      const isMock = userId.startsWith("mock-");
-
-      if (isMock) {
-        // Update mock data locally
-        mockUsers = mockUsers.map((u) =>
-          u.uid === userId ? { ...u, status } : u,
-        );
-        return;
-      }
-
       // Update real Firestore document
       const userRef = doc(db, "users", userId);
       await updateDoc(userRef, { status });

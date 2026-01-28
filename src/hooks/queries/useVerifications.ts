@@ -27,31 +27,6 @@ export const verificationKeys = {
   pending: ["verifications", "pending"] as const,
 };
 
-// Mock data store for demo purposes
-let mockVerifications: VerificationRequest[] = [
-  {
-    id: "mock-1",
-    providerId: "provider-1",
-    providerName: "Sarah Ahmed",
-    providerEmail: "sarah@example.com",
-    submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    documents: [
-      { name: "ID Card", url: "#" },
-      { name: "Certificate", url: "#" },
-    ],
-    status: "PENDING" as const,
-  },
-  {
-    id: "mock-2",
-    providerId: "provider-2",
-    providerName: "Fatima Ali",
-    providerEmail: "fatima@example.com",
-    submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
-    documents: [{ name: "Business License", url: "#" }],
-    status: "PENDING" as const,
-  },
-];
-
 // Fetch all verifications
 export const usePendingVerifications = () => {
   return useQuery<VerificationRequest[], Error>({
@@ -79,16 +54,11 @@ export const usePendingVerifications = () => {
           }
         });
 
-        // Return real data if exists, otherwise mock data
-        if (requests.length > 0) {
-          return requests;
-        }
+        return requests;
       } catch (error) {
-        console.warn("Error fetching verifications, using mock data:", error);
+        console.warn("Error fetching verifications:", error);
       }
-
-      // Return mock data
-      return mockVerifications;
+      return [];
     },
   });
 };
@@ -107,20 +77,6 @@ export const useVerifyProvider = () => {
       approved: boolean;
       reason?: string;
     }) => {
-      // Check if this is mock data
-      const isMock =
-        providerId.startsWith("provider-") || providerId.startsWith("mock-");
-
-      if (isMock) {
-        // Update mock data locally
-        mockVerifications = mockVerifications.map((v) =>
-          v.providerId === providerId
-            ? { ...v, status: approved ? "APPROVED" : "REJECTED" }
-            : v,
-        );
-        return;
-      }
-
       // Update real Firestore document
       const providerRef = doc(db, "providers", providerId);
       await updateDoc(providerRef, {

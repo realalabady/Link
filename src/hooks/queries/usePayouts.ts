@@ -24,35 +24,6 @@ export const payoutKeys = {
   byStatus: (status: PayoutStatus) => ["payouts", status] as const,
 };
 
-// Mock data store for demo purposes
-let mockPayouts: PayoutWithProvider[] = [
-  {
-    id: "mock-1",
-    providerId: "provider-1",
-    providerName: "Sarah Ahmed",
-    amount: 500,
-    status: "REQUESTED" as PayoutStatus,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-  },
-  {
-    id: "mock-2",
-    providerId: "provider-2",
-    providerName: "Fatima Ali",
-    amount: 750,
-    status: "APPROVED" as PayoutStatus,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-  },
-  {
-    id: "mock-3",
-    providerId: "provider-3",
-    providerName: "Noor Hassan",
-    amount: 300,
-    status: "PAID" as PayoutStatus,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
-    processedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-  },
-];
-
 // Fetch all payouts
 export const usePayouts = () => {
   return useQuery<PayoutWithProvider[], Error>({
@@ -76,16 +47,11 @@ export const usePayouts = () => {
           };
         });
 
-        // Return real data if exists, otherwise mock data
-        if (payouts.length > 0) {
-          return payouts;
-        }
+        return payouts;
       } catch (error) {
-        console.warn("Error fetching payouts, using mock data:", error);
+        console.warn("Error fetching payouts:", error);
       }
-
-      // Return mock data
-      return mockPayouts;
+      return [];
     },
   });
 };
@@ -104,23 +70,6 @@ export const useProcessPayout = () => {
       status: PayoutStatus;
       reason?: string;
     }) => {
-      // Check if this is mock data
-      const isMock = payoutId.startsWith("mock-");
-
-      if (isMock) {
-        // Update mock data locally
-        mockPayouts = mockPayouts.map((p) =>
-          p.id === payoutId
-            ? {
-                ...p,
-                status,
-                processedAt: status === "PAID" ? new Date() : undefined,
-              }
-            : p,
-        );
-        return;
-      }
-
       // Update real Firestore document
       const payoutRef = doc(db, "payouts", payoutId);
       await updateDoc(payoutRef, {

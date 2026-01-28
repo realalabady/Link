@@ -1,15 +1,28 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Shield, Calendar, MessageSquare, Star, Wallet, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import logo from '@/assets/logo.jpeg';
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
+import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  ArrowLeft,
+  Shield,
+  Calendar,
+  MessageSquare,
+  Star,
+  Wallet,
+  Users,
+  Moon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import logo from "@/assets/logo.jpeg";
 
-const LandingPage: React.FC = () => {
+export default function LandingPage() {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.dir() === 'rtl';
+  const { theme, setTheme } = useTheme();
+  const isRTL = i18n.dir() === "rtl";
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
   const fadeInUp = {
@@ -26,15 +39,15 @@ const LandingPage: React.FC = () => {
   };
 
   const clientBenefits = [
-    { icon: <Shield className="h-6 w-6" />, key: 'clientBenefit1' },
-    { icon: <Calendar className="h-6 w-6" />, key: 'clientBenefit2' },
-    { icon: <MessageSquare className="h-6 w-6" />, key: 'clientBenefit3' },
+    { icon: <Shield className="h-6 w-6" />, key: "clientBenefit1" },
+    { icon: <Calendar className="h-6 w-6" />, key: "clientBenefit2" },
+    { icon: <MessageSquare className="h-6 w-6" />, key: "clientBenefit3" },
   ];
 
   const providerBenefits = [
-    { icon: <Users className="h-6 w-6" />, key: 'providerBenefit1' },
-    { icon: <Calendar className="h-6 w-6" />, key: 'providerBenefit2' },
-    { icon: <Wallet className="h-6 w-6" />, key: 'providerBenefit3' },
+    { icon: <Users className="h-6 w-6" />, key: "providerBenefit1" },
+    { icon: <Calendar className="h-6 w-6" />, key: "providerBenefit2" },
+    { icon: <Wallet className="h-6 w-6" />, key: "providerBenefit3" },
   ];
 
   return (
@@ -43,20 +56,33 @@ const LandingPage: React.FC = () => {
       <header className="fixed top-0 left-0 right-0 z-50 glass">
         <div className="container flex items-center justify-between py-4">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="Link" className="h-10 w-10 rounded-lg object-cover" />
-            <span className="text-xl font-bold text-foreground">{t('common.appName')}</span>
+            <img
+              src={logo}
+              alt="Link"
+              className="h-10 w-10 rounded-lg object-cover"
+            />
+            <span className="text-xl font-bold text-foreground">
+              {t("common.appName")}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
+            <div className="flex items-center gap-2 rounded-full border border-border px-2 py-1">
+              <Moon className="h-4 w-4 text-muted-foreground" />
+              <Switch
+                checked={theme === "dark"}
+                onCheckedChange={(checked) =>
+                  setTheme(checked ? "dark" : "light")
+                }
+              />
+            </div>
             <Link to="/auth/login">
               <Button variant="ghost" size="sm">
-                {t('auth.login')}
+                {t("auth.login")}
               </Button>
             </Link>
             <Link to="/auth/signup">
-              <Button size="sm">
-                {t('auth.signup')}
-              </Button>
+              <Button size="sm">{t("auth.signup")}</Button>
             </Link>
           </div>
         </div>
@@ -78,7 +104,10 @@ const LandingPage: React.FC = () => {
             className="max-w-3xl"
           >
             {/* Logo */}
-            <motion.div variants={fadeInUp} className="mb-8 flex justify-center">
+            <motion.div
+              variants={fadeInUp}
+              className="mb-8 flex justify-center"
+            >
               <div className="relative">
                 <img
                   src={logo}
@@ -90,27 +119,44 @@ const LandingPage: React.FC = () => {
             </motion.div>
 
             {/* Headline */}
-            <motion.h1 variants={fadeInUp} className="mb-6 text-4xl font-bold text-primary-foreground md:text-5xl lg:text-6xl">
-              {t('landing.heroTitle')}{' '}
-              <span className="block">{t('landing.heroHighlight')}</span>
+            <motion.h1
+              variants={fadeInUp}
+              className="mb-6 text-4xl font-bold text-primary-foreground md:text-5xl lg:text-6xl"
+            >
+              {t("landing.heroTitle")}{" "}
+              <span className="block">{t("landing.heroHighlight")}</span>
             </motion.h1>
 
             {/* Subtitle */}
-            <motion.p variants={fadeInUp} className="mb-10 text-lg text-primary-foreground/90 md:text-xl">
-              {t('landing.heroSubtitle')}
+            <motion.p
+              variants={fadeInUp}
+              className="mb-10 text-lg text-primary-foreground/90 md:text-xl"
+            >
+              {t("landing.heroSubtitle")}
             </motion.p>
 
             {/* CTAs */}
-            <motion.div variants={fadeInUp} className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <motion.div
+              variants={fadeInUp}
+              className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+            >
               <Link to="/auth/signup">
-                <Button size="lg" variant="secondary" className="group min-w-48 text-lg">
-                  {t('landing.getStarted')}
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="group min-w-48 text-lg"
+                >
+                  {t("landing.getStarted")}
                   <ArrowIcon className="ms-2 h-5 w-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
                 </Button>
               </Link>
               <a href="#benefits">
-                <Button size="lg" variant="ghost" className="min-w-48 text-lg text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
-                  {t('landing.learnMore')}
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="min-w-48 text-lg text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                >
+                  {t("landing.learnMore")}
                 </Button>
               </a>
             </motion.div>
@@ -148,8 +194,11 @@ const LandingPage: React.FC = () => {
               variants={stagger}
               className="rounded-2xl bg-card p-8 card-glow"
             >
-              <motion.h2 variants={fadeInUp} className="mb-6 text-2xl font-bold text-card-foreground">
-                {t('landing.forClients')}
+              <motion.h2
+                variants={fadeInUp}
+                className="mb-6 text-2xl font-bold text-card-foreground"
+              >
+                {t("landing.forClients")}
               </motion.h2>
               <div className="space-y-4">
                 {clientBenefits.map((benefit, index) => (
@@ -177,8 +226,11 @@ const LandingPage: React.FC = () => {
               variants={stagger}
               className="rounded-2xl bg-card p-8 card-glow"
             >
-              <motion.h2 variants={fadeInUp} className="mb-6 text-2xl font-bold text-card-foreground">
-                {t('landing.forProviders')}
+              <motion.h2
+                variants={fadeInUp}
+                className="mb-6 text-2xl font-bold text-card-foreground"
+              >
+                {t("landing.forProviders")}
               </motion.h2>
               <div className="space-y-4">
                 {providerBenefits.map((benefit, index) => (
@@ -210,13 +262,16 @@ const LandingPage: React.FC = () => {
             viewport={{ once: true }}
             variants={stagger}
           >
-            <motion.h2 variants={fadeInUp} className="mb-6 text-3xl font-bold text-primary-foreground md:text-4xl">
-              {t('auth.getStarted')}
+            <motion.h2
+              variants={fadeInUp}
+              className="mb-6 text-3xl font-bold text-primary-foreground md:text-4xl"
+            >
+              {t("auth.getStarted")}
             </motion.h2>
             <motion.div variants={fadeInUp}>
               <Link to="/auth/signup">
                 <Button size="lg" variant="secondary" className="group text-lg">
-                  {t('auth.createAccount')}
+                  {t("auth.createAccount")}
                   <ArrowIcon className="ms-2 h-5 w-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
                 </Button>
               </Link>
@@ -228,11 +283,9 @@ const LandingPage: React.FC = () => {
       {/* Footer */}
       <footer className="border-t border-border py-8">
         <div className="container text-center text-muted-foreground">
-          <p>© 2025 {t('common.appName')}. All rights reserved.</p>
+          <p>© 2025 {t("common.appName")}. All rights reserved.</p>
         </div>
       </footer>
     </div>
   );
-};
-
-export default LandingPage;
+}

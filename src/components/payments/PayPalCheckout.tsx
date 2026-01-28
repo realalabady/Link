@@ -113,12 +113,12 @@ const PayPalCheckout: React.FC<PayPalCheckoutProps> = ({
         shape: "pill",
         label: "paypal",
       },
-        createOrder: async () => {
+      createOrder: async () => {
         const response = await fetch(`${apiBaseUrl}/paypal/create-order`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-              amountSar: amount,
+            amountSar: amount,
             serviceId: bookingMeta.serviceId,
             providerId: bookingMeta.providerId,
           }),
@@ -133,14 +133,14 @@ const PayPalCheckout: React.FC<PayPalCheckoutProps> = ({
           throw new Error(serverMessage);
         }
 
-          if (!data?.orderId) {
+        if (!data?.orderId) {
           throw new Error("Invalid PayPal order response");
         }
-          if (!data?.amountUsd || !data?.fxRate) {
-            throw new Error("Missing conversion data");
-          }
+        if (!data?.amountUsd || !data?.fxRate) {
+          throw new Error("Missing conversion data");
+        }
 
-          return data.orderId;
+        return data.orderId;
       },
       onApprove: async (_data: any, actions: any) => {
         try {
@@ -154,23 +154,23 @@ const PayPalCheckout: React.FC<PayPalCheckoutProps> = ({
             throw new Error("Missing authorization id");
           }
 
-            const response = await fetch(`${apiBaseUrl}/paypal/order-meta`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ orderId }),
-            });
+          const response = await fetch(`${apiBaseUrl}/paypal/order-meta`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId }),
+          });
 
-            const meta = await response.json().catch(() => ({}));
-            if (!response.ok) {
-              throw new Error(meta?.error || "Failed to read order meta");
-            }
+          const meta = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(meta?.error || "Failed to read order meta");
+          }
 
-            await onAuthorized({
-              orderId,
-              authorizationId,
-              amountUsd: meta.amountUsd,
-              fxRate: meta.fxRate,
-            });
+          await onAuthorized({
+            orderId,
+            authorizationId,
+            amountUsd: meta.amountUsd,
+            fxRate: meta.fxRate,
+          });
         } catch (err) {
           console.error("PayPal approve error", err);
           onError?.("Authorization failed. Please try again.");

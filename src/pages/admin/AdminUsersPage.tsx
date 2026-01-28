@@ -10,6 +10,7 @@ import {
   Shield,
   Ban,
   CheckCircle,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useUsers, useUpdateUserStatus } from "@/hooks/queries/useUsers";
+import {
+  usePaymentsByClient,
+  usePaymentsByProvider,
+} from "@/hooks/queries/usePayments";
+import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { User as UserType, UserRole, UserStatus } from "@/types";
 
 const AdminUsersPage: React.FC = () => {
@@ -52,10 +58,53 @@ const AdminUsersPage: React.FC = () => {
     open: boolean;
     action: "suspend" | "activate" | null;
   }>({ open: false, action: null });
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [detailsUser, setDetailsUser] = useState<UserType | null>(null);
 
   // Fetch users
   const { data: users = [], isLoading } = useUsers();
   const updateStatusMutation = useUpdateUserStatus();
+  const detailsUserId = detailsUser?.uid || "";
+  const { data: providerProfile } = useProviderProfile(detailsUserId);
+  const { data: providerPayments = [] } =
+    usePaymentsByProvider(detailsUserId);
+  const { data: clientPayments = [] } = usePaymentsByClient(detailsUserId);
+
+  const isProviderDetails =
+    detailsUser?.role === "PROVIDER" || Boolean(providerProfile);
+  const isClientDetails = detailsUser?.role === "CLIENT";
+
+  const detailPayments = useMemo(() => {
+    if (isProviderDetails) return providerPayments;
+    if (isClientDetails) return clientPayments;
+    return providerPayments.length || clientPayments.length
+      ? [...providerPayments, ...clientPayments]
+      : [];
+  }, [isProviderDetails, isClientDetails, providerPayments, clientPayments]);
+
+  const capturedTotal = useMemo(() => {
+    return detailPayments
+      .filter((payment) => payment.status === "CAPTURED")
+      .reduce((sum, payment) => sum + (payment.amountSar || payment.amount), 0);
+  }, [detailPayments]);
+
+  const authorizedTotal = useMemo(() => {
+    return detailPayments
+      .filter((payment) => payment.status === "AUTHORIZED")
+      .reduce((sum, payment) => sum + (payment.amountSar || payment.amount), 0);
+  }, [detailPayments]);
+
+  const totalAmount = useMemo(() => {
+    return detailPayments.reduce(
+      (sum, payment) => sum + (payment.amountSar || payment.amount),
+      0,
+    );
+  }, [detailPayments]);
+
+  const recentDetailPayments = useMemo(
+    () => detailPayments.slice(0, 5),
+    [detailPayments],
+  );
 
   // Filter users
   const filteredUsers = useMemo(() => {
@@ -76,6 +125,15 @@ const AdminUsersPage: React.FC = () => {
   const handleAction = (user: UserType, action: "suspend" | "activate") => {
     setSelectedUser(user);
     setActionDialog({ open: true, action });
+  };
+
+  const openUserDetails = (user: UserType) => {
+    setDetailsUser(user);
+    setDetailsDialogOpen(true);
+  };
+
+  const handleViewPayments = (user: UserType) => {
+    openUserDetails(user);
   };
 
   const confirmAction = async () => {
@@ -144,6 +202,13 @@ const AdminUsersPage: React.FC = () => {
     visible: { opacity: 1, y: 0 },
   };
 
+  const formatDate = (date: Date) =>
+    new Date(date).toLocaleDateString(isArabic ? "ar-SA" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
   return (
     <div className="min-h-screen bg-background">
       <motion.div
@@ -202,7 +267,6 @@ const AdminUsersPage: React.FC = () => {
               <SelectItem value="ALL">{t("admin.allStatuses")}</SelectItem>
               <SelectItem value="ACTIVE">{t("admin.active")}</SelectItem>
               <SelectItem value="SUSPENDED">{t("admin.suspended")}</SelectItem>
-              <SelectItem value="PENDING">{t("admin.pending")}</SelectItem>
             </SelectContent>
           </Select>
         </motion.div>
@@ -227,7 +291,15 @@ const AdminUsersPage: React.FC = () => {
             {filteredUsers.map((user) => (
               <div
                 key={user.uid}
-                className="flex items-center justify-between rounded-xl bg-card p-4"
+                className="flex cursor-pointer items-center justify-between rounded-xl bg-card p-4 transition-colors hover:bg-card/80"
+                role="button"
+                tabIndex={0}
+                onClick={() => openUserDetails(user)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    openUserDetails(user);
+                  }
+                }}
               >
                 <div className="flex items-center gap-4">
                   <Avatar className="h-12 w-12">
@@ -253,25 +325,49 @@ const AdminUsersPage: React.FC = () => {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent
+                    align="end"
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     {user.status === "ACTIVE" ? (
                       <DropdownMenuItem
                         className="text-destructive"
-                        onClick={() => handleAction(user, "suspend")}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleAction(user, "suspend");
+                        }}
                       >
                         <Ban className="me-2 h-4 w-4" />
                         {t("admin.suspendUser")}
                       </DropdownMenuItem>
                     ) : (
                       <DropdownMenuItem
-                        onClick={() => handleAction(user, "activate")}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleAction(user, "activate");
+                        }}
                       >
                         <CheckCircle className="me-2 h-4 w-4" />
                         {t("admin.activateUser")}
+                      </DropdownMenuItem>
+                    )}
+                    {user.role === "PROVIDER" && (
+                      <DropdownMenuItem
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleViewPayments(user);
+                        }}
+                      >
+                        <CreditCard className="me-2 h-4 w-4" />
+                        {t("admin.viewProviderPayments")}
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -281,6 +377,283 @@ const AdminUsersPage: React.FC = () => {
           </motion.div>
         )}
       </motion.div>
+
+      <Dialog
+        open={detailsDialogOpen}
+        onOpenChange={(open) => {
+          setDetailsDialogOpen(open);
+          if (!open) {
+            setDetailsUser(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("admin.userDetails")}</DialogTitle>
+            <DialogDescription>{detailsUser?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="rounded-lg border border-border p-4">
+              <h3 className="text-sm font-semibold text-foreground">
+                {t("admin.personalInfo")}
+              </h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("profile.fullName")}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {detailsUser?.displayName || detailsUser?.name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("profile.email")}
+                  </p>
+                  <p className="text-sm font-medium">{detailsUser?.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("profile.phone")}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {detailsUser?.phone || t("admin.notProvided")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("admin.role")}
+                  </p>
+                  <div className="mt-1">
+                    {getRoleBadge(detailsUser?.role || null)}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("admin.status")}
+                  </p>
+                  <div className="mt-1">
+                    {detailsUser ? getStatusBadge(detailsUser.status) : null}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("admin.joinedAt")}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {detailsUser ? formatDate(detailsUser.createdAt) : ""}
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-muted-foreground">
+                    {t("admin.userId")}
+                  </p>
+                  <p className="text-sm font-medium break-all">
+                    {detailsUser?.uid}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border p-4">
+              <h3 className="text-sm font-semibold text-foreground">
+                {t("admin.locationInfo")}
+              </h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("profile.region")}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {providerProfile?.region ||
+                      detailsUser?.region ||
+                      t("admin.notProvided")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("profile.city")}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {providerProfile?.city ||
+                      detailsUser?.city ||
+                      t("admin.notProvided")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("profile.district")}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {providerProfile?.area ||
+                      detailsUser?.district ||
+                      t("admin.notProvided")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {isProviderDetails && (
+              <div className="rounded-lg border border-border p-4">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {t("admin.providerProfile")}
+                </h3>
+                {!providerProfile ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {t("admin.noProviderProfile")}
+                  </p>
+                ) : (
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("admin.verificationStatus")}
+                      </p>
+                      <div className="mt-1">
+                        {providerProfile.isVerified ? (
+                          <Badge variant="default">
+                            {t("provider.verified")}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">
+                            {t("admin.notVerified")}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("admin.ratingSummary")}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {providerProfile.ratingAvg.toFixed(1)} (
+                        {providerProfile.ratingCount})
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("admin.travelRadius")}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {providerProfile.radiusKm !== undefined &&
+                        providerProfile.radiusKm !== null
+                          ? `${providerProfile.radiusKm} km`
+                          : t("admin.notProvided")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("admin.travelFee")}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {providerProfile.travelFeeBase !== undefined &&
+                        providerProfile.travelFeeBase !== null
+                          ? `${providerProfile.travelFeeBase} SAR`
+                          : t("admin.notProvided")}
+                      </p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-muted-foreground">
+                        {t("profile.bio")}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {providerProfile.bio || t("provider.noBio")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(isProviderDetails || isClientDetails ||
+              detailPayments.length > 0) && (
+              <div className="rounded-lg border border-border p-4">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {t("admin.paymentsSummary")}
+                </h3>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {t("admin.totalPayments")}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {detailPayments.length}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {t("admin.totalAmount")}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {totalAmount.toFixed(2)} SAR
+                    </p>
+                  </div>
+                  {isProviderDetails && (
+                    <>
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          {t("admin.capturedTotal")}
+                        </p>
+                        <p className="text-sm font-medium">
+                          {capturedTotal.toFixed(2)} SAR
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          {t("admin.authorizedTotal")}
+                        </p>
+                        <p className="text-sm font-medium">
+                          {authorizedTotal.toFixed(2)} SAR
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <p className="mb-2 text-sm font-medium text-foreground">
+                    {t("admin.recentPayments")}
+                  </p>
+                  {recentDetailPayments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t("admin.noPayments")}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {recentDetailPayments.map((payment) => (
+                        <div
+                          key={payment.id}
+                          className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {payment.status}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(payment.createdAt)}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold">
+                            {(payment.amountSar || payment.amount).toFixed(2)}{" "}
+                            SAR
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDetailsDialogOpen(false)}
+            >
+              {t("common.close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Action Confirmation Dialog */}
       <Dialog

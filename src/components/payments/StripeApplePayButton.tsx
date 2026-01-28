@@ -94,11 +94,15 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
           throw new Error(data?.error || "Failed to create payment intent");
         }
 
-        const confirm = await stripe.confirmCardPayment(data.clientSecret, {
-          payment_method: event.paymentMethod.id,
-        }, {
-          handleActions: false,
-        });
+        const confirm = await stripe.confirmCardPayment(
+          data.clientSecret,
+          {
+            payment_method: event.paymentMethod.id,
+          },
+          {
+            handleActions: false,
+          },
+        );
 
         if (confirm.error) {
           throw new Error(confirm.error.message || "Payment failed");

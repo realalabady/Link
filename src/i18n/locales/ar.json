@@ -26,6 +26,7 @@
     "viewCookies": "عرض الكوكيز",
     "hideCookies": "إخفاء الكوكيز",
     "viewMore": "عرض المزيد",
+    "close": "إغلاق",
     "currency": "ر.س"
   },
   "bookingStatus": {
@@ -426,7 +427,38 @@
     "approvePayoutDescription": "الموافقة على سحب {{amount}} إلى الحساب البنكي لمقدمة الخدمات.",
     "rejectPayoutDescription": "رفض طلب سحب {{amount}}.",
     "markPaidDescription": "تأكيد أنه تم إرسال {{amount}} إلى الحساب البنكي لمقدمة الخدمات.",
-    "payoutRejectionPlaceholder": "اشرحي سبب رفض هذا السحب..."
+    "payoutRejectionPlaceholder": "اشرحي سبب رفض هذا السحب...",
+    "payments": "المدفوعات",
+    "totalPayments": "إجمالي المدفوعات",
+    "totalAmount": "إجمالي المبالغ",
+    "recentPayments": "المدفوعات الأخيرة",
+    "noPayments": "لا توجد مدفوعات بعد",
+    "viewProviderPayments": "عرض مدفوعات المقدمة",
+    "providerEarnings": "أرباح المقدمة",
+    "capturedTotal": "الإجمالي المحصّل",
+    "authorizedTotal": "الإجمالي المعلّق",
+    "recentTransactions": "آخر العمليات",
+    "userDetails": "تفاصيل المستخدم",
+    "personalInfo": "المعلومات الشخصية",
+    "locationInfo": "معلومات الموقع",
+    "userId": "معرّف المستخدم",
+    "joinedAt": "تاريخ الانضمام",
+    "notProvided": "غير متوفر",
+    "providerProfile": "ملف المقدمة",
+    "noProviderProfile": "لا يوجد ملف مقدمة بعد",
+    "verificationStatus": "حالة التوثيق",
+    "notVerified": "غير موثقة",
+    "ratingSummary": "التقييم",
+    "travelRadius": "نطاق الخدمة",
+    "travelFee": "رسوم التنقل",
+    "paymentsSummary": "ملخص المدفوعات"
+    ,"paymentsOverTime": "المدفوعات عبر الوقت"
+    ,"newUsersOverTime": "مستخدمات جديدات عبر الوقت"
+    ,"providerEarningsLeaderboard": "أعلى أرباح للمقدمات"
+    ,"totalUsers": "إجمالي المستخدمات"
+    ,"days": "أيام"
+    ,"weeks": "أسابيع"
+    ,"months": "أشهر"
   },
   "dashboard": {
     "bookingsToday": "حجوزات اليوم",

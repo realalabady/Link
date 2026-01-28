@@ -26,6 +26,7 @@
     "viewCookies": "View cookies",
     "hideCookies": "Hide cookies",
     "viewMore": "View more",
+    "close": "Close",
     "currency": "SAR"
   },
   "bookingStatus": {
@@ -442,7 +443,38 @@
     "approvePayoutDescription": "Approve payout of {{amount}} to provider's bank account.",
     "rejectPayoutDescription": "Reject payout request of {{amount}}.",
     "markPaidDescription": "Confirm that {{amount}} has been sent to the provider's bank account.",
-    "payoutRejectionPlaceholder": "Explain why this payout was rejected..."
+    "payoutRejectionPlaceholder": "Explain why this payout was rejected...",
+    "payments": "Payments",
+    "totalPayments": "Total Payments",
+    "totalAmount": "Total Amount",
+    "recentPayments": "Recent Payments",
+    "noPayments": "No payments yet",
+    "viewProviderPayments": "View provider payments",
+    "providerEarnings": "Provider earnings",
+    "capturedTotal": "Captured total",
+    "authorizedTotal": "Authorized total",
+    "recentTransactions": "Recent transactions",
+    "userDetails": "User details",
+    "personalInfo": "Personal info",
+    "locationInfo": "Location info",
+    "userId": "User ID",
+    "joinedAt": "Joined at",
+    "notProvided": "Not provided",
+    "providerProfile": "Provider profile",
+    "noProviderProfile": "No provider profile yet",
+    "verificationStatus": "Verification status",
+    "notVerified": "Not verified",
+    "ratingSummary": "Rating",
+    "travelRadius": "Travel radius",
+    "travelFee": "Travel fee",
+    "paymentsSummary": "Payments summary"
+    ,"paymentsOverTime": "Payments over time"
+    ,"newUsersOverTime": "New users over time"
+    ,"providerEarningsLeaderboard": "Top provider earnings"
+    ,"totalUsers": "Total users"
+    ,"days": "Days"
+    ,"weeks": "Weeks"
+    ,"months": "Months"
   },
   "dashboard": {
     "bookingsToday": "Bookings today",
