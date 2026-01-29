@@ -55,6 +55,7 @@ import { useCategories } from "@/hooks/queries/useCategories";
 import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { toast } from "@/components/ui/sonner";
 import { Service, LocationType } from "@/types";
+import { z } from "zod";
 
 const ProviderServicesPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -72,6 +73,7 @@ const ProviderServicesPage: React.FC = () => {
     title: "",
     description: "",
     categoryId: "",
+    customCategory: "",
     priceFrom: "",
     priceTo: "",
     durationMin: "",
@@ -104,6 +106,7 @@ const ProviderServicesPage: React.FC = () => {
       title: "",
       description: "",
       categoryId: "",
+      customCategory: "",
       priceFrom: "",
       priceTo: "",
       durationMin: "",
@@ -119,16 +122,27 @@ const ProviderServicesPage: React.FC = () => {
       });
       return;
     }
+    if (providerProfile && !providerProfile.isVerified) {
+      toast.error(t("services.verificationRequiredTitle"), {
+        description: t("services.verificationRequiredDescription"),
+      });
+      return;
+    }
     resetForm();
     setIsFormOpen(true);
   };
 
   const openEditForm = (service: Service) => {
+    const matchedCategory = categories.find((c) => c.id === service.categoryId);
+    const isCustomCategory = !matchedCategory && !!service.categoryId;
     setEditingService(service);
     setFormData({
       title: service.title,
       description: service.description,
-      categoryId: service.categoryId,
+      categoryId: isCustomCategory ? "__custom__" : service.categoryId,
+      customCategory: isCustomCategory
+        ? service.categoryName || service.categoryId
+        : "",
       priceFrom: service.priceFrom.toString(),
       priceTo: service.priceTo.toString(),
       durationMin: service.durationMin.toString(),
@@ -137,18 +151,94 @@ const ProviderServicesPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
+  const slugifyCategory = (value: string) => {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\u0600-\u06FF]+/gi, "-")
+      .replace(/^-+|-+$/g, "");
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
 
-    const serviceData = {
-      title: formData.title,
-      description: formData.description,
-      categoryId: formData.categoryId,
-      priceFrom: parseFloat(formData.priceFrom) || 0,
-      priceTo:
-        parseFloat(formData.priceTo) || parseFloat(formData.priceFrom) || 0,
-      durationMin: parseInt(formData.durationMin) || 60,
+    const parsedPriceFrom = parseFloat(formData.priceFrom);
+    const parsedPriceTo = parseFloat(formData.priceTo);
+    const parsedDuration = parseInt(formData.durationMin);
+
+    const serviceSchema = z
+      .object({
+        title: z.string().min(3),
+        description: z.string().min(10),
+        categoryId: z.string().min(1),
+        priceFrom: z.number().min(1),
+        priceTo: z.number().min(1),
+        durationMin: z.number().min(15),
+        locationType: z.enum(["AT_PROVIDER", "AT_CLIENT", "BOTH"]),
+      })
+      .refine((data) => data.priceTo >= data.priceFrom, {
+        path: ["priceTo"],
+      });
+
+    const isCustom = formData.categoryId === "__custom__";
+    const customCategoryName = formData.customCategory.trim();
+
+    if (isCustom && !customCategoryName) {
+      toast.error(t("common.error"), {
+        description: t("services.validationError"),
+      });
+      return;
+    }
+
+    const resolvedCategoryId = isCustom
+      ? slugifyCategory(customCategoryName)
+      : formData.categoryId;
+
+    if (isCustom && !resolvedCategoryId) {
+      toast.error(t("common.error"), {
+        description: t("services.validationError"),
+      });
+      return;
+    }
+
+    const selectedCategory = categories.find(
+      (category) => category.id === formData.categoryId,
+    );
+
+    const resolvedCategoryName = isCustom
+      ? customCategoryName
+      : selectedCategory
+        ? isArabic
+          ? selectedCategory.nameAr
+          : selectedCategory.nameEn
+        : "";
+
+    const validation = serviceSchema.safeParse({
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      categoryId: resolvedCategoryId,
+      priceFrom: parsedPriceFrom,
+      priceTo: isNaN(parsedPriceTo) ? parsedPriceFrom : parsedPriceTo,
+      durationMin: parsedDuration,
       locationType: formData.locationType,
+    });
+
+    if (!validation.success) {
+      toast.error(t("common.error"), {
+        description: t("services.validationError"),
+      });
+      return;
+    }
+
+    const serviceData = {
+      title: validation.data.title,
+      description: validation.data.description,
+      categoryId: validation.data.categoryId,
+      categoryName: resolvedCategoryName || undefined,
+      priceFrom: validation.data.priceFrom,
+      priceTo: validation.data.priceTo,
+      durationMin: validation.data.durationMin,
+      locationType: validation.data.locationType,
       providerId: user.uid,
       isActive: true,
       mediaUrls: [],
@@ -413,6 +503,9 @@ const ProviderServicesPage: React.FC = () => {
                   <SelectValue placeholder={t("services.selectCategory")} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__custom__">
+                    {t("services.customCategory")}
+                  </SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.icon}{" "}
@@ -422,6 +515,26 @@ const ProviderServicesPage: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.categoryId === "__custom__" && (
+              <div>
+                <Label htmlFor="customCategory">
+                  {t("services.customCategory")}
+                </Label>
+                <Input
+                  id="customCategory"
+                  value={formData.customCategory}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      customCategory: e.target.value,
+                    })
+                  }
+                  placeholder={t("services.customCategoryPlaceholder")}
+                  className="mt-1"
+                />
+              </div>
+            )}
 
             {/* Price Range */}
             <div className="grid grid-cols-2 gap-4">
@@ -505,6 +618,8 @@ const ProviderServicesPage: React.FC = () => {
               disabled={
                 !formData.title ||
                 !formData.categoryId ||
+                (formData.categoryId === "__custom__" &&
+                  !formData.customCategory.trim()) ||
                 !formData.priceFrom ||
                 createServiceMutation.isPending ||
                 updateServiceMutation.isPending

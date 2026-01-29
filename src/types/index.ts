@@ -106,6 +106,7 @@ export interface Service {
   id: string;
   providerId: string;
   categoryId: string;
+  categoryName?: string;
   title: string;
   description: string;
   priceFrom: number;

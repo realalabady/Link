@@ -56,6 +56,11 @@
     "resetPasswordDescription": "أدخلي بريدك الإلكتروني لإرسال رابط إعادة التعيين.",
     "sendResetLink": "إرسال رابط إعادة التعيين",
     "resetEmailSent": "تحققي من بريدك الإلكتروني للحصول على رابط إعادة التعيين.",
+    "verifyEmailSent": "تم إرسال رسالة التحقق. يرجى فحص بريدك الإلكتروني قبل تسجيل الدخول.",
+    "verifyEmailTitle": "فعّلي بريدك الإلكتروني",
+    "verifyEmailDescription": "يرجى تفعيل بريدك الإلكتروني لفتح جميع الميزات.",
+    "resendVerification": "إعادة إرسال التحقق",
+    "verifyEmailResent": "تمت إعادة إرسال رسالة التحقق.",
     "backToLogin": "العودة لتسجيل الدخول",
     "orContinueWith": "أو تابعي باستخدام",
     "alreadyHaveAccount": "لديكِ حساب بالفعل؟",
@@ -73,7 +78,8 @@
       "invalidCredential": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
       "userDisabled": "تم تعطيل هذا الحساب.",
       "tooManyRequests": "محاولات كثيرة جداً. يرجى المحاولة لاحقاً.",
-      "networkError": "خطأ في الشبكة. يرجى التحقق من اتصالك."
+      "networkError": "خطأ في الشبكة. يرجى التحقق من الاتصال.",
+      "emailNotVerified": "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول."
     }
   },
   "onboarding": {
@@ -103,6 +109,7 @@
     "greeting": "مرحباً",
     "categories": "الفئات",
     "featuredProviders": "مقدمات خدمات مميزات",
+    "noCategories": "لا توجد فئات بعد.",
     "nearYou": "بالقرب منك",
     "topRated": "الأعلى تقييماً"
   },
@@ -205,7 +212,6 @@
     "accountSettings": "إعدادات الحساب",
     "personalInfo": "المعلومات الشخصية",
     "security": "الأمان",
-    "preferences": "التفضيلات",
     "notifications": "الإشعارات",
     "language": "اللغة",
     "darkMode": "الوضع الداكن",
@@ -230,7 +236,16 @@
     "bio": "نبذة عنك",
     "bioPlaceholder": "عرّفي العميلات بخبرتك",
     "useCurrentLocation": "استخدمي موقعي الحالي",
-    "locationSaved": "تم حفظ الموقع"
+    "locationSaved": "تم حفظ الموقع",
+    "bankAccount": "معلومات الحساب البنكي",
+    "accountHolder": "اسم صاحب الحساب",
+    "accountHolderPlaceholder": "الاسم الكامل لصاحب الحساب",
+    "bankName": "اسم البنك",
+    "bankNamePlaceholder": "مثال: البنك الأهلي السعودي",
+    "accountNumber": "رقم الحساب",
+    "accountNumberPlaceholder": "رقم حسابك البنكي",
+    "iban": "الآيبان",
+    "ibanPlaceholder": "رقم الحساب البنكي الدولي"
   },
   "help": {
     "title": "مركز المساعدة",
@@ -306,17 +321,24 @@
     "pending": "قيد الانتظار",
     "noPayouts": "لا توجد سحوبات بعد",
     "payoutTo": "سحب إلى الحساب البنكي",
+    "noTransactions": "لا توجد عمليات بعد",
     "pendingNote": "الأموال من الحجوزات الأخيرة (تُطلق بعد 48 ساعة)",
     "payoutDescription": "أدخلي المبلغ الذي تريدين سحبه إلى حسابك البنكي.",
     "amount": "المبلغ",
     "available": "المتاح",
-    "payoutWarning": "تستغرق السحوبات عادة 1-3 أيام عمل للمعالجة."
+    "payoutWarning": "تستغرق السحوبات عادة 1-3 أيام عمل للمعالجة.",
+    "payoutRequestSuccess": "تم إرسال طلب السحب",
+    "payoutRequested": "تم إرسال طلب السحب",
+    "payoutRequestFailed": "فشل طلب السحب",
+    "error": "خطأ"
   },
   "services": {
     "addService": "إضافة خدمة",
     "editService": "تعديل الخدمة",
     "profileIncompleteTitle": "أكملي ملفك الشخصي",
     "profileIncompleteDescription": "أضيفي رقم الهاتف والمنطقة والمدينة والحي والنبذة قبل إنشاء الخدمات.",
+    "verificationRequiredTitle": "التوثيق مطلوب",
+    "verificationRequiredDescription": "يرجى إكمال التوثيق قبل إنشاء الخدمات.",
     "noServices": "لم تضيفي أي خدمات بعد",
     "addFirst": "أضيفي خدمتك الأولى",
     "inactive": "غير نشطة",
@@ -329,11 +351,14 @@
     "descriptionPlaceholder": "صفي خدمتك...",
     "category": "الفئة",
     "selectCategory": "اختاري فئة",
+    "customCategory": "فئة مخصصة",
+    "customCategoryPlaceholder": "اكتبي اسم الفئة",
     "priceFrom": "السعر من",
     "priceTo": "السعر إلى",
     "duration": "المدة (بالدقائق)",
     "durationHint": "كم تستغرق هذه الخدمة عادةً؟",
     "locationType": "موقع الخدمة",
+    "validationError": "يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.",
     "deleteTitle": "حذف الخدمة؟",
     "deleteDescription": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف الخدمة نهائياً."
   },
@@ -451,14 +476,17 @@
     "ratingSummary": "التقييم",
     "travelRadius": "نطاق الخدمة",
     "travelFee": "رسوم التنقل",
-    "paymentsSummary": "ملخص المدفوعات"
-    ,"paymentsOverTime": "المدفوعات عبر الوقت"
-    ,"newUsersOverTime": "مستخدمات جديدات عبر الوقت"
-    ,"providerEarningsLeaderboard": "أعلى أرباح للمقدمات"
-    ,"totalUsers": "إجمالي المستخدمات"
-    ,"days": "أيام"
-    ,"weeks": "أسابيع"
-    ,"months": "أشهر"
+    "paymentsSummary": "ملخص المدفوعات",
+    "paymentsOverTime": "المدفوعات عبر الوقت",
+    "newUsersOverTime": "مستخدمات جديدات عبر الوقت",
+    "providerEarningsLeaderboard": "أعلى أرباح للمقدمات",
+    "categoriesMissing": "الفئات غير متوفرة",
+    "categoriesSeedHint": "أضيفي الفئات الافتراضية ليتمكن العملاء من تصفح الخدمات.",
+    "seedCategories": "إضافة الفئات",
+    "totalUsers": "إجمالي المستخدمات",
+    "days": "أيام",
+    "weeks": "أسابيع",
+    "months": "أشهر"
   },
   "dashboard": {
     "bookingsToday": "حجوزات اليوم",

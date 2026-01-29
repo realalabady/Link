@@ -1,7 +1,14 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Calendar, Briefcase, Clock, MessageSquare, User } from "lucide-react";
+import {
+  Calendar,
+  Briefcase,
+  Clock,
+  MessageSquare,
+  User,
+  Wallet,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -25,6 +32,11 @@ const providerNavItems: NavItem[] = [
     path: "/provider/schedule",
     labelKey: "nav.schedule",
     icon: <Clock className="h-5 w-5" />,
+  },
+  {
+    path: "/provider/wallet",
+    labelKey: "nav.wallet",
+    icon: <Wallet className="h-5 w-5" />,
   },
   {
     path: "/provider/chats",

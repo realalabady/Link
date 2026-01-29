@@ -1,11 +1,16 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster as Sonner, toast } from "@/components/ui/sonner";
 import CookieConsent from "@/components/CookieConsent";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "next-themes";
+import { useTranslation } from "react-i18next";
+import { sendEmailVerification } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { Button } from "@/components/ui/button";
 
 // Layouts
 import { ClientLayout } from "@/components/layout/ClientLayout";
@@ -41,6 +46,7 @@ import ProviderChatsPage from "@/pages/provider/ProviderChatsPage";
 import ProviderChatRoomPage from "@/pages/provider/ProviderChatRoomPage";
 import ProviderProfilePage from "@/pages/provider/ProviderProfilePage";
 import ProviderBookingDetailsPage from "@/pages/provider/ProviderBookingDetailsPage";
+import ProviderWalletPage from "@/pages/provider/ProviderWalletPage";
 
 // Admin pages
 import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
@@ -134,6 +140,7 @@ const AppRoutes = () => {
         />
         <Route path="services" element={<ProviderServicesPage />} />
         <Route path="schedule" element={<ProviderSchedulePage />} />
+        <Route path="wallet" element={<ProviderWalletPage />} />
         <Route path="chats" element={<ProviderChatsPage />} />
         <Route path="chats/:chatId" element={<ProviderChatRoomPage />} />
         <Route path="profile" element={<ProviderProfilePage />} />
@@ -160,6 +167,59 @@ const AppRoutes = () => {
   );
 };
 
+const VerifyEmailBanner = () => {
+  const { firebaseUser, isAuthenticated } = useAuth();
+  const { t } = useTranslation();
+  const [isSending, setIsSending] = React.useState(false);
+
+  if (!isAuthenticated || !firebaseUser || firebaseUser.emailVerified) {
+    return null;
+  }
+
+  const handleResend = async () => {
+    try {
+      setIsSending(true);
+      await sendEmailVerification(firebaseUser);
+      toast.success(t("auth.verifyEmailResent"));
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+      // Show more specific error message
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : "Failed to send verification email";
+      toast.error(`Error: ${errorMsg}`);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
+      <div className="container flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-semibold">{t("auth.verifyEmailTitle")}</p>
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            {t("auth.verifyEmailDescription")}
+          </p>
+          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+            Email: {firebaseUser.email}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleResend}
+          disabled={isSending}
+          className="border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-100 dark:hover:bg-amber-900/40"
+        >
+          {isSending ? t("common.loading") : t("auth.resendVerification")}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -169,6 +229,7 @@ const App = () => (
           <Sonner />
           <CookieConsent />
           <BrowserRouter>
+            <VerifyEmailBanner />
             <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>

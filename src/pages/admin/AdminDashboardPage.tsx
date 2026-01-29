@@ -4,19 +4,16 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Users, CheckCircle, CreditCard, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import ReactApexChart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { useUsers } from "@/hooks/queries/useUsers";
 import { usePendingVerifications } from "@/hooks/queries/useVerifications";
 import { usePayouts } from "@/hooks/queries/usePayouts";
 import { usePayments } from "@/hooks/queries/usePayments";
-import { getBookings } from "@/lib/firestore";
+import { getBookings, seedDefaultCategories } from "@/lib/firestore";
+import { useCategories } from "@/hooks/queries/useCategories";
 import { BookingStatus } from "@/types";
 
 const AdminDashboardPage: React.FC = () => {
@@ -27,6 +24,19 @@ const AdminDashboardPage: React.FC = () => {
   const { data: verifications = [] } = usePendingVerifications();
   const { data: payouts = [] } = usePayouts();
   const { data: payments = [] } = usePayments();
+  const { data: categories = [] } = useCategories();
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log("Admin Dashboard Data:", {
+      usersCount: users.length,
+      paymentsCount: payments.length,
+      verificationsCount: verifications.length,
+      payoutsCount: payouts.length,
+    });
+    console.log("Payments data:", payments);
+    console.log("Users data:", users);
+  }, [users, payments, verifications, payouts]);
 
   const { data: activeBookingsCount = 0 } = useQuery({
     queryKey: ["admin", "bookings", "active"],
@@ -115,7 +125,8 @@ const AdminDashboardPage: React.FC = () => {
     });
 
     const now = new Date();
-    const buckets = paymentsRange === "months" ? 12 : paymentsRange === "weeks" ? 12 : 14;
+    const buckets =
+      paymentsRange === "months" ? 12 : paymentsRange === "weeks" ? 12 : 14;
     const range = Array.from({ length: buckets }, (_, index) => {
       const date = new Date(now);
       if (paymentsRange === "months") {
@@ -133,13 +144,19 @@ const AdminDashboardPage: React.FC = () => {
       return { key, date };
     });
 
-    return range.map(({ key, date }) => ({
+    const result = range.map(({ key, date }) => ({
       date:
         paymentsRange === "months"
           ? date.toLocaleDateString(locale, { month: "short", year: "2-digit" })
           : date.toLocaleDateString(locale, { month: "short", day: "numeric" }),
       total: totals.get(key) || 0,
     }));
+
+    console.log("Payments totals map:", totals);
+    console.log("Payments range keys:", range.map((r) => r.key));
+    console.log("Payments over time result:", result);
+
+    return result;
   }, [payments, locale, paymentsRange]);
 
   const newUsersOverTime = useMemo(() => {
@@ -176,7 +193,8 @@ const AdminDashboardPage: React.FC = () => {
     });
 
     const now = new Date();
-    const buckets = usersRange === "months" ? 12 : usersRange === "weeks" ? 12 : 14;
+    const buckets =
+      usersRange === "months" ? 12 : usersRange === "weeks" ? 12 : 14;
     const range = Array.from({ length: buckets }, (_, index) => {
       const date = new Date(now);
       if (usersRange === "months") {
@@ -221,7 +239,10 @@ const AdminDashboardPage: React.FC = () => {
     const totals = new Map<string, number>();
     source.forEach((payment) => {
       const amount = payment.amountSar || payment.amount || 0;
-      totals.set(payment.providerId, (totals.get(payment.providerId) || 0) + amount);
+      totals.set(
+        payment.providerId,
+        (totals.get(payment.providerId) || 0) + amount,
+      );
     });
 
     return Array.from(totals.entries())
@@ -234,27 +255,30 @@ const AdminDashboardPage: React.FC = () => {
       .slice(0, 5);
   }, [payments, providerNameMap, t]);
 
-  const paymentsChartOptions: ApexOptions = {
-    chart: {
-      type: "line",
-      toolbar: { show: false },
-      zoom: { enabled: false },
-    },
-    stroke: { width: 3, curve: "smooth" },
-    grid: { strokeDashArray: 4 },
-    xaxis: {
-      categories: paymentsOverTime.map((item) => item.date),
-      labels: { rotate: -20 },
-    },
-    yaxis: {
-      labels: {
-        formatter: (value) => value.toFixed(0),
+  const paymentsChartOptions: ApexOptions = useMemo(
+    () => ({
+      chart: {
+        type: "line",
+        toolbar: { show: false },
+        zoom: { enabled: false },
       },
-    },
-    colors: ["hsl(var(--chart-1))"],
-    dataLabels: { enabled: false },
-    tooltip: { theme: "dark" },
-  };
+      stroke: { width: 3, curve: "smooth" },
+      grid: { strokeDashArray: 4 },
+      xaxis: {
+        categories: paymentsOverTime.map((item) => item.date),
+        labels: { rotate: -20 },
+      },
+      yaxis: {
+        labels: {
+          formatter: (value) => value.toFixed(0),
+        },
+      },
+      colors: ["#3b82f6"],
+      dataLabels: { enabled: false },
+      tooltip: { theme: "dark" },
+    }),
+    [paymentsOverTime],
+  );
 
   const paymentsSeries = [
     {
@@ -263,38 +287,46 @@ const AdminDashboardPage: React.FC = () => {
     },
   ];
 
-  const usersChartOptions: ApexOptions = {
-    chart: {
-      type: "line",
-      toolbar: { show: false },
-      zoom: { enabled: false },
-    },
-    stroke: { width: 3, curve: "smooth" },
-    grid: { strokeDashArray: 4 },
-    xaxis: {
-      categories: newUsersOverTime.map((item, index) => {
-        if (usersRange === "months") {
-          return item.monthLabel;
-        }
+  React.useEffect(() => {
+    console.log("Payments series:", paymentsSeries);
+    console.log("Payments chart options:", paymentsChartOptions);
+  }, [paymentsSeries, paymentsChartOptions]);
 
-        const previous = index > 0 ? newUsersOverTime[index - 1] : null;
-        if (!previous || previous.monthKey !== item.monthKey) {
-          return `${item.monthLabel} ${item.dayLabel}`.trim();
-        }
-
-        return item.dayLabel;
-      }),
-      labels: { rotate: -20 },
-    },
-    yaxis: {
-      labels: {
-        formatter: (value) => value.toFixed(0),
+  const usersChartOptions: ApexOptions = useMemo(
+    () => ({
+      chart: {
+        type: "line",
+        toolbar: { show: false },
+        zoom: { enabled: false },
       },
-    },
-    colors: ["hsl(var(--chart-2))"],
-    dataLabels: { enabled: false },
-    tooltip: { theme: "dark" },
-  };
+      stroke: { width: 3, curve: "smooth" },
+      grid: { strokeDashArray: 4 },
+      xaxis: {
+        categories: newUsersOverTime.map((item, index) => {
+          if (usersRange === "months") {
+            return item.monthLabel;
+          }
+
+          const previous = index > 0 ? newUsersOverTime[index - 1] : null;
+          if (!previous || previous.monthKey !== item.monthKey) {
+            return `${item.monthLabel} ${item.dayLabel}`.trim();
+          }
+
+          return item.dayLabel;
+        }),
+        labels: { rotate: -20 },
+      },
+      yaxis: {
+        labels: {
+          formatter: (value) => value.toFixed(0),
+        },
+      },
+      colors: ["#10b981"],
+      dataLabels: { enabled: false },
+      tooltip: { theme: "dark" },
+    }),
+    [newUsersOverTime, usersRange],
+  );
 
   const usersSeries = [
     {
@@ -365,6 +397,16 @@ const AdminDashboardPage: React.FC = () => {
     },
   ];
 
+  const handleSeedCategories = async () => {
+    try {
+      await seedDefaultCategories();
+      toast.success(t("admin.categoriesSeeded"));
+    } catch (error) {
+      console.error("Failed to seed categories:", error);
+      toast.error(t("common.error"));
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <h1 className="mb-8 text-3xl font-bold text-foreground">
@@ -391,6 +433,22 @@ const AdminDashboardPage: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {categories.length === 0 && (
+        <Card className="mb-8 border-dashed">
+          <CardHeader>
+            <CardTitle>{t("admin.categoriesMissing")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {t("admin.categoriesSeedHint")}
+            </p>
+            <Button onClick={handleSeedCategories}>
+              {t("admin.seedCategories")}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -440,7 +498,8 @@ const AdminDashboardPage: React.FC = () => {
                           t("admin.notProvided")}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {payment.status} • {payment.createdAt.toLocaleDateString()}
+                        {payment.status} •{" "}
+                        {payment.createdAt.toLocaleDateString()}
                       </p>
                     </div>
                     <p className="text-sm font-semibold">
@@ -479,7 +538,7 @@ const AdminDashboardPage: React.FC = () => {
             ) : (
               <div className="h-[260px]">
                 <ReactApexChart
-                  key={`payments-${paymentsRange}`}
+                  key={`payments-${paymentsRange}-${paymentsSeries[0]?.data.join(",")}`}
                   type="line"
                   height={260}
                   options={paymentsChartOptions}
@@ -514,33 +573,11 @@ const AdminDashboardPage: React.FC = () => {
             ) : (
               <div className="h-[260px]">
                 <ReactApexChart
-                  key={`users-${usersRange}`}
+                  key={`users-${usersRange}-${usersSeries[0]?.data.join(",")}`}
                   type="line"
                   height={260}
                   options={usersChartOptions}
                   series={usersSeries}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.providerEarningsLeaderboard")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {providerEarnings.length === 0 ? (
-              <p className="text-muted-foreground">{t("admin.noPayments")}</p>
-            ) : (
-              <div className="h-[260px]">
-                <ReactApexChart
-                  type="bar"
-                  height={260}
-                  options={earningsChartOptions}
-                  series={earningsSeries}
                 />
               </div>
             )}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
@@ -23,76 +23,165 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  addDoc,
+} from "firebase/firestore";
 
-// Mock data for wallet - would come from Firestore
-const mockWallet = {
-  balance: 1250.0,
-  pendingBalance: 350.0,
+const wallet = {
+  balance: 0,
+  pendingBalance: 0,
   currency: "SAR",
 };
 
-const mockTransactions = [
-  {
-    id: "1",
-    type: "credit",
-    amount: 150,
-    description: "Booking #1234 completed",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    status: "completed",
-  },
-  {
-    id: "2",
-    type: "credit",
-    amount: 200,
-    description: "Booking #1233 completed",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    status: "completed",
-  },
-  {
-    id: "3",
-    type: "debit",
-    amount: 500,
-    description: "Payout to bank account",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 48),
-    status: "completed",
-  },
-  {
-    id: "4",
-    type: "credit",
-    amount: 350,
-    description: "Booking #1232 - pending release",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 72),
-    status: "pending",
-  },
-];
+const transactions: Array<{
+  id: string;
+  type: "credit" | "debit";
+  amount: number;
+  description: string;
+  date: Date;
+  status?: "pending" | "completed";
+}> = [];
 
-const mockPayouts = [
-  {
-    id: "1",
-    amount: 500,
-    status: "PAID",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
-  },
-  {
-    id: "2",
-    amount: 750,
-    status: "PAID",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-  },
-];
+const payouts: Array<{
+  id: string;
+  amount: number;
+  status: "PAID" | "APPROVED" | "REQUESTED" | "REJECTED";
+  createdAt: Date;
+}> = [];
 
 const ProviderWalletPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isArabic = i18n.language === "ar";
 
+  const [walletData, setWalletData] = useState(wallet);
+  const [transactionsData, setTransactionsData] = useState(transactions);
+  const [payoutsData, setPayoutsData] = useState(payouts);
+  const [loading, setLoading] = useState(true);
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch wallet data from Firestore
+  useEffect(() => {
+    const fetchWalletData = async () => {
+      if (!user?.uid) return;
+
+      try {
+        setLoading(true);
+
+        // Run all queries in parallel
+        const acceptedBookingsQ = query(
+          collection(db, "bookings"),
+          where("providerId", "==", user.uid),
+          where("status", "==", "ACCEPTED"),
+        );
+
+        const completedBookingsQ = query(
+          collection(db, "bookings"),
+          where("providerId", "==", user.uid),
+          where("status", "==", "COMPLETED"),
+        );
+
+        const payoutsQ = query(
+          collection(db, "payouts"),
+          where("providerId", "==", user.uid),
+        );
+
+        // Execute all queries in parallel
+        const [acceptedSnap, completedSnap, payoutsSnap] = await Promise.all([
+          getDocs(acceptedBookingsQ),
+          getDocs(completedBookingsQ),
+          getDocs(payoutsQ),
+        ]);
+
+        // Combine booking results
+        const allBookings = [...acceptedSnap.docs, ...completedSnap.docs];
+        console.log("Bookings found:", allBookings.length);
+
+        let totalEarnings = 0;
+        const txns: typeof transactions = [];
+
+        allBookings.forEach((doc) => {
+          const booking = doc.data();
+          const amount =
+            booking.priceTotal || booking.price || booking.amount || 0;
+          console.log(
+            "Booking:",
+            doc.id,
+            "Amount:",
+            amount,
+            "Status:",
+            booking.status,
+          );
+          totalEarnings += amount;
+
+          txns.push({
+            id: doc.id,
+            type: "credit",
+            amount,
+            description: `Booking #${doc.id.slice(0, 4)} - ${booking.serviceName || "Service"}`,
+            date:
+              booking.completedAt?.toDate?.() ||
+              booking.acceptedAt?.toDate?.() ||
+              new Date(),
+            status: booking.status === "COMPLETED" ? "completed" : "pending",
+          });
+        });
+
+        let totalPending = 0;
+        const pyts: typeof payouts = [];
+
+        payoutsSnap.docs.forEach((doc) => {
+          const payout = doc.data();
+          pyts.push({
+            id: doc.id,
+            amount: payout.amount || 0,
+            status: payout.status || "REQUESTED",
+            createdAt: payout.createdAt?.toDate?.() || new Date(),
+          });
+
+          if (payout.status === "REQUESTED" || payout.status === "APPROVED") {
+            totalPending += payout.amount || 0;
+          }
+        });
+
+        // Sort payouts by date (newest first)
+        pyts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+        const balance = totalEarnings - totalPending;
+
+        setWalletData({
+          balance: Math.max(0, balance),
+          pendingBalance: totalPending,
+          currency: "SAR",
+        });
+        setTransactionsData(
+          txns.sort((a, b) => b.date.getTime() - a.date.getTime()),
+        );
+        setPayoutsData(pyts);
+      } catch (error) {
+        console.error("Failed to fetch wallet data:", error);
+        // Keep default empty data on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWalletData();
+  }, [user?.uid]);
+
   const formatCurrency = (amount: number) => {
-    return `${amount.toFixed(2)} ${mockWallet.currency}`;
+    return `${amount.toFixed(2)} ${walletData.currency}`;
   };
 
   const formatDate = (date: Date) => {
@@ -118,15 +207,124 @@ const ProviderWalletPage: React.FC = () => {
 
   const handleRequestPayout = async () => {
     const amount = parseFloat(payoutAmount);
-    if (isNaN(amount) || amount <= 0 || amount > mockWallet.balance) return;
+    if (
+      isNaN(amount) ||
+      amount <= 0 ||
+      amount > walletData.balance ||
+      !user?.uid
+    )
+      return;
 
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    setPayoutDialogOpen(false);
-    setPayoutAmount("");
-    // In real app, this would trigger a payout request
+    try {
+      setIsLoading(true);
+
+      // Create payout request in Firestore
+      await addDoc(collection(db, "payouts"), {
+        providerId: user.uid,
+        amount,
+        status: "REQUESTED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // Refresh wallet data - fetch accepted bookings
+      const bookingsQ = query(
+        collection(db, "bookings"),
+        where("providerId", "==", user.uid),
+        where("status", "==", "ACCEPTED"),
+      );
+      const acceptedSnap = await getDocs(bookingsQ);
+
+      // Fetch completed bookings
+      const completedQ = query(
+        collection(db, "bookings"),
+        where("providerId", "==", user.uid),
+        where("status", "==", "COMPLETED"),
+      );
+      const completedSnap = await getDocs(completedQ);
+
+      // Combine both
+      const allBookings = [...acceptedSnap.docs, ...completedSnap.docs];
+
+      let totalEarnings = 0;
+      const txns: typeof transactions = [];
+
+      allBookings.forEach((doc) => {
+        const booking = doc.data();
+        const bookAmount =
+          booking.priceTotal || booking.price || booking.amount || 0;
+        totalEarnings += bookAmount;
+
+        txns.push({
+          id: doc.id,
+          type: "credit",
+          amount: bookAmount,
+          description: `Booking #${doc.id.slice(0, 4)} - ${booking.serviceName || "Service"}`,
+          date:
+            booking.completedAt?.toDate?.() ||
+            booking.acceptedAt?.toDate?.() ||
+            new Date(),
+          status: booking.status === "COMPLETED" ? "completed" : "pending",
+        });
+      });
+
+      // Fetch updated payout requests
+      const payoutsQ = query(
+        collection(db, "payouts"),
+        where("providerId", "==", user.uid),
+      );
+      const payoutsSnap = await getDocs(payoutsQ);
+
+      let totalPending = 0;
+      const pyts: typeof payouts = [];
+
+      payoutsSnap.docs.forEach((doc) => {
+        const payout = doc.data();
+        pyts.push({
+          id: doc.id,
+          amount: payout.amount || 0,
+          status: payout.status || "REQUESTED",
+          createdAt: payout.createdAt?.toDate?.() || new Date(),
+        });
+
+        if (payout.status === "REQUESTED" || payout.status === "APPROVED") {
+          totalPending += payout.amount || 0;
+        }
+      });
+
+      // Sort payouts by date (newest first)
+      pyts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      const balance = totalEarnings - totalPending;
+
+      setWalletData({
+        balance: Math.max(0, balance),
+        pendingBalance: totalPending,
+        currency: "SAR",
+      });
+      setTransactionsData(
+        txns.sort((a, b) => b.date.getTime() - a.date.getTime()),
+      );
+      setPayoutsData(pyts);
+
+      // Show success toast
+      toast({
+        title: t("wallet.payoutRequestSuccess") || "Success",
+        description: `${t("wallet.payoutRequested") || "Payout request sent"} - ${amount} SAR`,
+      });
+
+      setPayoutDialogOpen(false);
+      setPayoutAmount("");
+    } catch (error) {
+      console.error("Failed to request payout:", error);
+      toast({
+        title: t("wallet.error") || "Error",
+        description: t("wallet.payoutRequestFailed") || "Failed to request payout",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -180,12 +378,13 @@ const ProviderWalletPage: React.FC = () => {
                 </span>
               </div>
               <p className="text-3xl font-bold">
-                {formatCurrency(mockWallet.balance)}
+                {formatCurrency(walletData.balance)}
               </p>
               <Button
                 variant="secondary"
                 className="mt-4 w-full"
                 onClick={() => setPayoutDialogOpen(true)}
+                disabled={walletData.balance <= 0}
               >
                 {t("wallet.requestPayout")}
               </Button>
@@ -198,7 +397,7 @@ const ProviderWalletPage: React.FC = () => {
                 <span className="text-sm">{t("wallet.pendingBalance")}</span>
               </div>
               <p className="text-3xl font-bold text-foreground">
-                {formatCurrency(mockWallet.pendingBalance)}
+                {formatCurrency(walletData.pendingBalance)}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 {t("wallet.pendingNote")}
@@ -212,53 +411,59 @@ const ProviderWalletPage: React.FC = () => {
               {t("wallet.transactions")}
             </h2>
             <div className="space-y-2">
-              {mockTransactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between rounded-xl bg-card p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                        transaction.type === "credit"
-                          ? "bg-green-100 text-green-600"
-                          : "bg-red-100 text-red-600"
-                      }`}
-                    >
-                      {transaction.type === "credit" ? (
-                        <ArrowDownRight className="h-5 w-5" />
-                      ) : (
-                        <ArrowUpRight className="h-5 w-5" />
+              {transactionsData.length === 0 ? (
+                <div className="rounded-xl bg-card p-6 text-center text-muted-foreground">
+                  {t("wallet.noTransactions")}
+                </div>
+              ) : (
+                transactionsData.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="flex items-center justify-between rounded-xl bg-card p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                          transaction.type === "credit"
+                            ? "bg-green-100 text-green-600"
+                            : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        {transaction.type === "credit" ? (
+                          <ArrowDownRight className="h-5 w-5" />
+                        ) : (
+                          <ArrowUpRight className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {transaction.description}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(transaction.date)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-end">
+                      <p
+                        className={`font-semibold ${
+                          transaction.type === "credit"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {transaction.type === "credit" ? "+" : "-"}
+                        {formatCurrency(transaction.amount)}
+                      </p>
+                      {transaction.status === "pending" && (
+                        <Badge variant="outline" className="mt-1">
+                          {t("wallet.pending")}
+                        </Badge>
                       )}
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {transaction.description}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(transaction.date)}
-                      </p>
-                    </div>
                   </div>
-                  <div className="text-end">
-                    <p
-                      className={`font-semibold ${
-                        transaction.type === "credit"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {transaction.type === "credit" ? "+" : "-"}
-                      {formatCurrency(transaction.amount)}
-                    </p>
-                    {transaction.status === "pending" && (
-                      <Badge variant="outline" className="mt-1">
-                        {t("wallet.pending")}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </motion.section>
 
@@ -267,13 +472,13 @@ const ProviderWalletPage: React.FC = () => {
             <h2 className="mb-3 font-medium text-foreground">
               {t("wallet.payoutHistory")}
             </h2>
-            {mockPayouts.length === 0 ? (
+            {payoutsData.length === 0 ? (
               <div className="rounded-xl bg-card p-6 text-center text-muted-foreground">
                 {t("wallet.noPayouts")}
               </div>
             ) : (
               <div className="space-y-2">
-                {mockPayouts.map((payout) => (
+                {payoutsData.map((payout) => (
                   <div
                     key={payout.id}
                     className="flex items-center justify-between rounded-xl bg-card p-4"
@@ -327,7 +532,7 @@ const ProviderWalletPage: React.FC = () => {
                 className="mt-1"
               />
               <p className="mt-1 text-sm text-muted-foreground">
-                {t("wallet.available")}: {formatCurrency(mockWallet.balance)}
+                {t("wallet.available")}: {formatCurrency(walletData.balance)}
               </p>
             </div>
 
@@ -351,7 +556,7 @@ const ProviderWalletPage: React.FC = () => {
                 isLoading ||
                 !payoutAmount ||
                 parseFloat(payoutAmount) <= 0 ||
-                parseFloat(payoutAmount) > mockWallet.balance
+                parseFloat(payoutAmount) > walletData.balance
               }
             >
               {isLoading ? t("common.loading") : t("wallet.requestPayout")}

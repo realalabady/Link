@@ -66,8 +66,7 @@ const AdminUsersPage: React.FC = () => {
   const updateStatusMutation = useUpdateUserStatus();
   const detailsUserId = detailsUser?.uid || "";
   const { data: providerProfile } = useProviderProfile(detailsUserId);
-  const { data: providerPayments = [] } =
-    usePaymentsByProvider(detailsUserId);
+  const { data: providerPayments = [] } = usePaymentsByProvider(detailsUserId);
   const { data: clientPayments = [] } = usePaymentsByClient(detailsUserId);
 
   const isProviderDetails =
@@ -564,7 +563,55 @@ const AdminUsersPage: React.FC = () => {
               </div>
             )}
 
-            {(isProviderDetails || isClientDetails ||
+            {isProviderDetails && providerProfile && (
+              <div className="rounded-lg border border-border p-4">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {t("profile.bankAccount")}
+                </h3>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {t("profile.accountHolder")}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {providerProfile.bankAccountHolder ||
+                        t("admin.notProvided")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {t("profile.bankName")}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {providerProfile.bankName || t("admin.notProvided")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {t("profile.accountNumber")}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {providerProfile.bankAccountNumber
+                        ? `****${providerProfile.bankAccountNumber.slice(-4)}`
+                        : t("admin.notProvided")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {t("profile.iban")}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {providerProfile.bankIBAN
+                        ? `${providerProfile.bankIBAN.slice(0, 4)}****${providerProfile.bankIBAN.slice(-4)}`
+                        : t("admin.notProvided")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(isProviderDetails ||
+              isClientDetails ||
               detailPayments.length > 0) && (
               <div className="rounded-lg border border-border p-4">
                 <h3 className="text-sm font-semibold text-foreground">

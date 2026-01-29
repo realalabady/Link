@@ -33,6 +33,7 @@ const SignupPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const isStrongPassword = (value: string) =>
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
@@ -40,6 +41,7 @@ const SignupPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!isStrongPassword(password)) {
       setError(t("auth.passwordRequirements"));
@@ -57,6 +59,11 @@ const SignupPage: React.FC = () => {
       await signup(email, password, name);
       navigate("/onboarding");
     } catch (err) {
+      if ((err as any)?.code === "auth/email-not-verified") {
+        setSuccess(t("auth.verifyEmailSent"));
+        navigate("/auth/login");
+        return;
+      }
       setError(getAuthErrorMessage(err, t));
     } finally {
       setIsLoading(false);
@@ -112,6 +119,11 @@ const SignupPage: React.FC = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
+            {success && (
+              <div className="rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
+                {success}
+              </div>
+            )}
             {error && (
               <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                 {error}

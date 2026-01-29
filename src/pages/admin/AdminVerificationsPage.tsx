@@ -1,19 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
 import {
   CheckCircle,
   XCircle,
   Eye,
-  FileText,
   Clock,
+  FileText,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +24,16 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  usePendingVerifications,
-  useVerifyProvider,
-} from "@/hooks/queries/useVerifications";
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  orderBy,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface VerificationRequest {
   id: string;
@@ -37,12 +43,16 @@ interface VerificationRequest {
   submittedAt: Date;
   documents: { name: string; url: string }[];
   status: "PENDING" | "APPROVED" | "REJECTED";
+  reason?: string;
 }
 
 const AdminVerificationsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === "ar";
+  const { user } = useAuth();
 
+  const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedRequest, setSelectedRequest] =
     useState<VerificationRequest | null>(null);
@@ -52,10 +62,33 @@ const AdminVerificationsPage: React.FC = () => {
     null,
   );
   const [rejectionReason, setRejectionReason] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch verifications
-  const { data: verifications = [], isLoading } = usePendingVerifications();
-  const verifyMutation = useVerifyProvider();
+  // Fetch verifications from Firestore
+  useEffect(() => {
+    const fetchVerifications = async () => {
+      try {
+        setLoading(true);
+        const q = query(
+          collection(db, "verifications"),
+          orderBy("submittedAt", "desc"),
+        );
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          submittedAt: doc.data().submittedAt?.toDate?.() || new Date(),
+        })) as VerificationRequest[];
+        setVerifications(data);
+      } catch (error) {
+        console.error("Failed to fetch verifications:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVerifications();
+  }, []);
 
   // Filter by status
   const pendingRequests = verifications.filter((v) => v.status === "PENDING");
@@ -81,16 +114,51 @@ const AdminVerificationsPage: React.FC = () => {
     if (!selectedRequest || !actionType) return;
 
     try {
-      await verifyMutation.mutateAsync({
-        providerId: selectedRequest.providerId,
-        approved: actionType === "approve",
-        reason: actionType === "reject" ? rejectionReason : undefined,
-      });
+      setIsProcessing(true);
+
+      // Update verification status
+      const verificationRef = doc(db, "verifications", selectedRequest.id);
+      const updateData: any = {
+        status: actionType === "approve" ? "APPROVED" : "REJECTED",
+        updatedAt: new Date(),
+        updatedBy: user?.uid,
+      };
+
+      if (actionType === "reject") {
+        updateData.reason = rejectionReason;
+      }
+
+      await updateDoc(verificationRef, updateData);
+
+      // If approved, update provider's isVerified flag
+      if (actionType === "approve") {
+        const providerRef = doc(db, "providers", selectedRequest.providerId);
+        await updateDoc(providerRef, {
+          isVerified: true,
+          verifiedAt: new Date(),
+        });
+      }
+
+      // Update local state
+      setVerifications((prev) =>
+        prev.map((v) =>
+          v.id === selectedRequest.id
+            ? {
+                ...v,
+                status: actionType === "approve" ? "APPROVED" : "REJECTED",
+                reason: actionType === "reject" ? rejectionReason : undefined,
+              }
+            : v,
+        ),
+      );
+
       setActionDialogOpen(false);
       setSelectedRequest(null);
       setActionType(null);
     } catch (error) {
       console.error("Failed to process verification:", error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -102,13 +170,8 @@ const AdminVerificationsPage: React.FC = () => {
     });
   };
 
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  };
-
   const renderRequestList = (requests: VerificationRequest[]) => {
-    if (isLoading) {
+    if (loading) {
       return (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -208,58 +271,52 @@ const AdminVerificationsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
-      >
+      <div className="container mx-auto p-4">
         {/* Header */}
-        <motion.div variants={fadeInUp} className="mb-6">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">
             {t("admin.verifications")}
           </h1>
           <p className="text-muted-foreground">
             {t("admin.verificationsDescription")}
           </p>
-        </motion.div>
+        </div>
 
         {/* Tabs */}
-        <motion.div variants={fadeInUp}>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6">
-              <TabsTrigger value="pending" className="gap-2">
-                <Clock className="h-4 w-4" />
-                {t("admin.pending")}
-                {pendingRequests.length > 0 && (
-                  <Badge variant="secondary" className="ms-1">
-                    {pendingRequests.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="approved" className="gap-2">
-                <CheckCircle className="h-4 w-4" />
-                {t("admin.approved")}
-              </TabsTrigger>
-              <TabsTrigger value="rejected" className="gap-2">
-                <XCircle className="h-4 w-4" />
-                {t("admin.rejected")}
-              </TabsTrigger>
-            </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="pending" className="gap-2">
+              <Clock className="h-4 w-4" />
+              {t("admin.pending")}
+              {pendingRequests.length > 0 && (
+                <Badge variant="secondary" className="ms-1">
+                  {pendingRequests.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="approved" className="gap-2">
+              <CheckCircle className="h-4 w-4" />
+              {t("admin.approved")}
+            </TabsTrigger>
+            <TabsTrigger value="rejected" className="gap-2">
+              <XCircle className="h-4 w-4" />
+              {t("admin.rejected")}
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="pending">
-              {renderRequestList(pendingRequests)}
-            </TabsContent>
+          <TabsContent value="pending">
+            {renderRequestList(pendingRequests)}
+          </TabsContent>
 
-            <TabsContent value="approved">
-              {renderRequestList(approvedRequests)}
-            </TabsContent>
+          <TabsContent value="approved">
+            {renderRequestList(approvedRequests)}
+          </TabsContent>
 
-            <TabsContent value="rejected">
-              {renderRequestList(rejectedRequests)}
-            </TabsContent>
-          </Tabs>
-        </motion.div>
-      </motion.div>
+          <TabsContent value="rejected">
+            {renderRequestList(rejectedRequests)}
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* View Documents Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
@@ -349,7 +406,7 @@ const AdminVerificationsPage: React.FC = () => {
             <Button
               variant={actionType === "reject" ? "destructive" : "default"}
               onClick={confirmAction}
-              disabled={verifyMutation.isPending}
+              disabled={isProcessing}
             >
               {actionType === "approve"
                 ? t("admin.approve")

@@ -43,6 +43,9 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateUserProfile } from "@/lib/firestore";
+import { useProviderBookings } from "@/hooks/queries/useBookings";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   useProviderProfile,
@@ -412,6 +415,32 @@ const ProviderProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   const { data: providerProfile } = useProviderProfile(user?.uid || "");
+  const { data: providerBookings = [] } = useProviderBookings(user?.uid || "");
+  const completedBookingsCount = providerBookings.filter(
+    (b) => b.status === "COMPLETED",
+  ).length;
+  const [verificationStatus, setVerificationStatus] = useState<
+    "NONE" | "PENDING" | "APPROVED"
+  >("NONE");
+  // Check if already requested (mock: in real app, fetch from verifications collection)
+  useEffect(() => {
+    // TODO: Replace with Firestore check for real status
+    setVerificationStatus(providerProfile?.isVerified ? "APPROVED" : "NONE");
+  }, [providerProfile]);
+
+  const handleRequestVerification = async () => {
+    setIsLoading(true);
+    try {
+      await addDoc(collection(db, "verifications"), {
+        providerId: user?.uid,
+        status: "PENDING",
+        requestedAt: serverTimestamp(),
+      });
+      setVerificationStatus("PENDING");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const updateProviderProfileMutation = useUpdateProviderProfile();
 
   const [formValues, setFormValues] = useState({
@@ -424,6 +453,10 @@ const ProviderProfilePage: React.FC = () => {
     bio: providerProfile?.bio || "",
     latitude: providerProfile?.latitude,
     longitude: providerProfile?.longitude,
+    bankAccountHolder: providerProfile?.bankAccountHolder || "",
+    bankName: providerProfile?.bankName || "",
+    bankAccountNumber: providerProfile?.bankAccountNumber || "",
+    bankIBAN: providerProfile?.bankIBAN || "",
   });
 
   useEffect(() => {
@@ -445,6 +478,10 @@ const ProviderProfilePage: React.FC = () => {
       bio: providerProfile?.bio || "",
       latitude: providerProfile?.latitude,
       longitude: providerProfile?.longitude,
+      bankAccountHolder: providerProfile?.bankAccountHolder || "",
+      bankName: providerProfile?.bankName || "",
+      bankAccountNumber: providerProfile?.bankAccountNumber || "",
+      bankIBAN: providerProfile?.bankIBAN || "",
     });
   }, [providerProfile, user]);
 
@@ -553,6 +590,10 @@ const ProviderProfilePage: React.FC = () => {
           bio: formValues.bio,
           latitude: formValues.latitude,
           longitude: formValues.longitude,
+          bankAccountHolder: formValues.bankAccountHolder,
+          bankName: formValues.bankName,
+          bankAccountNumber: formValues.bankAccountNumber,
+          bankIBAN: formValues.bankIBAN,
         },
       }),
       updateUserProfile(user.uid, {
@@ -847,98 +888,88 @@ const ProviderProfilePage: React.FC = () => {
             </Card>
           </motion.div>
 
-          {/* Wallet Section */}
+          {/* Bank Account Section */}
           <motion.div variants={fadeInUp} className="mb-6">
             <h2 className="mb-3 text-lg font-semibold text-foreground">
-              {t("nav.wallet")}
+              {t("profile.bankAccount")}
             </h2>
-
-            {/* Balance Cards */}
-            <div className="grid gap-4 md:grid-cols-2 mb-4">
-              {/* Available Balance */}
-              <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground">
-                <div className="mb-3 flex items-center gap-2">
-                  <Wallet className="h-5 w-5" />
-                  <span className="text-sm opacity-90">
-                    {t("wallet.balance")}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(mockWallet.balance)}
-                </p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="mt-3 w-full"
-                  onClick={() => setPayoutDialogOpen(true)}
-                >
-                  {t("wallet.requestPayout")}
-                </Button>
-              </div>
-
-              {/* Pending Balance */}
-              <div className="rounded-2xl bg-card border p-5">
-                <div className="mb-3 flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-5 w-5" />
-                  <span className="text-sm">{t("wallet.pendingBalance")}</span>
-                </div>
-                <p className="text-2xl font-bold text-foreground">
-                  {formatCurrency(mockWallet.pendingBalance)}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t("wallet.pendingNote")}
-                </p>
-              </div>
-            </div>
-
-            {/* Recent Transactions */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground mb-2">
-                {t("wallet.transactions")}
-              </p>
-              {mockTransactions.slice(0, 3).map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between rounded-xl bg-card p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                        transaction.type === "credit"
-                          ? "bg-green-100 text-green-600"
-                          : "bg-red-100 text-red-600"
-                      }`}
-                    >
-                      {transaction.type === "credit" ? (
-                        <ArrowDownRight className="h-4 w-4" />
-                      ) : (
-                        <ArrowUpRight className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {transaction.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(transaction.date)}
-                      </p>
-                    </div>
+            <Card>
+              <CardContent className="p-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="bank-holder">
+                      {t("profile.accountHolder")}
+                    </Label>
+                    <Input
+                      id="bank-holder"
+                      value={formValues.bankAccountHolder}
+                      onChange={(e) =>
+                        setFormValues((prev) => ({
+                          ...prev,
+                          bankAccountHolder: e.target.value,
+                        }))
+                      }
+                      placeholder={t("profile.accountHolderPlaceholder")}
+                      disabled={!isEditing}
+                      className="mt-1"
+                    />
                   </div>
-                  <p
-                    className={`text-sm font-semibold ${
-                      transaction.type === "credit"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {transaction.type === "credit" ? "+" : "-"}
-                    {formatCurrency(transaction.amount)}
-                  </p>
+                  <div>
+                    <Label htmlFor="bank-name">{t("profile.bankName")}</Label>
+                    <Input
+                      id="bank-name"
+                      value={formValues.bankName}
+                      onChange={(e) =>
+                        setFormValues((prev) => ({
+                          ...prev,
+                          bankName: e.target.value,
+                        }))
+                      }
+                      placeholder={t("profile.bankNamePlaceholder")}
+                      disabled={!isEditing}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="account-number">
+                      {t("profile.accountNumber")}
+                    </Label>
+                    <Input
+                      id="account-number"
+                      value={formValues.bankAccountNumber}
+                      onChange={(e) =>
+                        setFormValues((prev) => ({
+                          ...prev,
+                          bankAccountNumber: e.target.value,
+                        }))
+                      }
+                      placeholder={t("profile.accountNumberPlaceholder")}
+                      disabled={!isEditing}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="iban">{t("profile.iban")}</Label>
+                    <Input
+                      id="iban"
+                      value={formValues.bankIBAN}
+                      onChange={(e) =>
+                        setFormValues((prev) => ({
+                          ...prev,
+                          bankIBAN: e.target.value,
+                        }))
+                      }
+                      placeholder={t("profile.ibanPlaceholder")}
+                      disabled={!isEditing}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
+          {/* Wallet Section */}
           {/* Settings Section */}
           <motion.div variants={fadeInUp} className="mb-6">
             <h2 className="mb-3 text-lg font-semibold text-foreground">
@@ -969,13 +1000,27 @@ const ProviderProfilePage: React.FC = () => {
                   />
                 </div>
 
-                {/* Notifications */}
+                {/* Get Verified Button */}
                 <div className="flex items-center justify-between p-4 border-b">
                   <div className="flex items-center gap-3">
-                    <Bell className="h-5 w-5 text-muted-foreground" />
-                    <span>{t("profile.notifications")}</span>
+                    <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                    <span>Get Verified</span>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  {verificationStatus === "APPROVED" ? (
+                    <Badge className="bg-green-500">Verified</Badge>
+                  ) : verificationStatus === "PENDING" ? (
+                    <Badge className="bg-yellow-500">Pending</Badge>
+                  ) : (
+                    <Button
+                      size="sm"
+                      disabled={completedBookingsCount < 10 || isLoading}
+                      onClick={handleRequestVerification}
+                    >
+                      {isLoading
+                        ? "Requesting..."
+                        : `Get Verified (${completedBookingsCount}/10)`}
+                    </Button>
+                  )}
                 </div>
 
                 {/* Reset Password */}

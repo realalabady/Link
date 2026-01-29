@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCategories } from "@/hooks/queries/useCategories";
+import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
 import logo from "@/assets/logo.jpeg";
 
@@ -21,8 +22,38 @@ const ClientHomePage: React.FC = () => {
 
   const { data: categories = [], isLoading: loadingCategories } =
     useCategories();
+  const { data: services = [], isLoading: loadingServices } = useServices({
+    isActive: true,
+  });
   const { data: providers = [], isLoading: loadingProviders } =
     useVerifiedProviders(6);
+
+  const categoriesWithServices = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; icon?: string }>();
+
+    services.forEach((service) => {
+      if (!service.categoryId) return;
+      if (map.has(service.categoryId)) return;
+
+      const matchedCategory = categories.find(
+        (category) => category.id === service.categoryId,
+      );
+      const nameFromCategory = matchedCategory
+        ? isArabic
+          ? matchedCategory.nameAr
+          : matchedCategory.nameEn
+        : "";
+      const fallbackName = service.categoryName || service.categoryId;
+
+      map.set(service.categoryId, {
+        id: service.categoryId,
+        name: nameFromCategory || fallbackName,
+        icon: matchedCategory?.icon,
+      });
+    });
+
+    return Array.from(map.values());
+  }, [services, categories, isArabic]);
 
   const handleLogout = async () => {
     await logout();
@@ -97,15 +128,19 @@ const ClientHomePage: React.FC = () => {
                 {t("common.seeAll")}
               </Button>
             </div>
-            {loadingCategories ? (
+            {loadingCategories || loadingServices ? (
               <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <Skeleton key={i} className="h-24 rounded-2xl" />
                 ))}
               </div>
+            ) : categoriesWithServices.length === 0 ? (
+              <div className="rounded-2xl border-2 border-dashed border-border p-6 text-center text-muted-foreground">
+                {t("home.noCategories")}
+              </div>
             ) : (
-              <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
-                {categories.slice(0, 6).map((category) => (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+                {categoriesWithServices.slice(0, 4).map((category) => (
                   <button
                     key={category.id}
                     onClick={() =>
@@ -113,9 +148,11 @@ const ClientHomePage: React.FC = () => {
                     }
                     className="flex flex-col items-center rounded-2xl bg-card p-4 transition-all hover:bg-accent card-glow"
                   >
-                    <span className="mb-2 text-3xl">{category.icon}</span>
+                    <span className="mb-2 text-3xl">
+                      {category.icon || "🎯"}
+                    </span>
                     <span className="text-sm font-medium text-card-foreground">
-                      {isArabic ? category.nameAr : category.nameEn}
+                      {category.name}
                     </span>
                   </button>
                 ))}

@@ -20,6 +20,7 @@ import { useCreatePayment } from "@/hooks/queries/usePayments";
 import { useAuth } from "@/contexts/AuthContext";
 import PayPalCheckout from "@/components/payments/PayPalCheckout";
 import StripeApplePayButton from "@/components/payments/StripeApplePayButton";
+import { toast } from "@/components/ui/sonner";
 
 // Generate time slots
 const generateTimeSlots = () => {
@@ -68,6 +69,12 @@ const BookingPage: React.FC = () => {
   };
 
   const handleConfirmBooking = () => {
+    if (!selectedDate || !selectedTime || !selectedLocation) {
+      toast.error(t("common.error"), {
+        description: t("booking.validationError"),
+      });
+      return;
+    }
     setBookingSuccess(false);
     setPaymentError(null);
     setShowConfirmation(true);
@@ -86,6 +93,7 @@ const BookingPage: React.FC = () => {
       !selectedLocation ||
       !user
     ) {
+      setPaymentError(t("booking.validationError"));
       return;
     }
 
@@ -156,6 +164,7 @@ const BookingPage: React.FC = () => {
       !selectedLocation ||
       !user
     ) {
+      setPaymentError(t("booking.validationError"));
       return;
     }
 

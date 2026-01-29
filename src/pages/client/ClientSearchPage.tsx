@@ -36,7 +36,6 @@ const ClientSearchPage: React.FC = () => {
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"nearest" | "rating">("nearest");
@@ -45,7 +44,6 @@ const ClientSearchPage: React.FC = () => {
   const { data: categories = [], isLoading: loadingCategories } =
     useCategories();
   const { data: services = [], isLoading: loadingServices } = useServices({
-    categoryId: selectedCategory || undefined,
     isActive: true,
   });
   const { data: providers = [], isLoading: loadingProviders } =
@@ -67,6 +65,41 @@ const ClientSearchPage: React.FC = () => {
       return null;
     }
   }, []);
+
+  const categoriesWithServices = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; icon?: string }>();
+
+    services.forEach((service) => {
+      if (!service.categoryId) return;
+      if (map.has(service.categoryId)) return;
+
+      const matchedCategory = categories.find(
+        (category) => category.id === service.categoryId,
+      );
+      const nameFromCategory = matchedCategory
+        ? isArabic
+          ? matchedCategory.nameAr
+          : matchedCategory.nameEn
+        : "";
+      const fallbackName = service.categoryName || service.categoryId;
+
+      map.set(service.categoryId, {
+        id: service.categoryId,
+        name: nameFromCategory || fallbackName,
+        icon: matchedCategory?.icon,
+      });
+    });
+
+    return Array.from(map.values());
+  }, [services, categories, isArabic]);
+
+  const categoryLookup = useMemo(() => {
+    const map: Record<string, { name: string; icon?: string }> = {};
+    categoriesWithServices.forEach((category) => {
+      map[category.id] = { name: category.name, icon: category.icon };
+    });
+    return map;
+  }, [categoriesWithServices]);
 
   const distanceKm = (
     lat1: number,
@@ -281,52 +314,6 @@ const ClientSearchPage: React.FC = () => {
           animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
         >
-          {/* Categories */}
-          <motion.section variants={fadeInUp} className="mb-6">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-medium text-foreground">
-                {t("home.categories")}
-              </h2>
-            </div>
-            {loadingCategories ? (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton
-                    key={i}
-                    className="h-10 w-24 shrink-0 rounded-full"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                <Button
-                  variant={selectedCategory === null ? "default" : "outline"}
-                  size="sm"
-                  className="shrink-0 rounded-full"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  {t("search.all")}
-                </Button>
-                {categories.map((category) => (
-                  <Button
-                    key={category.id}
-                    variant={
-                      selectedCategory === category.id ? "default" : "outline"
-                    }
-                    size="sm"
-                    className="shrink-0 rounded-full"
-                    onClick={() => setSelectedCategory(category.id)}
-                  >
-                    {category.icon && (
-                      <span className="me-1">{category.icon}</span>
-                    )}
-                    {isArabic ? category.nameAr : category.nameEn}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </motion.section>
-
           {/* Results */}
           <motion.section variants={fadeInUp}>
             <div className="mb-3 flex items-center justify-between">
@@ -371,9 +358,7 @@ const ClientSearchPage: React.FC = () => {
                         ) : (
                           <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-muted">
                             <span className="text-3xl">
-                              {categories.find(
-                                (c) => c.id === service.categoryId,
-                              )?.icon || "🎯"}
+                              {categoryLookup[service.categoryId]?.icon || "🎯"}
                             </span>
                           </div>
                         )}

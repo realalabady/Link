@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  sendEmailVerification,
   User as FirebaseUser,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -127,6 +128,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password,
       );
       const fbUser = userCredential.user;
+
+      // Attempt to send email verification
+      try {
+        await sendEmailVerification(fbUser);
+        console.log("Verification email sent to:", email);
+      } catch (verificationError) {
+        console.warn("Failed to send verification email:", verificationError);
+        // Continue with signup even if verification email fails
+        // User can resend from the banner
+      }
 
       // Create user document in Firestore
       const newUser = await createUserDocument(fbUser.uid, email, name);

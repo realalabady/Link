@@ -14,6 +14,7 @@ import {
   addDoc,
   serverTimestamp,
   Timestamp,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import {
@@ -260,7 +261,167 @@ export const DEFAULT_CATEGORIES: Category[] = [
     icon: "🍳",
     isActive: true,
   },
+  {
+    id: "spa",
+    nameEn: "Spa",
+    nameAr: "السبا",
+    icon: "🧖",
+    isActive: true,
+  },
+  {
+    id: "waxing",
+    nameEn: "Waxing",
+    nameAr: "إزالة الشعر",
+    icon: "🪒",
+    isActive: true,
+  },
+  {
+    id: "aesthetics",
+    nameEn: "Aesthetics",
+    nameAr: "التجميل الطبي",
+    icon: "💉",
+    isActive: true,
+  },
+  {
+    id: "yoga",
+    nameEn: "Yoga",
+    nameAr: "اليوغا",
+    icon: "🧘",
+    isActive: true,
+  },
+  {
+    id: "personal_training",
+    nameEn: "Personal Training",
+    nameAr: "تدريب شخصي",
+    icon: "🏃‍♀️",
+    isActive: true,
+  },
+  {
+    id: "nutrition",
+    nameEn: "Nutrition",
+    nameAr: "التغذية",
+    icon: "🥗",
+    isActive: true,
+  },
+  {
+    id: "physiotherapy",
+    nameEn: "Physiotherapy",
+    nameAr: "العلاج الطبيعي",
+    icon: "🩺",
+    isActive: true,
+  },
+  {
+    id: "tutoring",
+    nameEn: "Tutoring",
+    nameAr: "دروس خصوصية",
+    icon: "📚",
+    isActive: true,
+  },
+  {
+    id: "childcare",
+    nameEn: "Childcare",
+    nameAr: "رعاية الأطفال",
+    icon: "👶",
+    isActive: true,
+  },
+  {
+    id: "events",
+    nameEn: "Events & Planning",
+    nameAr: "الفعاليات والتخطيط",
+    icon: "🎉",
+    isActive: true,
+  },
+  {
+    id: "wedding",
+    nameEn: "Wedding Services",
+    nameAr: "خدمات الأعراس",
+    icon: "💒",
+    isActive: true,
+  },
+  {
+    id: "automotive",
+    nameEn: "Automotive Care",
+    nameAr: "خدمات السيارات",
+    icon: "🚗",
+    isActive: true,
+  },
+  {
+    id: "plumbing",
+    nameEn: "Plumbing",
+    nameAr: "السباكة",
+    icon: "🔧",
+    isActive: true,
+  },
+  {
+    id: "electrical",
+    nameEn: "Electrical",
+    nameAr: "الأعمال الكهربائية",
+    icon: "💡",
+    isActive: true,
+  },
+  {
+    id: "appliance_repair",
+    nameEn: "Appliance Repair",
+    nameAr: "صيانة الأجهزة",
+    icon: "🔌",
+    isActive: true,
+  },
+  {
+    id: "landscaping",
+    nameEn: "Landscaping & Gardening",
+    nameAr: "الحدائق والتنسيق",
+    icon: "🌳",
+    isActive: true,
+  },
+  {
+    id: "pet_services",
+    nameEn: "Pet Services",
+    nameAr: "خدمات الحيوانات الأليفة",
+    icon: "🐶",
+    isActive: true,
+  },
+  {
+    id: "tech_support",
+    nameEn: "Tech Support",
+    nameAr: "دعم فني",
+    icon: "🖥️",
+    isActive: true,
+  },
+  {
+    id: "portrait_photography",
+    nameEn: "Portrait Photography",
+    nameAr: "تصوير بورتريه",
+    icon: "🖼️",
+    isActive: true,
+  },
+  {
+    id: "event_photography",
+    nameEn: "Event Photography",
+    nameAr: "تصوير الفعاليات",
+    icon: "📷",
+    isActive: true,
+  },
 ];
+
+export const seedDefaultCategories = async (): Promise<void> => {
+  const categoriesRef = collection(db, COLLECTIONS.CATEGORIES);
+  const snapshot = await getDocs(query(categoriesRef, limit(1)));
+  if (!snapshot.empty) return;
+
+  const batch = writeBatch(db);
+  DEFAULT_CATEGORIES.forEach((category) => {
+    const categoryRef = doc(db, COLLECTIONS.CATEGORIES, category.id);
+    batch.set(categoryRef, {
+      nameAr: category.nameAr,
+      nameEn: category.nameEn,
+      isActive: category.isActive,
+      icon: category.icon || "",
+      parentId: category.parentId || null,
+    });
+  });
+
+  await batch.commit();
+};
 
 export const getCategories = async (): Promise<Category[]> => {
   try {
@@ -268,8 +429,8 @@ export const getCategories = async (): Promise<Category[]> => {
     const q = query(categoriesRef, where("isActive", "==", true));
     const snapshot = await getDocs(q);
 
-    if (snapshot.empty) {
-      // Return default categories if Firestore is empty
+    if (snapshot.docs.length === 0) {
+      console.info("No categories in Firestore, using mock data");
       return DEFAULT_CATEGORIES;
     }
 
@@ -278,10 +439,7 @@ export const getCategories = async (): Promise<Category[]> => {
       ...doc.data(),
     })) as Category[];
   } catch (error) {
-    console.warn(
-      "Error fetching categories from Firestore, using defaults:",
-      error,
-    );
+    console.warn("Error fetching categories from Firestore:", error);
     return DEFAULT_CATEGORIES;
   }
 };
@@ -358,23 +516,13 @@ export interface FirestoreProviderProfile extends Omit<
 export const getProviderProfile = async (
   uid: string,
 ): Promise<ProviderProfile | null> => {
-  console.log("getProviderProfile called with uid:", uid);
   try {
     const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
     const providerSnap = await getDoc(providerRef);
 
     if (!providerSnap.exists()) {
-      console.log("Provider doc does not exist, checking mocks...");
-      // Check if it's a mock provider ID
-      const mockProvider = DEFAULT_PROVIDERS.find((p) => p.uid === uid);
-      if (mockProvider) {
-        console.log("Found mock provider:", mockProvider);
-        return mockProvider;
-      }
-
       // Check if the user exists and is a provider - if so, return profile
       const userDoc = await getUserDocument(uid);
-      console.log("User doc:", userDoc);
       if (userDoc && userDoc.role === "PROVIDER") {
         // Create a basic provider profile for existing providers
         // Note: user doc may have 'name' or 'displayName' field
@@ -402,7 +550,6 @@ export const getProviderProfile = async (
             ...newProfile,
             updatedAt: serverTimestamp(),
           });
-          console.log("Created new provider profile:", newProfile);
         } catch (saveError) {
           console.log(
             "Could not save provider profile (permission issue), returning in-memory profile",
@@ -413,25 +560,7 @@ export const getProviderProfile = async (
         return newProfile;
       }
 
-      // If user doc exists but is not a provider, or user doc doesn't exist,
-      // create a fallback profile so the page doesn't break
-      console.log("Creating fallback profile for uid:", uid);
-      const fallbackProfile: ProviderProfile = {
-        uid,
-        displayName:
-          (userDoc as any)?.name ||
-          userDoc?.displayName ||
-          userDoc?.email?.split("@")[0] ||
-          "Provider",
-        bio: "",
-        city: "",
-        area: "",
-        isVerified: false,
-        ratingAvg: 0,
-        ratingCount: 0,
-        updatedAt: new Date(),
-      };
-      return fallbackProfile;
+      return null;
     }
 
     const data = providerSnap.data() as FirestoreProviderProfile;
@@ -457,39 +586,7 @@ export const getProviderProfile = async (
       updatedAt: timestampToDate(data.updatedAt),
     };
   } catch (error) {
-    console.warn("Error fetching provider, checking mock data:", error);
-
-    // Check mock providers first
-    const mockProvider = DEFAULT_PROVIDERS.find((p) => p.uid === uid);
-    if (mockProvider) return mockProvider;
-
-    // Try to create profile from user document (handles permission errors)
-    try {
-      const userDoc = await getUserDocument(uid);
-      if (userDoc) {
-        const userName =
-          (userDoc as any).name ||
-          userDoc.displayName ||
-          userDoc.email?.split("@")[0] ||
-          "Provider";
-        const fallbackProfile: ProviderProfile = {
-          uid,
-          displayName: userName,
-          bio: "",
-          city: "",
-          area: "",
-          isVerified: false,
-          ratingAvg: 0,
-          ratingCount: 0,
-          updatedAt: new Date(),
-        };
-        console.log("Created fallback profile from user doc:", fallbackProfile);
-        return fallbackProfile;
-      }
-    } catch (userError) {
-      console.warn("Could not fetch user document:", userError);
-    }
-
+    console.warn("Error fetching provider:", error);
     return null;
   }
 };
@@ -507,11 +604,6 @@ export const getVerifiedProviders = async (
     );
     const snapshot = await getDocs(q);
 
-    if (snapshot.empty) {
-      // Return mock providers when Firestore is empty
-      return DEFAULT_PROVIDERS.slice(0, limitCount);
-    }
-
     return snapshot.docs.map((doc) => {
       const data = doc.data() as FirestoreProviderProfile;
       return {
@@ -520,8 +612,8 @@ export const getVerifiedProviders = async (
       };
     });
   } catch (error) {
-    console.warn("Error fetching providers, using mock data:", error);
-    return DEFAULT_PROVIDERS.slice(0, limitCount);
+    console.warn("Error fetching providers:", error);
+    return [];
   }
 };
 
@@ -663,6 +755,21 @@ export const DEFAULT_SERVICES: Service[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
   },
+  {
+    id: "service-cooking-1",
+    providerId: "provider-1",
+    categoryId: "cooking",
+    title: "Home Cooking",
+    description: "Delicious home-cooked meals prepared at your place.",
+    priceFrom: 80,
+    priceTo: 200,
+    durationMin: 120,
+    locationType: "AT_CLIENT",
+    mediaUrls: ["/assets/services/cooking1.jpg"],
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
 ];
 
 export interface FirestoreService extends Omit<
@@ -694,20 +801,9 @@ export const getServices = async (filters?: {
 
     const snapshot = await getDocs(q);
 
-    if (snapshot.empty && !filters?.providerId) {
-      // Return filtered mock services when Firestore is empty
-      let mockServices = DEFAULT_SERVICES;
-      if (filters?.categoryId) {
-        mockServices = mockServices.filter(
-          (s) => s.categoryId === filters.categoryId,
-        );
-      }
-      if (filters?.isActive !== undefined) {
-        mockServices = mockServices.filter(
-          (s) => s.isActive === filters.isActive,
-        );
-      }
-      return mockServices;
+    if (snapshot.docs.length === 0 && !filters) {
+      console.info("No services in Firestore, using mock data");
+      return DEFAULT_SERVICES;
     }
 
     return snapshot.docs.map((doc) => {
@@ -720,24 +816,11 @@ export const getServices = async (filters?: {
       };
     });
   } catch (error) {
-    console.warn("Error fetching services, using mock data:", error);
-    let mockServices = DEFAULT_SERVICES;
-    if (filters?.categoryId) {
-      mockServices = mockServices.filter(
-        (s) => s.categoryId === filters.categoryId,
-      );
+    console.warn("Error fetching services:", error);
+    if (!filters) {
+      return DEFAULT_SERVICES;
     }
-    if (filters?.providerId) {
-      mockServices = mockServices.filter(
-        (s) => s.providerId === filters.providerId,
-      );
-    }
-    if (filters?.isActive !== undefined) {
-      mockServices = mockServices.filter(
-        (s) => s.isActive === filters.isActive,
-      );
-    }
-    return mockServices;
+    return [];
   }
 };
 
@@ -747,9 +830,7 @@ export const getServiceById = async (id: string): Promise<Service | null> => {
     const serviceSnap = await getDoc(serviceRef);
 
     if (!serviceSnap.exists()) {
-      // Check if it's a mock service ID
-      const mockService = DEFAULT_SERVICES.find((s) => s.id === id);
-      return mockService || null;
+      return null;
     }
 
     const data = serviceSnap.data() as FirestoreService;
@@ -760,9 +841,8 @@ export const getServiceById = async (id: string): Promise<Service | null> => {
       updatedAt: timestampToDate(data.updatedAt),
     };
   } catch (error) {
-    console.warn("Error fetching service, checking mock data:", error);
-    const mockService = DEFAULT_SERVICES.find((s) => s.id === id);
-    return mockService || null;
+    console.warn("Error fetching service:", error);
+    return null;
   }
 };
 

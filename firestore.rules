@@ -14,6 +14,14 @@ service cloud.firestore {
       return signedIn() ? userDoc().data.role : null;
     }
 
+    function bookingDoc(bookingId) {
+      return get(/databases/$(database)/documents/bookings/$(bookingId));
+    }
+
+    function serviceDoc(serviceId) {
+      return get(/databases/$(database)/documents/services/$(serviceId));
+    }
+
     function hasUserDoc() {
       return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
@@ -33,7 +41,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if signedIn() && (userId == request.auth.uid || isAdmin());
       allow create: if signedIn() && userId == request.auth.uid;
-      allow update: if signedIn() && userId == request.auth.uid;
+      allow update: if signedIn() && (userId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
     }
 
@@ -60,8 +68,13 @@ service cloud.firestore {
         resource.data.providerId == request.auth.uid ||
         isAdmin()
       );
-      allow create: if (signedIn() && request.resource.data.clientId == request.auth.uid && (isClient() || !hasUserDoc()))
-        || (!signedIn() && request.resource.data.clientId != null);
+      allow create: if signedIn()
+        && request.resource.data.clientId == request.auth.uid
+        && (isClient() || !hasUserDoc())
+        && request.resource.data.serviceId != null
+        && serviceDoc(request.resource.data.serviceId).data.providerId == request.resource.data.providerId
+        && request.resource.data.priceTotal >= serviceDoc(request.resource.data.serviceId).data.priceFrom
+        && request.resource.data.priceTotal <= serviceDoc(request.resource.data.serviceId).data.priceTo;
       allow update: if signedIn() && (
         (isClient() && resource.data.clientId == request.auth.uid) ||
         (isProvider() && resource.data.providerId == request.auth.uid) ||
@@ -76,8 +89,12 @@ service cloud.firestore {
         resource.data.providerId == request.auth.uid ||
         isAdmin()
       );
-      allow create: if (signedIn() && request.resource.data.clientId == request.auth.uid)
-        || (!signedIn() && request.resource.data.clientId != null);
+      allow create: if signedIn()
+        && request.resource.data.clientId == request.auth.uid
+        && request.resource.data.bookingId != null
+        && bookingDoc(request.resource.data.bookingId).data.clientId == request.auth.uid
+        && bookingDoc(request.resource.data.bookingId).data.providerId == request.resource.data.providerId
+        && request.resource.data.amountSar == bookingDoc(request.resource.data.bookingId).data.priceTotal;
       allow update, delete: if isAdmin();
     }
 

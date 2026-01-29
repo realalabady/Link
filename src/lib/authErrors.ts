@@ -48,6 +48,11 @@ export const getAuthErrorMessage = (
         t("auth.errors.tooManyRequests") ||
         "Too many failed attempts. Please try again later."
       );
+    case "auth/email-not-verified":
+      return (
+        t("auth.errors.emailNotVerified") ||
+        "Please verify your email before logging in."
+      );
 
     // Network errors
     case "auth/network-request-failed":

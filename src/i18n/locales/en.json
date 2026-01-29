@@ -56,6 +56,11 @@
     "resetPasswordDescription": "Enter your email to receive a reset link.",
     "sendResetLink": "Send reset link",
     "resetEmailSent": "Check your inbox for a password reset link.",
+    "verifyEmailSent": "Verification email sent. Please check your inbox before logging in.",
+    "verifyEmailTitle": "Verify your email",
+    "verifyEmailDescription": "Please verify your email to unlock all features.",
+    "resendVerification": "Resend verification",
+    "verifyEmailResent": "Verification email resent.",
     "backToLogin": "Back to login",
     "orContinueWith": "Or continue with",
     "alreadyHaveAccount": "Already have an account?",
@@ -73,7 +78,8 @@
       "invalidCredential": "Invalid email or password.",
       "userDisabled": "This account has been disabled.",
       "tooManyRequests": "Too many failed attempts. Please try again later.",
-      "networkError": "Network error. Please check your connection."
+      "networkError": "Network error. Please check your connection.",
+      "emailNotVerified": "Please verify your email before logging in."
     }
   },
   "onboarding": {
@@ -105,6 +111,7 @@
     "greeting": "Hello",
     "categories": "Categories",
     "featuredProviders": "Featured Providers",
+    "noCategories": "No categories available yet.",
     "nearYou": "Near you",
     "topRated": "Top rated"
   },
@@ -137,6 +144,7 @@
     "serviceRadius": "Service radius"
   },
   "booking": {
+    "validationError": "Please select date, time, and location.",
     "selectDate": "Select date",
     "selectTime": "Select time",
     "selectService": "Select service",
@@ -232,7 +240,16 @@
     "bio": "About you",
     "bioPlaceholder": "Tell clients about your experience",
     "useCurrentLocation": "Use current location",
-    "locationSaved": "Location saved"
+    "locationSaved": "Location saved",
+    "bankAccount": "Bank Account Information",
+    "accountHolder": "Account Holder Name",
+    "accountHolderPlaceholder": "Full name of account holder",
+    "bankName": "Bank Name",
+    "bankNamePlaceholder": "e.g., Saudi National Bank",
+    "accountNumber": "Account Number",
+    "accountNumberPlaceholder": "Your bank account number",
+    "iban": "IBAN",
+    "ibanPlaceholder": "International Bank Account Number"
   },
   "help": {
     "title": "Help Center",
@@ -306,13 +323,18 @@
     "requested": "Requested",
     "rejected": "Rejected",
     "pending": "Pending",
+    "noTransactions": "No transactions yet",
     "noPayouts": "No payouts yet",
     "payoutTo": "Payout to bank account",
     "pendingNote": "Funds from recent bookings (released after 48 hours)",
     "payoutDescription": "Enter the amount you want to withdraw to your bank account.",
     "amount": "Amount",
     "available": "Available",
-    "payoutWarning": "Payouts typically take 1-3 business days to process."
+    "payoutWarning": "Payouts typically take 1-3 business days to process.",
+    "payoutRequestSuccess": "Payout request submitted",
+    "payoutRequested": "Payout request sent",
+    "payoutRequestFailed": "Failed to request payout",
+    "error": "Error"
   },
   "services": {
     "addService": "Add Service",
@@ -321,6 +343,8 @@
     "addFirst": "Add your first service",
     "profileIncompleteTitle": "Complete your profile",
     "profileIncompleteDescription": "Add your phone, region, city, district, and bio before creating services.",
+    "verificationRequiredTitle": "Verification required",
+    "verificationRequiredDescription": "Please complete verification before creating services.",
     "inactive": "Inactive",
     "atProvider": "At my location",
     "atClient": "At client's location",
@@ -331,11 +355,14 @@
     "descriptionPlaceholder": "Describe your service...",
     "category": "Category",
     "selectCategory": "Select a category",
+    "customCategory": "Custom category",
+    "customCategoryPlaceholder": "Type a category name",
     "priceFrom": "Price from",
     "priceTo": "Price to",
     "duration": "Duration (minutes)",
     "durationHint": "How long does this service typically take?",
     "locationType": "Service location",
+    "validationError": "Please fill all required fields correctly.",
     "deleteTitle": "Delete service?",
     "deleteDescription": "This action cannot be undone. This will permanently delete the service."
   },
@@ -467,14 +494,17 @@
     "ratingSummary": "Rating",
     "travelRadius": "Travel radius",
     "travelFee": "Travel fee",
-    "paymentsSummary": "Payments summary"
-    ,"paymentsOverTime": "Payments over time"
-    ,"newUsersOverTime": "New users over time"
-    ,"providerEarningsLeaderboard": "Top provider earnings"
-    ,"totalUsers": "Total users"
-    ,"days": "Days"
-    ,"weeks": "Weeks"
-    ,"months": "Months"
+    "paymentsSummary": "Payments summary",
+    "paymentsOverTime": "Payments over time",
+    "newUsersOverTime": "New users over time",
+    "providerEarningsLeaderboard": "Top provider earnings",
+    "categoriesMissing": "Categories are missing",
+    "categoriesSeedHint": "Add the default categories so clients can browse services.",
+    "seedCategories": "Seed categories",
+    "totalUsers": "Total users",
+    "days": "Days",
+    "weeks": "Weeks",
+    "months": "Months"
   },
   "dashboard": {
     "bookingsToday": "Bookings today",

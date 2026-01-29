@@ -1,7 +1,7 @@
 require("dotenv").config();
 const admin = require("firebase-admin");
 const { Resend } = require("resend");
-const { defineSecret, defineString } = require("firebase-functions/params");
+const { defineSecret } = require("firebase-functions/params");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 
@@ -9,12 +9,8 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const resendApiKeyParam = defineSecret("RESEND_API_KEY");
-const emailFromParam = defineString("EMAIL_FROM", {
-  default: "Link <no-reply@link.local>",
-});
-const clientAppUrlParam = defineString("CLIENT_APP_URL", {
-  default: "http://localhost:8081",
-});
+const emailFromParam = defineSecret("EMAIL_FROM");
+const clientAppUrlParam = defineSecret("CLIENT_APP_URL");
 
 const getResend = () => {
   const key = resendApiKeyParam.value();
@@ -30,7 +26,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   await resend.emails.send({
-    from: emailFromParam.value(),
+    from: emailFromParam.value() || "Link <no-reply@link.local>",
     to,
     subject,
     html,
@@ -59,7 +55,7 @@ const getServiceById = async (id) => {
 exports.onBookingCreated = onDocumentCreated(
   {
     document: "bookings/{bookingId}",
-    secrets: [resendApiKeyParam],
+    secrets: [resendApiKeyParam, emailFromParam, clientAppUrlParam],
   },
   async (event) => {
     const booking = event.data?.data();
@@ -75,7 +71,7 @@ exports.onBookingCreated = onDocumentCreated(
     const clientEmail = client?.email;
     const providerEmail = providerUser?.email;
 
-    const clientAppUrl = clientAppUrlParam.value();
+    const clientAppUrl = clientAppUrlParam.value() || "http://localhost:8080";
     const bookingUrl = `${clientAppUrl}/client/bookings/${event.params.bookingId}`;
     const providerUrl = `${clientAppUrl}/provider/booking/${event.params.bookingId}`;
 
@@ -114,7 +110,7 @@ exports.onBookingCreated = onDocumentCreated(
 exports.autoRejectExpiredBookings = onSchedule(
   {
     schedule: "every 60 minutes",
-    secrets: [resendApiKeyParam],
+    secrets: [resendApiKeyParam, emailFromParam],
   },
   async () => {
     const now = admin.firestore.Timestamp.now();
