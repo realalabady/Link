@@ -117,7 +117,7 @@ const AdminPayoutsPage: React.FC = () => {
   };
 
   const renderPayoutList = (
-    payoutList: Payout[],
+    payoutList: PayoutWithProvider[],
     showActions: boolean = false,
   ) => {
     if (isLoading) {

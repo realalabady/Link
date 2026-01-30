@@ -17,6 +17,7 @@
     "filter": "تصفية",
     "sort": "ترتيب",
     "noResults": "لم يتم العثور على نتائج",
+    "all": "الكل",
     "seeAll": "عرض الكل",
     "accept": "موافقة",
     "decline": "رفض",
@@ -27,6 +28,8 @@
     "hideCookies": "إخفاء الكوكيز",
     "viewMore": "عرض المزيد",
     "close": "إغلاق",
+    "logout": "تسجيل الخروج",
+    "provider": "مقدم الخدمة",
     "currency": "ر.س"
   },
   "bookingStatus": {

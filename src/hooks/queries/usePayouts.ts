@@ -8,6 +8,7 @@ import {
   updateDoc,
   orderBy,
   serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Payout, PayoutStatus } from "@/types";
@@ -34,18 +35,54 @@ export const usePayouts = () => {
         const q = query(payoutsRef, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
 
-        const payouts: PayoutWithProvider[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            providerId: data.providerId || "",
-            providerName: data.providerName || "Provider",
-            amount: data.amount || 0,
-            status: data.status || "REQUESTED",
-            createdAt: data.createdAt?.toDate() || new Date(),
-            processedAt: data.processedAt?.toDate(),
-          };
-        });
+        const payouts: PayoutWithProvider[] = await Promise.all(
+          snapshot.docs.map(async (payoutDoc) => {
+            const data = payoutDoc.data();
+
+            // Fetch provider name from users collection first, then providers collection
+            let providerName = "Provider";
+            if (data.providerId) {
+              try {
+                // First try users collection (has user.name)
+                const userRef = doc(db, "users", data.providerId);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists()) {
+                  providerName =
+                    userDoc.data().name ||
+                    userDoc.data().displayName ||
+                    "Provider";
+                }
+
+                // If not found in users, try providers collection
+                if (providerName === "Provider") {
+                  const providerRef = doc(db, "providers", data.providerId);
+                  const providerDoc = await getDoc(providerRef);
+                  if (providerDoc.exists()) {
+                    providerName =
+                      providerDoc.data().name ||
+                      providerDoc.data().displayName ||
+                      "Provider";
+                  }
+                }
+              } catch (error) {
+                console.warn(
+                  `Error fetching provider ${data.providerId}:`,
+                  error,
+                );
+              }
+            }
+
+            return {
+              id: payoutDoc.id,
+              providerId: data.providerId || "",
+              providerName,
+              amount: data.amount || 0,
+              status: data.status || "REQUESTED",
+              createdAt: data.createdAt?.toDate() || new Date(),
+              processedAt: data.processedAt?.toDate(),
+            };
+          }),
+        );
 
         return payouts;
       } catch (error) {

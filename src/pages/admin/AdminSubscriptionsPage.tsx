@@ -34,7 +34,11 @@ import {
 import { useUsers } from "@/hooks/queries/useUsers";
 import { useUpdateProviderProfile } from "@/hooks/queries/useProviders";
 import { ProviderProfile } from "@/types";
-import { getProviderProfile, verifySubscriptionPayment, updateSubscriptionStatus } from "@/lib/firestore";
+import {
+  getProviderProfile,
+  verifySubscriptionPayment,
+  updateSubscriptionStatus,
+} from "@/lib/firestore";
 import { useToast } from "@/components/ui/use-toast";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,12 +57,12 @@ const AdminSubscriptionsPage: React.FC = () => {
     provider: ProviderProfile | null;
     action: "lock" | "unlock" | null;
   }>({ open: false, provider: null, action: null });
-  
+
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean;
     provider: ProviderProfile | null;
   }>({ open: false, provider: null });
-  
+
   const [paymentDialog, setPaymentDialog] = useState<{
     open: boolean;
     provider: ProviderProfile | null;
@@ -66,8 +70,15 @@ const AdminSubscriptionsPage: React.FC = () => {
     paymentDate: string;
     paymentAmount: string;
     paymentMethod: "BANK_TRANSFER" | "CARD" | "OTHER";
-  }>({ open: false, provider: null, notes: "", paymentDate: new Date().toISOString().split('T')[0], paymentAmount: "", paymentMethod: "BANK_TRANSFER" });
-  
+  }>({
+    open: false,
+    provider: null,
+    notes: "",
+    paymentDate: new Date().toISOString().split("T")[0],
+    paymentAmount: "",
+    paymentMethod: "BANK_TRANSFER",
+  });
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
 
@@ -198,7 +209,8 @@ const AdminSubscriptionsPage: React.FC = () => {
   ) => {
     try {
       setIsUpdating(true);
-      const amount = parseFloat(paymentAmount) || provider.subscriptionPrice || 10;
+      const amount =
+        parseFloat(paymentAmount) || provider.subscriptionPrice || 10;
       const date = new Date(paymentDate);
 
       await verifySubscriptionPayment(provider.uid, {
@@ -213,7 +225,12 @@ const AdminSubscriptionsPage: React.FC = () => {
       const existing = updated.get(provider.uid);
       if (existing) {
         const endDate = new Date(date);
-        const months = existing.subscriptionPrice === 27 ? 3 : existing.subscriptionPrice === 96 ? 12 : 1;
+        const months =
+          existing.subscriptionPrice === 27
+            ? 3
+            : existing.subscriptionPrice === 96
+              ? 12
+              : 1;
         endDate.setMonth(endDate.getMonth() + months);
 
         updated.set(provider.uid, {
@@ -236,7 +253,14 @@ const AdminSubscriptionsPage: React.FC = () => {
         title: t("common.success"),
         description: "Payment verified successfully",
       });
-      setPaymentDialog({ open: false, provider: null, notes: "", paymentDate: new Date().toISOString().split('T')[0], paymentAmount: "", paymentMethod: "BANK_TRANSFER" });
+      setPaymentDialog({
+        open: false,
+        provider: null,
+        notes: "",
+        paymentDate: new Date().toISOString().split("T")[0],
+        paymentAmount: "",
+        paymentMethod: "BANK_TRANSFER",
+      });
     } catch (error) {
       console.error("Failed to verify payment:", error);
       toast({
@@ -366,9 +390,7 @@ const AdminSubscriptionsPage: React.FC = () => {
         <Select
           value={statusFilter}
           onValueChange={(value) =>
-            setStatusFilter(
-              value as "ALL" | "ACTIVE" | "EXPIRED" | "LOCKED",
-            )
+            setStatusFilter(value as "ALL" | "ACTIVE" | "EXPIRED" | "LOCKED")
           }
         >
           <SelectTrigger className="w-[180px]">
@@ -426,17 +448,6 @@ const AdminSubscriptionsPage: React.FC = () => {
                         >
                           {profile?.subscriptionStatus || "EXPIRED"}
                         </Badge>
-                        <Badge
-                          variant={
-                            profile?.accountStatus === "LOCKED"
-                              ? "destructive"
-                              : "outline"
-                          }
-                        >
-                          {profile?.accountStatus === "LOCKED"
-                            ? t("admin.locked")
-                            : t("admin.active")}
-                        </Badge>
                       </div>
                     </div>
 
@@ -465,7 +476,7 @@ const AdminSubscriptionsPage: React.FC = () => {
                             open: true,
                             provider: profile,
                             notes: "",
-                            paymentDate: new Date().toISOString().split('T')[0],
+                            paymentDate: new Date().toISOString().split("T")[0],
                             paymentAmount: "",
                             paymentMethod: "BANK_TRANSFER",
                           })
@@ -601,7 +612,11 @@ const AdminSubscriptionsPage: React.FC = () => {
               {["ACTIVE", "EXPIRED", "CANCELLED"].map((status) => (
                 <Button
                   key={status}
-                  variant={statusDialog.provider?.subscriptionStatus === status ? "default" : "outline"}
+                  variant={
+                    statusDialog.provider?.subscriptionStatus === status
+                      ? "default"
+                      : "outline"
+                  }
                   onClick={() => {
                     if (statusDialog.provider) {
                       handleUpdateStatus(
@@ -626,7 +641,14 @@ const AdminSubscriptionsPage: React.FC = () => {
         open={paymentDialog.open}
         onOpenChange={(open) => {
           if (!open) {
-            setPaymentDialog({ open: false, provider: null, notes: "", paymentDate: new Date().toISOString().split('T')[0], paymentAmount: "", paymentMethod: "BANK_TRANSFER" });
+            setPaymentDialog({
+              open: false,
+              provider: null,
+              notes: "",
+              paymentDate: new Date().toISOString().split("T")[0],
+              paymentAmount: "",
+              paymentMethod: "BANK_TRANSFER",
+            });
           }
         }}
       >
@@ -634,7 +656,8 @@ const AdminSubscriptionsPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Verify Subscription Payment</DialogTitle>
             <DialogDescription>
-              {paymentDialog.provider?.displayName || paymentDialog.provider?.uid}
+              {paymentDialog.provider?.displayName ||
+                paymentDialog.provider?.uid}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -705,7 +728,9 @@ const AdminSubscriptionsPage: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="notes">Admin Notes (e.g., Transaction Reference)</Label>
+              <Label htmlFor="notes">
+                Admin Notes (e.g., Transaction Reference)
+              </Label>
               <Textarea
                 id="notes"
                 placeholder="e.g., Bank transfer received, ref: TXN123456"
@@ -724,7 +749,14 @@ const AdminSubscriptionsPage: React.FC = () => {
             <Button
               variant="outline"
               onClick={() =>
-                setPaymentDialog({ open: false, provider: null, notes: "", paymentDate: new Date().toISOString().split('T')[0], paymentAmount: "", paymentMethod: "BANK_TRANSFER" })
+                setPaymentDialog({
+                  open: false,
+                  provider: null,
+                  notes: "",
+                  paymentDate: new Date().toISOString().split("T")[0],
+                  paymentAmount: "",
+                  paymentMethod: "BANK_TRANSFER",
+                })
               }
               disabled={isUpdating}
             >
@@ -732,7 +764,11 @@ const AdminSubscriptionsPage: React.FC = () => {
             </Button>
             <Button
               onClick={() => {
-                if (paymentDialog.provider && paymentDialog.paymentDate && paymentDialog.paymentAmount) {
+                if (
+                  paymentDialog.provider &&
+                  paymentDialog.paymentDate &&
+                  paymentDialog.paymentAmount
+                ) {
                   handleVerifyPayment(
                     paymentDialog.provider,
                     paymentDialog.paymentDate,

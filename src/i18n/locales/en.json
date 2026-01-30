@@ -17,6 +17,7 @@
     "filter": "Filter",
     "sort": "Sort",
     "noResults": "No results found",
+    "all": "All",
     "seeAll": "See all",
     "accept": "Accept",
     "decline": "Decline",
@@ -27,6 +28,8 @@
     "hideCookies": "Hide cookies",
     "viewMore": "View more",
     "close": "Close",
+    "logout": "Logout",
+    "provider": "Provider",
     "currency": "SAR"
   },
   "bookingStatus": {
@@ -101,10 +104,8 @@
     "chats": "Chats",
     "profile": "Profile",
     "requests": "Requests",
-      "accept": "Accept",
-      "decline": "Decline",
-      "cookieTitle": "We use cookies",
-      "cookieDescription": "We use cookies to improve your experience and, if you allow, access your approximate location for nearby results.",
+    "services": "My Services",
+    "schedule": "Schedule",
     "wallet": "Wallet"
   },
   "home": {

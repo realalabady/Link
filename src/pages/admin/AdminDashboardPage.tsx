@@ -60,55 +60,62 @@ const AdminDashboardPage: React.FC = () => {
   });
 
   // Fetch subscription stats and profit data
-  const { data: subscriptionStats = { active: 0, expired: 0, mrr: 0, yourProfit: 0, payoutsOwed: 0 } } =
-    useQuery({
-      queryKey: ["admin", "subscriptions", "stats"],
-      queryFn: async () => {
-        const providers = users.filter((u) => u.role === "PROVIDER");
-        let activeCount = 0;
-        let expiredCount = 0;
-        let totalMRR = 0;
-        let yourProfit = 0;
-        let payoutsOwed = 0;
+  const {
+    data: subscriptionStats = {
+      active: 0,
+      expired: 0,
+      mrr: 0,
+      yourProfit: 0,
+      payoutsOwed: 0,
+    },
+  } = useQuery({
+    queryKey: ["admin", "subscriptions", "stats"],
+    queryFn: async () => {
+      const providers = users.filter((u) => u.role === "PROVIDER");
+      let activeCount = 0;
+      let expiredCount = 0;
+      let totalMRR = 0;
+      let yourProfit = 0;
+      let payoutsOwed = 0;
 
-        for (const provider of providers) {
-          try {
-            const profile = await getProviderProfile(provider.uid);
-            if (profile) {
-              if (
-                profile.subscriptionStatus === "ACTIVE" &&
-                profile.accountStatus === "ACTIVE"
-              ) {
-                activeCount++;
-                const planPrice = profile.subscriptionPrice || 10;
-                totalMRR += planPrice;
-                
-                // Calculate your profit = money already received from provider
-                if (profile.lastSubscriptionPaymentAmount) {
-                  yourProfit += profile.lastSubscriptionPaymentAmount;
-                }
-              }
-              if (profile.subscriptionStatus === "EXPIRED") {
-                expiredCount++;
+      for (const provider of providers) {
+        try {
+          const profile = await getProviderProfile(provider.uid);
+          if (profile) {
+            if (
+              profile.subscriptionStatus === "ACTIVE" &&
+              profile.accountStatus === "ACTIVE"
+            ) {
+              activeCount++;
+              const planPrice = profile.subscriptionPrice || 10;
+              totalMRR += planPrice;
+
+              // Calculate your profit = money already received from provider
+              if (profile.lastSubscriptionPaymentAmount) {
+                yourProfit += profile.lastSubscriptionPaymentAmount;
               }
             }
-          } catch (error) {
-            console.warn(`Failed to fetch profile for ${provider.uid}:`, error);
+            if (profile.subscriptionStatus === "EXPIRED") {
+              expiredCount++;
+            }
           }
+        } catch (error) {
+          console.warn(`Failed to fetch profile for ${provider.uid}:`, error);
         }
+      }
 
-        // Payouts owed = MRR - Already received
-        payoutsOwed = totalMRR - yourProfit;
+      // Payouts owed = MRR - Already received
+      payoutsOwed = totalMRR - yourProfit;
 
-        return {
-          active: activeCount,
-          expired: expiredCount,
-          mrr: totalMRR,
-          yourProfit,
-          payoutsOwed,
-        };
-      },
-    });
+      return {
+        active: activeCount,
+        expired: expiredCount,
+        mrr: totalMRR,
+        yourProfit,
+        payoutsOwed,
+      };
+    },
+  });
 
   const pendingVerifications = useMemo(
     () => verifications.filter((v) => v.status === "PENDING").length,
