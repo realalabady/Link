@@ -89,6 +89,27 @@ export interface ProviderProfile {
   radiusKm?: number;
   travelFeeBase?: number;
   updatedAt: Date;
+  bankAccountHolder?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankIBAN?: string;
+  // Subscription fields
+  isSubscribed: boolean;
+  subscriptionStatus: "ACTIVE" | "EXPIRED" | "CANCELLED";
+  subscriptionStartDate?: Date;
+  subscriptionEndDate?: Date;
+  subscriptionPrice?: number;
+  autoRenew?: boolean;
+  cancellationDate?: Date;
+  accountStatus: "ACTIVE" | "LOCKED" | "SUSPENDED";
+  // Payment verification fields
+  lastPaymentDate?: Date;
+  paymentVerificationStatus?: "PENDING" | "VERIFIED" | "FAILED";
+  paymentNotes?: string;
+  // Subscription payment tracking (for profit calculation)
+  lastSubscriptionPaymentDate?: Date;
+  lastSubscriptionPaymentAmount?: number;
+  lastSubscriptionPaymentMethod?: "BANK_TRANSFER" | "CARD" | "OTHER";
 }
 
 // Category

@@ -319,7 +319,8 @@ const ProviderWalletPage: React.FC = () => {
       console.error("Failed to request payout:", error);
       toast({
         title: t("wallet.error") || "Error",
-        description: t("wallet.payoutRequestFailed") || "Failed to request payout",
+        description:
+          t("wallet.payoutRequestFailed") || "Failed to request payout",
         variant: "destructive",
       });
     } finally {

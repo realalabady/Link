@@ -473,6 +473,9 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     ratingAvg: 4.8,
     ratingCount: 124,
     updatedAt: new Date(),
+    isSubscribed: true,
+    subscriptionStatus: "ACTIVE",
+    accountStatus: "ACTIVE",
   },
   {
     uid: "provider-2",
@@ -488,6 +491,9 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     ratingAvg: 4.9,
     ratingCount: 89,
     updatedAt: new Date(),
+    isSubscribed: true,
+    subscriptionStatus: "ACTIVE",
+    accountStatus: "ACTIVE",
   },
   {
     uid: "provider-3",
@@ -503,6 +509,9 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     ratingAvg: 4.7,
     ratingCount: 56,
     updatedAt: new Date(),
+    isSubscribed: true,
+    subscriptionStatus: "ACTIVE",
+    accountStatus: "ACTIVE",
   },
 ];
 
@@ -542,6 +551,9 @@ export const getProviderProfile = async (
           ratingAvg: 0,
           ratingCount: 0,
           updatedAt: new Date(),
+          isSubscribed: false,
+          subscriptionStatus: "EXPIRED",
+          accountStatus: "ACTIVE",
         };
 
         // Try to save to Firestore (may fail if current user isn't the provider)
@@ -621,7 +633,14 @@ export const createProviderProfile = async (
   uid: string,
   profile: Omit<
     ProviderProfile,
-    "uid" | "updatedAt" | "ratingAvg" | "ratingCount" | "isVerified"
+    | "uid"
+    | "updatedAt"
+    | "ratingAvg"
+    | "ratingCount"
+    | "isVerified"
+    | "isSubscribed"
+    | "subscriptionStatus"
+    | "accountStatus"
   >,
 ): Promise<void> => {
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
@@ -631,6 +650,15 @@ export const createProviderProfile = async (
     isVerified: false,
     ratingAvg: 0,
     ratingCount: 0,
+    // Subscription initialization
+    isSubscribed: false,
+    subscriptionStatus: "EXPIRED",
+    subscriptionStartDate: null,
+    subscriptionEndDate: null,
+    subscriptionPrice: 10, // SAR per month
+    autoRenew: false,
+    cancellationDate: null,
+    accountStatus: "ACTIVE",
     updatedAt: serverTimestamp(),
   });
 };
@@ -644,6 +672,79 @@ export const updateProviderProfile = async (
     ...updates,
     updatedAt: serverTimestamp(),
   });
+};
+
+// Verify subscription payment (admin marks as paid)
+export const verifySubscriptionPayment = async (
+  providerId: string,
+  paymentData?: {
+    date?: Date;
+    amount?: number;
+    method?: "BANK_TRANSFER" | "CARD" | "OTHER";
+    notes?: string;
+  },
+): Promise<void> => {
+  const now = new Date();
+  const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
+  const profile = await getProviderProfile(providerId);
+
+  if (!profile) {
+    throw new Error("Provider profile not found");
+  }
+
+  // Calculate new subscription end date based on plan
+  let endDate = new Date(now);
+
+  // Map price to months: 10=1 month, 27=3 months, 96=12 months
+  const priceToMonths: Record<number, number> = {
+    10: 1,
+    27: 3,
+    96: 12,
+  };
+
+  const currentPrice = profile.subscriptionPrice || 10;
+  const months = priceToMonths[currentPrice] || 1;
+  endDate.setMonth(endDate.getMonth() + months);
+
+  await updateDoc(providerRef, {
+    subscriptionStatus: "ACTIVE",
+    subscriptionStartDate: serverTimestamp(),
+    subscriptionEndDate: endDate,
+    lastPaymentDate: serverTimestamp(),
+    paymentVerificationStatus: "VERIFIED",
+    paymentNotes: paymentData?.notes || "Payment verified by admin",
+    accountStatus: "ACTIVE", // Unlock account if was locked
+    // New payment tracking fields
+    lastSubscriptionPaymentDate: paymentData?.date || now,
+    lastSubscriptionPaymentAmount: paymentData?.amount || currentPrice,
+    lastSubscriptionPaymentMethod: paymentData?.method || "BANK_TRANSFER",
+    updatedAt: serverTimestamp(),
+  } as Record<string, unknown>);
+};
+
+// Update subscription status manually (admin action)
+export const updateSubscriptionStatus = async (
+  providerId: string,
+  status: "ACTIVE" | "EXPIRED" | "CANCELLED",
+  startDate?: Date,
+  endDate?: Date,
+  price?: number,
+): Promise<void> => {
+  const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
+  const updates: Record<string, unknown> = {
+    subscriptionStatus: status,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (startDate) updates.subscriptionStartDate = startDate;
+  if (endDate) updates.subscriptionEndDate = endDate;
+  if (price) updates.subscriptionPrice = price;
+
+  if (status === "CANCELLED") {
+    updates.cancellationDate = new Date();
+  }
+
+  await updateDoc(providerRef, updates);
 };
 
 // Fix provider displayName by fetching from user document
@@ -806,7 +907,7 @@ export const getServices = async (filters?: {
       return DEFAULT_SERVICES;
     }
 
-    return snapshot.docs.map((doc) => {
+    const services = snapshot.docs.map((doc) => {
       const data = doc.data() as FirestoreService;
       return {
         ...data,
@@ -815,6 +916,28 @@ export const getServices = async (filters?: {
         updatedAt: timestampToDate(data.updatedAt),
       };
     });
+
+    // Filter out services from locked providers (don't show to clients)
+    // If filtering by specific provider ID, skip this check (provider sees own services)
+    if (!filters?.providerId) {
+      const lockedServiceIds = new Set<string>();
+
+      // Fetch provider profiles to check account status
+      for (const service of services) {
+        try {
+          const providerProfile = await getProviderProfile(service.providerId);
+          if (providerProfile?.accountStatus === "LOCKED") {
+            lockedServiceIds.add(service.id);
+          }
+        } catch (error) {
+          // Silent fail - if we can't fetch profile, include the service
+        }
+      }
+
+      return services.filter((s) => !lockedServiceIds.has(s.id));
+    }
+
+    return services;
   } catch (error) {
     console.warn("Error fetching services:", error);
     if (!filters) {

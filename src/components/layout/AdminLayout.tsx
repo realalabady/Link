@@ -1,15 +1,42 @@
-import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Users, CheckCircle, CreditCard, LayoutDashboard } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import React from "react";
+import { Outlet, NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import {
+  Users,
+  CheckCircle,
+  CreditCard,
+  LayoutDashboard,
+  Gift,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const adminNavItems = [
-  { path: '/admin', labelKey: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { path: '/admin/users', labelKey: 'Users', icon: <Users className="h-5 w-5" /> },
-  { path: '/admin/verifications', labelKey: 'Verifications', icon: <CheckCircle className="h-5 w-5" /> },
-  { path: '/admin/payouts', labelKey: 'Payouts', icon: <CreditCard className="h-5 w-5" /> },
+  {
+    path: "/admin",
+    labelKey: "Dashboard",
+    icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    path: "/admin/users",
+    labelKey: "Users",
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    path: "/admin/verifications",
+    labelKey: "Verifications",
+    icon: <CheckCircle className="h-5 w-5" />,
+  },
+  {
+    path: "/admin/payouts",
+    labelKey: "Payouts",
+    icon: <CreditCard className="h-5 w-5" />,
+  },
+  {
+    path: "/admin/subscriptions",
+    labelKey: "Subscriptions",
+    icon: <Gift className="h-5 w-5" />,
+  },
 ];
 
 export const AdminLayout: React.FC = () => {
@@ -22,7 +49,7 @@ export const AdminLayout: React.FC = () => {
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-sidebar-border p-4">
             <h1 className="text-xl font-bold text-sidebar-foreground">
-              {t('common.appName')} Admin
+              {t("common.appName")} Admin
             </h1>
             <LanguageSwitcher />
           </div>
@@ -31,13 +58,13 @@ export const AdminLayout: React.FC = () => {
               <NavLink
                 key={item.path}
                 to={item.path}
-                end={item.path === '/admin'}
+                end={item.path === "/admin"}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                     isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50",
                   )
                 }
               >

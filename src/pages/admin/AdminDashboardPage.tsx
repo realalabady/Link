@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Users, CheckCircle, CreditCard, Activity } from "lucide-react";
+import { Users, CheckCircle, CreditCard, Activity, Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,13 @@ import { useUsers } from "@/hooks/queries/useUsers";
 import { usePendingVerifications } from "@/hooks/queries/useVerifications";
 import { usePayouts } from "@/hooks/queries/usePayouts";
 import { usePayments } from "@/hooks/queries/usePayments";
-import { getBookings, seedDefaultCategories } from "@/lib/firestore";
+import {
+  getBookings,
+  seedDefaultCategories,
+  getProviderProfile,
+} from "@/lib/firestore";
 import { useCategories } from "@/hooks/queries/useCategories";
+import { toast } from "@/components/ui/sonner";
 import { BookingStatus } from "@/types";
 
 const AdminDashboardPage: React.FC = () => {
@@ -53,6 +58,57 @@ const AdminDashboardPage: React.FC = () => {
       return results.reduce((sum, list) => sum + list.length, 0);
     },
   });
+
+  // Fetch subscription stats and profit data
+  const { data: subscriptionStats = { active: 0, expired: 0, mrr: 0, yourProfit: 0, payoutsOwed: 0 } } =
+    useQuery({
+      queryKey: ["admin", "subscriptions", "stats"],
+      queryFn: async () => {
+        const providers = users.filter((u) => u.role === "PROVIDER");
+        let activeCount = 0;
+        let expiredCount = 0;
+        let totalMRR = 0;
+        let yourProfit = 0;
+        let payoutsOwed = 0;
+
+        for (const provider of providers) {
+          try {
+            const profile = await getProviderProfile(provider.uid);
+            if (profile) {
+              if (
+                profile.subscriptionStatus === "ACTIVE" &&
+                profile.accountStatus === "ACTIVE"
+              ) {
+                activeCount++;
+                const planPrice = profile.subscriptionPrice || 10;
+                totalMRR += planPrice;
+                
+                // Calculate your profit = money already received from provider
+                if (profile.lastSubscriptionPaymentAmount) {
+                  yourProfit += profile.lastSubscriptionPaymentAmount;
+                }
+              }
+              if (profile.subscriptionStatus === "EXPIRED") {
+                expiredCount++;
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch profile for ${provider.uid}:`, error);
+          }
+        }
+
+        // Payouts owed = MRR - Already received
+        payoutsOwed = totalMRR - yourProfit;
+
+        return {
+          active: activeCount,
+          expired: expiredCount,
+          mrr: totalMRR,
+          yourProfit,
+          payoutsOwed,
+        };
+      },
+    });
 
   const pendingVerifications = useMemo(
     () => verifications.filter((v) => v.status === "PENDING").length,
@@ -153,7 +209,10 @@ const AdminDashboardPage: React.FC = () => {
     }));
 
     console.log("Payments totals map:", totals);
-    console.log("Payments range keys:", range.map((r) => r.key));
+    console.log(
+      "Payments range keys:",
+      range.map((r) => r.key),
+    );
     console.log("Payments over time result:", result);
 
     return result;
@@ -384,16 +443,34 @@ const AdminDashboardPage: React.FC = () => {
       color: "bg-amber-500",
     },
     {
-      icon: <CreditCard className="h-6 w-6" />,
-      label: t("admin.totalPayments"),
-      value: totalPayments.toString(),
-      color: "bg-green-500",
-    },
-    {
       icon: <Activity className="h-6 w-6" />,
       label: "Active Bookings",
       value: activeBookingsCount.toString(),
       color: "bg-primary",
+    },
+    {
+      icon: <Gift className="h-6 w-6" />,
+      label: "Active Subscriptions",
+      value: subscriptionStats.active.toString(),
+      color: "bg-purple-500",
+    },
+    {
+      icon: <CreditCard className="h-6 w-6" />,
+      label: "MRR (Gross Revenue)",
+      value: `${subscriptionStats.mrr.toFixed(0)} SAR`,
+      color: "bg-blue-600",
+    },
+    {
+      icon: <CreditCard className="h-6 w-6" />,
+      label: "Your Profit (Received)",
+      value: `${subscriptionStats.yourProfit.toFixed(0)} SAR`,
+      color: "bg-green-600",
+    },
+    {
+      icon: <CreditCard className="h-6 w-6" />,
+      label: "Payouts Owed",
+      value: `${subscriptionStats.payoutsOwed.toFixed(0)} SAR`,
+      color: "bg-orange-600",
     },
   ];
 

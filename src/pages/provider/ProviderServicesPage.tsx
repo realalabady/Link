@@ -45,6 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import {
   useProviderServices,
   useCreateService,
@@ -60,6 +61,7 @@ import { z } from "zod";
 const ProviderServicesPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { isLocked } = useSubscriptionStatus();
   const isArabic = i18n.language === "ar";
 
   // State
@@ -116,6 +118,12 @@ const ProviderServicesPage: React.FC = () => {
   };
 
   const openAddForm = () => {
+    if (isLocked) {
+      toast.error(t("provider.accountLockedTitle"), {
+        description: t("provider.accountLockedMessage"),
+      });
+      return;
+    }
     if (!isProfileComplete) {
       toast.error(t("services.profileIncompleteTitle"), {
         description: t("services.profileIncompleteDescription"),
@@ -311,7 +319,7 @@ const ProviderServicesPage: React.FC = () => {
             onClick={openAddForm}
             size="sm"
             className="gap-2"
-            disabled={!isProfileComplete}
+            disabled={!isProfileComplete || isLocked}
           >
             <Plus className="h-4 w-4" />
             {t("services.addService")}
@@ -339,7 +347,7 @@ const ProviderServicesPage: React.FC = () => {
             <Button
               onClick={openAddForm}
               className="mt-4 gap-2"
-              disabled={!isProfileComplete}
+              disabled={!isProfileComplete || isLocked}
             >
               <Plus className="h-4 w-4" />
               {t("services.addFirst")}

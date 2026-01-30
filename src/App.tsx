@@ -47,12 +47,14 @@ import ProviderChatRoomPage from "@/pages/provider/ProviderChatRoomPage";
 import ProviderProfilePage from "@/pages/provider/ProviderProfilePage";
 import ProviderBookingDetailsPage from "@/pages/provider/ProviderBookingDetailsPage";
 import ProviderWalletPage from "@/pages/provider/ProviderWalletPage";
+import SubscriptionPaymentPage from "@/pages/provider/SubscriptionPaymentPage";
 
 // Admin pages
 import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminVerificationsPage from "@/pages/admin/AdminVerificationsPage";
 import AdminPayoutsPage from "@/pages/admin/AdminPayoutsPage";
+import AdminSubscriptionsPage from "@/pages/admin/AdminSubscriptionsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -144,6 +146,7 @@ const AppRoutes = () => {
         <Route path="chats" element={<ProviderChatsPage />} />
         <Route path="chats/:chatId" element={<ProviderChatRoomPage />} />
         <Route path="profile" element={<ProviderProfilePage />} />
+        <Route path="subscription" element={<SubscriptionPaymentPage />} />
       </Route>
 
       {/* Admin routes */}
@@ -159,6 +162,7 @@ const AppRoutes = () => {
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="verifications" element={<AdminVerificationsPage />} />
         <Route path="payouts" element={<AdminPayoutsPage />} />
+        <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
       </Route>
 
       {/* Catch-all */}

@@ -29,7 +29,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { useProviderBookings } from "@/hooks/queries/useBookings";
+import { toast } from "@/components/ui/sonner";
 import { AvailabilityRule } from "@/types";
 
 // Days of the week
@@ -53,6 +55,7 @@ const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
 const ProviderSchedulePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { isLocked } = useSubscriptionStatus();
   const isArabic = i18n.language === "ar";
 
   // Current month/year for calendar
@@ -126,6 +129,12 @@ const ProviderSchedulePage: React.FC = () => {
   );
 
   const openDayEditor = (day: number) => {
+    if (isLocked) {
+      toast.error(t("provider.accountLockedTitle"), {
+        description: t("provider.accountLockedMessage"),
+      });
+      return;
+    }
     const rule = weeklySchedule[day];
     setEditingDay(day);
     setEditForm({

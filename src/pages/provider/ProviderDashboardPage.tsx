@@ -26,17 +26,20 @@ import {
 } from "@/components/ui/dialog";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import {
   usePendingBookings,
   useProviderBookings,
   useUpdateBookingStatus,
 } from "@/hooks/queries/useBookings";
+import { toast } from "@/components/ui/sonner";
 import logo from "@/assets/logo.jpeg";
 import { Booking } from "@/types";
 
 const ProviderDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const { isLocked } = useSubscriptionStatus();
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
 
@@ -67,6 +70,12 @@ const ProviderDashboardPage: React.FC = () => {
   const updateStatusMutation = useUpdateBookingStatus();
 
   const handleAction = (booking: Booking, action: "accept" | "reject") => {
+    if (isLocked) {
+      toast.error(t("provider.accountLockedTitle"), {
+        description: t("provider.accountLockedMessage"),
+      });
+      return;
+    }
     setSelectedBooking(booking);
     setActionType(action);
     setDialogOpen(true);
