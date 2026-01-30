@@ -255,6 +255,6 @@ app.post("/stripe/create-payment-intent", async (req, res) => {
 // Email routes
 app.use("/api/auth", emailRouter);
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`PayPal server running on port ${PORT}`);
 });
