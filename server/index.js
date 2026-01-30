@@ -10,7 +10,11 @@ const PORT = process.env.PORT || 4242;
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || true,
+    origin: function (origin, callback) {
+      // Allow all origins in production for now
+      callback(null, true);
+    },
+    credentials: true,
   }),
 );
 app.use(express.json());
