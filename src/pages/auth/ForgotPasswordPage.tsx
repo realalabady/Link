@@ -32,6 +32,24 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       await sendPasswordResetEmail(auth, email);
       setSuccess(t("auth.resetEmailSent"));
+
+      // Also send reset email via our backend (Resend)
+      try {
+        // Get the reset link from Firebase
+        const resetLink = `https://firebase.google.com/auth/reset-password?oobCode=`;
+        await fetch("/api/auth/send-reset-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            name: email.split("@")[0],
+            resetLink: `${window.location.origin}/auth/reset-password`,
+          }),
+        });
+      } catch (resendError) {
+        console.warn("Failed to send Resend reset email:", resendError);
+        // Continue - Firebase email already sent
+      }
     } catch (err) {
       setError(getAuthErrorMessage(err, t));
     } finally {

@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const fetch = global.fetch || require("node-fetch");
 const Stripe = require("stripe");
+const emailRouter = require("./src/routes/email");
 
 const app = express();
 const PORT = process.env.PORT || 4242;
@@ -250,6 +251,9 @@ app.post("/stripe/create-payment-intent", async (req, res) => {
     return res.status(500).json({ error: "Failed to create payment intent" });
   }
 });
+
+// Email routes
+app.use("/api/auth", emailRouter);
 
 app.listen(PORT, () => {
   console.log(`PayPal server running on port ${PORT}`);

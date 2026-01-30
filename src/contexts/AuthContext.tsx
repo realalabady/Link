@@ -133,6 +133,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         await sendEmailVerification(fbUser);
         console.log("Verification email sent to:", email);
+
+        // Also send verification email via Resend (our branded email)
+        try {
+          const verificationLink = `${window.location.origin}/auth/verify-email?code=${fbUser.uid}`;
+          await fetch("/api/auth/send-verification-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              name: name || email.split("@")[0],
+              verificationLink,
+            }),
+          });
+        } catch (resendError) {
+          console.warn(
+            "Failed to send Resend verification email:",
+            resendError,
+          );
+          // Continue - Firebase verification email already sent
+        }
       } catch (verificationError) {
         console.warn("Failed to send verification email:", verificationError);
         // Continue with signup even if verification email fails

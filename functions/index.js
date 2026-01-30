@@ -26,7 +26,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   await resend.emails.send({
-    from: emailFromParam.value() || "Link <no-reply@link.local>",
+    from: emailFromParam.value() || "Link <noreply@link-22.com>",
     to,
     subject,
     html,

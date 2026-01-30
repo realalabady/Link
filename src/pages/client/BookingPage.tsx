@@ -145,6 +145,42 @@ const BookingPage: React.FC = () => {
         providerAmount: service.priceFrom,
       });
 
+      // Send booking confirmation email
+      try {
+        const dateStr = startAt.toLocaleDateString(
+          i18n.language === "ar" ? "ar-SA" : "en-US",
+          {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          },
+        );
+        const timeStr = startAt.toLocaleTimeString(
+          i18n.language === "ar" ? "ar-SA" : "en-US",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+          },
+        );
+
+        await fetch("/api/auth/send-booking-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientEmail: user.email,
+            clientName: user.displayName || user.email.split("@")[0],
+            providerName: provider?.name || "Provider",
+            serviceName: service.title,
+            date: dateStr,
+            time: timeStr,
+          }),
+        });
+      } catch (emailError) {
+        // Non-blocking: Email failure doesn't prevent booking
+        console.error("Failed to send booking confirmation email:", emailError);
+      }
+
       setBookingSuccess(true);
     } catch (error) {
       console.error("Failed to finalize booking:", error);
@@ -210,6 +246,42 @@ const BookingPage: React.FC = () => {
         gatewayFee: 0,
         providerAmount: service.priceFrom,
       });
+
+      // Send booking confirmation email
+      try {
+        const dateStr = startAt.toLocaleDateString(
+          i18n.language === "ar" ? "ar-SA" : "en-US",
+          {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          },
+        );
+        const timeStr = startAt.toLocaleTimeString(
+          i18n.language === "ar" ? "ar-SA" : "en-US",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+          },
+        );
+
+        await fetch("/api/auth/send-booking-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientEmail: user.email,
+            clientName: user.displayName || user.email.split("@")[0],
+            providerName: provider?.name || "Provider",
+            serviceName: service.title,
+            date: dateStr,
+            time: timeStr,
+          }),
+        });
+      } catch (emailError) {
+        // Non-blocking: Email failure doesn't prevent booking
+        console.error("Failed to send booking confirmation email:", emailError);
+      }
 
       setBookingSuccess(true);
     } catch (error) {
