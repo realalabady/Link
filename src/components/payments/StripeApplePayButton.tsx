@@ -34,7 +34,7 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
       if (!stripe) return;
 
       const paymentRequest = stripe.paymentRequest({
-        country: "SA",
+        country: "AE",
         currency: "sar",
         total: {
           label: "Booking",
@@ -68,7 +68,7 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
     setIsProcessing(true);
 
     const paymentRequest = stripe.paymentRequest({
-      country: "SA",
+      country: "AE",
       currency: "sar",
       total: {
         label: "Booking",
