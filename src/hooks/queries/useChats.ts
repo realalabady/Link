@@ -39,21 +39,6 @@ const getProviderName = async (providerId: string): Promise<string> => {
   return "";
 };
 
-// Helper to fetch client name
-const getClientName = async (clientId: string): Promise<string> => {
-  try {
-    const userRef = doc(db, "users", clientId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const data = userSnap.data();
-      return data.displayName || data.name || "";
-    }
-  } catch (error) {
-    console.warn("Error fetching client name:", error);
-  }
-  return "";
-};
-
 // Query keys for cache management
 export const chatKeys = {
   all: ["chats"] as const,
@@ -124,25 +109,19 @@ export const useProviderChats = (providerId: string) => {
       // Simple query without orderBy to avoid needing composite index
       const q = query(chatsRef, where("providerId", "==", providerId));
       const snapshot = await getDocs(q);
-      const chats = await Promise.all(
-        snapshot.docs.map(async (docSnap) => {
-          const data = docSnap.data();
-          // Fetch client name if not stored in chat
-          let clientName = data.clientName || "";
-          if (!clientName && data.clientId) {
-            clientName = await getClientName(data.clientId);
-          }
-          return {
-            id: docSnap.id,
-            ...data,
-            clientName,
-            createdAt: convertTimestamp(data.createdAt),
-            lastMessageAt: data.lastMessageAt
-              ? convertTimestamp(data.lastMessageAt)
-              : undefined,
-          } as Chat;
-        }),
-      );
+      const chats = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          ...data,
+          // Use stored clientName from chat document (avoids permission issues)
+          clientName: data.clientName || "",
+          createdAt: convertTimestamp(data.createdAt),
+          lastMessageAt: data.lastMessageAt
+            ? convertTimestamp(data.lastMessageAt)
+            : undefined,
+        } as Chat;
+      });
       // Sort client-side
       return chats.sort((a, b) => {
         const aTime = a.lastMessageAt?.getTime() || a.createdAt.getTime();

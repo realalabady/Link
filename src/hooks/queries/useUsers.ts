@@ -16,6 +16,53 @@ import { User, UserStatus } from "@/types";
 export const userKeys = {
   all: ["users"] as const,
   detail: (id: string) => ["users", id] as const,
+  client: (id: string) => ["users", "client", id] as const,
+};
+
+// Helper function to get client display name with fallbacks
+const getClientDisplayName = async (clientId: string): Promise<string> => {
+  if (!clientId) return "";
+  
+  try {
+    // First try users collection
+    const userRef = doc(db, "users", clientId);
+    const userSnap = await getDoc(userRef);
+    
+    console.log("Client lookup - exists:", userSnap.exists(), "clientId:", clientId);
+    
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      console.log("Client data:", { displayName: data.displayName, name: data.name, email: data.email });
+      if (data.displayName) return data.displayName;
+      if (data.name) return data.name;
+      if (data.email) return data.email.split("@")[0];
+    }
+    
+    // If no user doc, try providers collection (in case client is also a provider)
+    const providerRef = doc(db, "providers", clientId);
+    const providerSnap = await getDoc(providerRef);
+    
+    if (providerSnap.exists()) {
+      const data = providerSnap.data();
+      console.log("Found in providers:", data.displayName);
+      if (data.displayName) return data.displayName;
+    }
+    
+  } catch (error) {
+    console.error("Error fetching client name:", error);
+  }
+  
+  return "";
+};
+
+// Hook to fetch client name specifically (similar to useProviderProfile)
+export const useClientName = (clientId: string) => {
+  return useQuery<string, Error>({
+    queryKey: userKeys.client(clientId),
+    queryFn: () => getClientDisplayName(clientId),
+    enabled: !!clientId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 };
 
 // Fetch all users
@@ -68,11 +115,15 @@ export const useUser = (userId: string) => {
 
         if (snapshot.exists()) {
           const data = snapshot.data();
+          const email = data.email || "";
+          const name = data.name || "";
+          // Use displayName, name, or email prefix as fallback
+          const displayName = data.displayName || name || (email ? email.split("@")[0] : "");
           return {
             uid: snapshot.id,
-            email: data.email || "",
-            name: data.name || "",
-            displayName: data.displayName || data.name || "",
+            email,
+            name,
+            displayName,
             role: data.role || null,
             status: data.status || "ACTIVE",
             phone: data.phone || "",

@@ -12,7 +12,7 @@ import {
   useChatMessages,
   useSendMessage,
 } from "@/hooks/queries/useChats";
-import { useUser } from "@/hooks/queries/useUsers";
+import { useClientName } from "@/hooks/queries/useUsers";
 import { Message } from "@/types";
 
 const ProviderChatRoomPage: React.FC = () => {
@@ -27,11 +27,14 @@ const ProviderChatRoomPage: React.FC = () => {
 
   // Fetch data
   const { data: chat, isLoading: loadingChat } = useChat(chatId || "");
-  const { data: clientUser } = useUser(chat?.clientId || "");
+  const { data: fetchedClientName, isLoading: loadingClient } = useClientName(chat?.clientId || "");
   const { data: messages = [], isLoading: loadingMessages } = useChatMessages(
     chatId || "",
   );
   const sendMessageMutation = useSendMessage();
+
+  // Get client name with fallbacks
+  const clientName = chat?.clientName || fetchedClientName || (loadingClient ? "..." : t("chat.client"));
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -104,7 +107,7 @@ const ProviderChatRoomPage: React.FC = () => {
     {} as Record<string, Message[]>,
   );
 
-  if (loadingChat) {
+  if (loadingChat || loadingClient) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <header className="border-b border-border bg-card p-4">
@@ -147,14 +150,8 @@ const ProviderChatRoomPage: React.FC = () => {
             </div>
             <div>
               <h1 className="font-semibold text-foreground">
-                {chat.clientName ||
-                  clientUser?.displayName ||
-                  clientUser?.name ||
-                  t("chat.client")}
+                {clientName || t("chat.client")}
               </h1>
-              <p className="text-xs text-muted-foreground">
-                {t("chat.online")}
-              </p>
             </div>
           </div>
         </div>
