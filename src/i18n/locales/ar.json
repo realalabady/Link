@@ -137,22 +137,6 @@
     "tryDifferent": "جربي مصطلح بحث مختلف",
     "min": "دقيقة"
   },
-  "provider": {
-    "verified": "موثقة",
-    "reviews": "تقييمات",
-    "services": "الخدمات",
-    "about": "نبذة",
-    "availability": "المواعيد المتاحة",
-    "bookNow": "احجزي الآن",
-    "messageProvider": "مراسلة",
-    "profile": "ملف مقدمة الخدمات",
-    "provider": "مقدمة الخدمات",
-    "notFound": "لم يتم العثور على مقدمة الخدمات",
-    "noServices": "لا توجد خدمات متاحة",
-    "noReviews": "لا توجد تقييمات بعد",
-    "noBio": "لم يتم إضافة نبذة",
-    "serviceRadius": "نطاق الخدمة"
-  },
   "booking": {
     "selectDate": "اختاري التاريخ",
     "selectTime": "اختاري الوقت",
@@ -535,6 +519,20 @@
     "rejectDescription": "هل أنتِ متأكدة من رفض طلب الحجز هذا؟"
   },
   "provider": {
+    "verified": "موثقة",
+    "reviews": "تقييمات",
+    "services": "الخدمات",
+    "about": "نبذة",
+    "availability": "المواعيد المتاحة",
+    "bookNow": "احجزي الآن",
+    "messageProvider": "مراسلة",
+    "profile": "ملف مقدمة الخدمات",
+    "provider": "مقدمة الخدمات",
+    "notFound": "لم يتم العثور على مقدمة الخدمات",
+    "noServices": "لا توجد خدمات متاحة",
+    "noReviews": "لا توجد تقييمات بعد",
+    "noBio": "لم يتم إضافة نبذة",
+    "serviceRadius": "نطاق الخدمة",
     "accountLockedTitle": "الحساب مقفول",
     "accountLockedMessage": "تم قفل حسابك بسبب انتهاء اشتراكك. لا يمكنك قبول الحجوزات أو إدارة الخدمات حتى تجددي الاشتراك.",
     "subscriptionExpiredTitle": "انتهاء الاشتراك",

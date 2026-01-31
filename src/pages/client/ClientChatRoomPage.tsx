@@ -12,6 +12,7 @@ import {
   useChatMessages,
   useSendMessage,
 } from "@/hooks/queries/useChats";
+import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { Message } from "@/types";
 
 const ClientChatRoomPage: React.FC = () => {
@@ -26,10 +27,15 @@ const ClientChatRoomPage: React.FC = () => {
 
   // Fetch data
   const { data: chat, isLoading: loadingChat } = useChat(chatId || "");
+  const { data: providerProfile, isLoading: loadingProvider } =
+    useProviderProfile(chat?.providerId || "");
   const { data: messages = [], isLoading: loadingMessages } = useChatMessages(
     chatId || "",
   );
   const sendMessageMutation = useSendMessage();
+
+  // Get provider name with fallbacks
+  const providerName = chat?.providerName || providerProfile?.displayName || "";
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -102,7 +108,7 @@ const ClientChatRoomPage: React.FC = () => {
     {} as Record<string, Message[]>,
   );
 
-  if (loadingChat) {
+  if (loadingChat || loadingProvider) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <header className="border-b border-border bg-card p-4">
@@ -145,11 +151,8 @@ const ClientChatRoomPage: React.FC = () => {
             </div>
             <div>
               <h1 className="font-semibold text-foreground">
-                {t("provider.provider")}
+                {providerName || t("provider.provider")}
               </h1>
-              <p className="text-xs text-muted-foreground">
-                {t("chat.online")}
-              </p>
             </div>
           </div>
         </div>

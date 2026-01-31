@@ -89,6 +89,8 @@ const BookingDetailsPage: React.FC = () => {
       const chatId = await createChatMutation.mutateAsync({
         clientId: user.uid,
         providerId: booking.providerId,
+        clientName: user.displayName || user.email?.split("@")[0] || "",
+        providerName: provider?.displayName || "",
         bookingId: booking.id,
       });
       navigate(`/client/chats/${chatId}`);

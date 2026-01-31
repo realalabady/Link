@@ -57,6 +57,8 @@ const ProviderProfilePage: React.FC = () => {
       const chatId = await createChatMutation.mutateAsync({
         clientId: user.uid,
         providerId: id,
+        clientName: user.displayName || user.email?.split("@")[0] || "",
+        providerName: provider?.displayName || "",
       });
       navigate(`/client/chats/${chatId}`);
     } catch (error) {

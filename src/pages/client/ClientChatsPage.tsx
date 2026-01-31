@@ -7,7 +7,60 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClientChats } from "@/hooks/queries/useChats";
+import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { Chat } from "@/types";
+
+// Chat item component that fetches its own provider profile
+const ChatItem: React.FC<{
+  chat: Chat;
+  onClick: () => void;
+  formatTime: (date: Date | undefined) => string;
+}> = ({ chat, onClick, formatTime }) => {
+  const { t } = useTranslation();
+  const { data: providerProfile } = useProviderProfile(chat.providerId);
+
+  const providerName =
+    chat.providerName || providerProfile?.displayName || t("provider.provider");
+
+  return (
+    <motion.button
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 },
+      }}
+      onClick={onClick}
+      className="flex w-full items-center gap-4 rounded-2xl bg-card p-4 text-start transition-all hover:bg-accent"
+    >
+      {/* Avatar */}
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl">
+        👩‍💼
+      </div>
+
+      {/* Chat Info */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">{providerName}</h3>
+          <span className="text-xs text-muted-foreground">
+            {formatTime(chat.lastMessageAt)}
+          </span>
+        </div>
+
+        <div className="mt-1 flex items-center justify-between">
+          <p className="truncate text-sm text-muted-foreground">
+            {chat.lastMessage || t("chat.noMessages")}
+          </p>
+          {chat.unreadCount > 0 && (
+            <Badge className="ms-2 h-5 min-w-5 rounded-full px-1.5">
+              {chat.unreadCount}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground rtl:rotate-180" />
+    </motion.button>
+  );
+};
 
 const ClientChatsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -110,42 +163,12 @@ const ClientChatsPage: React.FC = () => {
             className="space-y-2"
           >
             {sortedChats.map((chat) => (
-              <motion.button
+              <ChatItem
                 key={chat.id}
-                variants={fadeInUp}
+                chat={chat}
                 onClick={() => handleChatClick(chat)}
-                className="flex w-full items-center gap-4 rounded-2xl bg-card p-4 text-start transition-all hover:bg-accent"
-              >
-                {/* Avatar */}
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl">
-                  👩‍💼
-                </div>
-
-                {/* Chat Info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground">
-                      {t("provider.provider")}
-                    </h3>
-                    <span className="text-xs text-muted-foreground">
-                      {formatTime(chat.lastMessageAt)}
-                    </span>
-                  </div>
-
-                  <div className="mt-1 flex items-center justify-between">
-                    <p className="truncate text-sm text-muted-foreground">
-                      {chat.lastMessage || t("chat.noMessages")}
-                    </p>
-                    {chat.unreadCount > 0 && (
-                      <Badge className="ms-2 h-5 min-w-5 rounded-full px-1.5">
-                        {chat.unreadCount}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground rtl:rotate-180" />
-              </motion.button>
+                formatTime={formatTime}
+              />
             ))}
           </motion.div>
         )}

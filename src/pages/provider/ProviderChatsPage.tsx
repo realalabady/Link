@@ -125,7 +125,7 @@ const ProviderChatsPage: React.FC = () => {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-foreground">
-                      {t("chat.client")}
+                      {chat.clientName || t("chat.client")}
                     </h3>
                     <span className="text-xs text-muted-foreground">
                       {formatTime(chat.lastMessageAt)}

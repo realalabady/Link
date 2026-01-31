@@ -137,22 +137,6 @@
     "tryDifferent": "Try a different search term",
     "min": "min"
   },
-  "provider": {
-    "verified": "Verified",
-    "reviews": "reviews",
-    "services": "Services",
-    "about": "About",
-    "availability": "Availability",
-    "bookNow": "Book now",
-    "messageProvider": "Message",
-    "profile": "Provider Profile",
-    "provider": "Provider",
-    "notFound": "Provider not found",
-    "noServices": "No services available",
-    "noReviews": "No reviews yet",
-    "noBio": "No bio provided",
-    "serviceRadius": "Service radius"
-  },
   "booking": {
     "validationError": "Please select date, time, and location.",
     "selectDate": "Select date",
@@ -551,6 +535,20 @@
     "rejectDescription": "Are you sure you want to reject this booking request?"
   },
   "provider": {
+    "verified": "Verified",
+    "reviews": "reviews",
+    "services": "Services",
+    "about": "About",
+    "availability": "Availability",
+    "bookNow": "Book now",
+    "messageProvider": "Message",
+    "profile": "Provider Profile",
+    "provider": "Provider",
+    "notFound": "Provider not found",
+    "noServices": "No services available",
+    "noReviews": "No reviews yet",
+    "noBio": "No bio provided",
+    "serviceRadius": "Service radius",
     "accountLockedTitle": "Account Locked",
     "accountLockedMessage": "Your account is locked due to expired subscription. You cannot accept bookings or manage services until you renew your subscription.",
     "subscriptionExpiredTitle": "Subscription Expired",

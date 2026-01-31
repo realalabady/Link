@@ -226,6 +226,8 @@ export interface Chat {
   id: string;
   clientId: string;
   providerId: string;
+  clientName?: string;
+  providerName?: string;
   bookingId?: string;
   lastMessage?: string;
   lastMessageAt?: Date;

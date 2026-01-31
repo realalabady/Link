@@ -12,6 +12,7 @@ import {
   useChatMessages,
   useSendMessage,
 } from "@/hooks/queries/useChats";
+import { useUser } from "@/hooks/queries/useUsers";
 import { Message } from "@/types";
 
 const ProviderChatRoomPage: React.FC = () => {
@@ -26,6 +27,7 @@ const ProviderChatRoomPage: React.FC = () => {
 
   // Fetch data
   const { data: chat, isLoading: loadingChat } = useChat(chatId || "");
+  const { data: clientUser } = useUser(chat?.clientId || "");
   const { data: messages = [], isLoading: loadingMessages } = useChatMessages(
     chatId || "",
   );
@@ -145,7 +147,10 @@ const ProviderChatRoomPage: React.FC = () => {
             </div>
             <div>
               <h1 className="font-semibold text-foreground">
-                {t("chat.client")}
+                {chat.clientName ||
+                  clientUser?.displayName ||
+                  clientUser?.name ||
+                  t("chat.client")}
               </h1>
               <p className="text-xs text-muted-foreground">
                 {t("chat.online")}
