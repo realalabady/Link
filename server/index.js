@@ -8,15 +8,7 @@ const emailRouter = require("./src/routes/email");
 const app = express();
 const PORT = process.env.PORT || 4242;
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow all origins in production for now
-      callback(null, true);
-    },
-    credentials: true,
-  }),
-);
+app.use(cors());
 app.use(express.json());
 
 const PAYPAL_API_BASE =
