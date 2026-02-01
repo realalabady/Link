@@ -242,15 +242,22 @@ export const userDocumentExists = async (uid: string): Promise<boolean> => {
 // ============================================
 
 // Default categories to use when Firestore is empty
+// Women-focused services marketplace
 export const DEFAULT_CATEGORIES: Category[] = [
   {
-    id: "beauty",
-    nameEn: "Beauty",
-    nameAr: "التجميل",
+    id: "makeup",
+    nameEn: "Makeup",
+    nameAr: "المكياج",
     icon: "💄",
     isActive: true,
   },
-  { id: "hair", nameEn: "Hair", nameAr: "الشعر", icon: "💇", isActive: true },
+  {
+    id: "hair",
+    nameEn: "Hair Styling",
+    nameAr: "تصفيف الشعر",
+    icon: "💇‍♀️",
+    isActive: true,
+  },
   {
     id: "nails",
     nameEn: "Nails",
@@ -266,17 +273,17 @@ export const DEFAULT_CATEGORIES: Category[] = [
     isActive: true,
   },
   {
-    id: "massage",
-    nameEn: "Massage",
-    nameAr: "المساج",
-    icon: "💆",
+    id: "spa",
+    nameEn: "Spa & Relaxation",
+    nameAr: "السبا والاسترخاء",
+    icon: "🧖‍♀️",
     isActive: true,
   },
   {
-    id: "makeup",
-    nameEn: "Makeup",
-    nameAr: "المكياج",
-    icon: "👄",
+    id: "massage",
+    nameEn: "Massage",
+    nameAr: "المساج",
+    icon: "💆‍♀️",
     isActive: true,
   },
   {
@@ -287,10 +294,52 @@ export const DEFAULT_CATEGORIES: Category[] = [
     isActive: true,
   },
   {
+    id: "waxing",
+    nameEn: "Hair Removal",
+    nameAr: "إزالة الشعر",
+    icon: "🪷",
+    isActive: true,
+  },
+  {
+    id: "lashes",
+    nameEn: "Lashes & Brows",
+    nameAr: "الرموش والحواجب",
+    icon: "👁️",
+    isActive: true,
+  },
+  {
+    id: "aesthetics",
+    nameEn: "Medical Aesthetics",
+    nameAr: "التجميل الطبي",
+    icon: "💉",
+    isActive: true,
+  },
+  {
+    id: "bridal",
+    nameEn: "Bridal Services",
+    nameAr: "خدمات العروس",
+    icon: "👰",
+    isActive: true,
+  },
+  {
+    id: "yoga",
+    nameEn: "Yoga & Pilates",
+    nameAr: "اليوغا والبيلاتس",
+    icon: "🧘‍♀️",
+    isActive: true,
+  },
+  {
     id: "fitness",
-    nameEn: "Fitness",
-    nameAr: "اللياقة",
-    icon: "🏋️",
+    nameEn: "Women's Fitness",
+    nameAr: "لياقة نسائية",
+    icon: "🏃‍♀️",
+    isActive: true,
+  },
+  {
+    id: "nutrition",
+    nameEn: "Nutrition & Diet",
+    nameAr: "التغذية والحمية",
+    icon: "🥗",
     isActive: true,
   },
   {
@@ -302,79 +351,30 @@ export const DEFAULT_CATEGORIES: Category[] = [
   },
   {
     id: "tailoring",
-    nameEn: "Tailoring",
-    nameAr: "الخياطة",
-    icon: "🧵",
+    nameEn: "Tailoring & Alterations",
+    nameAr: "الخياطة والتعديلات",
+    icon: "👗",
     isActive: true,
   },
   {
-    id: "cleaning",
-    nameEn: "Cleaning",
-    nameAr: "التنظيف",
-    icon: "🧹",
+    id: "personal_shopping",
+    nameEn: "Personal Shopping",
+    nameAr: "التسوق الشخصي",
+    icon: "🛍️",
+    isActive: true,
+  },
+  {
+    id: "events",
+    nameEn: "Event Planning",
+    nameAr: "تنظيم الفعاليات",
+    icon: "🎀",
     isActive: true,
   },
   {
     id: "cooking",
-    nameEn: "Cooking",
-    nameAr: "الطبخ",
-    icon: "🍳",
-    isActive: true,
-  },
-  {
-    id: "spa",
-    nameEn: "Spa",
-    nameAr: "السبا",
-    icon: "🧖",
-    isActive: true,
-  },
-  {
-    id: "waxing",
-    nameEn: "Waxing",
-    nameAr: "إزالة الشعر",
-    icon: "🪒",
-    isActive: true,
-  },
-  {
-    id: "aesthetics",
-    nameEn: "Aesthetics",
-    nameAr: "التجميل الطبي",
-    icon: "💉",
-    isActive: true,
-  },
-  {
-    id: "yoga",
-    nameEn: "Yoga",
-    nameAr: "اليوغا",
-    icon: "🧘",
-    isActive: true,
-  },
-  {
-    id: "personal_training",
-    nameEn: "Personal Training",
-    nameAr: "تدريب شخصي",
-    icon: "🏃‍♀️",
-    isActive: true,
-  },
-  {
-    id: "nutrition",
-    nameEn: "Nutrition",
-    nameAr: "التغذية",
-    icon: "🥗",
-    isActive: true,
-  },
-  {
-    id: "physiotherapy",
-    nameEn: "Physiotherapy",
-    nameAr: "العلاج الطبيعي",
-    icon: "🩺",
-    isActive: true,
-  },
-  {
-    id: "tutoring",
-    nameEn: "Tutoring",
-    nameAr: "دروس خصوصية",
-    icon: "📚",
+    nameEn: "Cooking & Catering",
+    nameAr: "الطبخ والتموين",
+    icon: "🍰",
     isActive: true,
   },
   {
@@ -385,80 +385,24 @@ export const DEFAULT_CATEGORIES: Category[] = [
     isActive: true,
   },
   {
-    id: "events",
-    nameEn: "Events & Planning",
-    nameAr: "الفعاليات والتخطيط",
-    icon: "🎉",
+    id: "tutoring",
+    nameEn: "Tutoring",
+    nameAr: "دروس خصوصية",
+    icon: "📚",
     isActive: true,
   },
   {
-    id: "wedding",
-    nameEn: "Wedding Services",
-    nameAr: "خدمات الأعراس",
-    icon: "💒",
+    id: "cleaning",
+    nameEn: "Home Cleaning",
+    nameAr: "تنظيف المنزل",
+    icon: "🏠",
     isActive: true,
   },
   {
-    id: "automotive",
-    nameEn: "Automotive Care",
-    nameAr: "خدمات السيارات",
-    icon: "🚗",
-    isActive: true,
-  },
-  {
-    id: "plumbing",
-    nameEn: "Plumbing",
-    nameAr: "السباكة",
-    icon: "🔧",
-    isActive: true,
-  },
-  {
-    id: "electrical",
-    nameEn: "Electrical",
-    nameAr: "الأعمال الكهربائية",
-    icon: "💡",
-    isActive: true,
-  },
-  {
-    id: "appliance_repair",
-    nameEn: "Appliance Repair",
-    nameAr: "صيانة الأجهزة",
-    icon: "🔌",
-    isActive: true,
-  },
-  {
-    id: "landscaping",
-    nameEn: "Landscaping & Gardening",
-    nameAr: "الحدائق والتنسيق",
-    icon: "🌳",
-    isActive: true,
-  },
-  {
-    id: "pet_services",
-    nameEn: "Pet Services",
-    nameAr: "خدمات الحيوانات الأليفة",
-    icon: "🐶",
-    isActive: true,
-  },
-  {
-    id: "tech_support",
-    nameEn: "Tech Support",
-    nameAr: "دعم فني",
-    icon: "🖥️",
-    isActive: true,
-  },
-  {
-    id: "portrait_photography",
-    nameEn: "Portrait Photography",
-    nameAr: "تصوير بورتريه",
-    icon: "🖼️",
-    isActive: true,
-  },
-  {
-    id: "event_photography",
-    nameEn: "Event Photography",
-    nameAr: "تصوير الفعاليات",
-    icon: "📷",
+    id: "organizing",
+    nameEn: "Home Organizing",
+    nameAr: "تنظيم المنزل",
+    icon: "🗂️",
     isActive: true,
   },
 ];
@@ -481,6 +425,33 @@ export const seedDefaultCategories = async (): Promise<void> => {
   });
 
   await batch.commit();
+};
+
+// Force reseed all categories (replaces existing ones)
+export const forceReseedCategories = async (): Promise<void> => {
+  const batch = writeBatch(db);
+  
+  // First, deactivate all existing categories
+  const categoriesRef = collection(db, COLLECTIONS.CATEGORIES);
+  const existingSnapshot = await getDocs(categoriesRef);
+  existingSnapshot.docs.forEach((docSnap) => {
+    batch.update(docSnap.ref, { isActive: false });
+  });
+
+  // Then add/update all default categories
+  DEFAULT_CATEGORIES.forEach((category) => {
+    const categoryRef = doc(db, COLLECTIONS.CATEGORIES, category.id);
+    batch.set(categoryRef, {
+      nameAr: category.nameAr,
+      nameEn: category.nameEn,
+      isActive: category.isActive,
+      icon: category.icon || "",
+      parentId: category.parentId || null,
+    }, { merge: true });
+  });
+
+  await batch.commit();
+  console.log("Categories reseeded successfully!");
 };
 
 export const getCategories = async (): Promise<Category[]> => {

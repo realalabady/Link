@@ -339,7 +339,7 @@ const ClientSearchPage: React.FC = () => {
           variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
         >
           {/* Category Filter */}
-          {categoriesWithServices.length > 0 && (
+          {categories.length > 0 && (
             <motion.section variants={fadeInUp} className="mb-4">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 <Button
@@ -350,7 +350,7 @@ const ClientSearchPage: React.FC = () => {
                 >
                   {t("search.all")}
                 </Button>
-                {categoriesWithServices.map((category) => (
+                {categories.map((category) => (
                   <Button
                     key={category.id}
                     variant={selectedCategory === category.id ? "default" : "outline"}
@@ -359,7 +359,7 @@ const ClientSearchPage: React.FC = () => {
                     onClick={() => handleCategoryChange(category.id)}
                   >
                     <span>{category.icon || "🎯"}</span>
-                    <span>{category.name}</span>
+                    <span>{isArabic ? category.nameAr : category.nameEn}</span>
                   </Button>
                 ))}
               </div>

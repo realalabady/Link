@@ -14,7 +14,7 @@ import { usePayouts } from "@/hooks/queries/usePayouts";
 import { usePayments } from "@/hooks/queries/usePayments";
 import {
   getBookings,
-  seedDefaultCategories,
+  forceReseedCategories,
   getProviderProfile,
 } from "@/lib/firestore";
 import { useCategories } from "@/hooks/queries/useCategories";
@@ -483,8 +483,10 @@ const AdminDashboardPage: React.FC = () => {
 
   const handleSeedCategories = async () => {
     try {
-      await seedDefaultCategories();
+      await forceReseedCategories();
       toast.success(t("admin.categoriesSeeded"));
+      // Invalidate the categories cache to refetch
+      window.location.reload();
     } catch (error) {
       console.error("Failed to seed categories:", error);
       toast.error(t("common.error"));
@@ -518,21 +520,20 @@ const AdminDashboardPage: React.FC = () => {
         ))}
       </div>
 
-      {categories.length === 0 && (
-        <Card className="mb-8 border-dashed">
-          <CardHeader>
-            <CardTitle>{t("admin.categoriesMissing")}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              {t("admin.categoriesSeedHint")}
-            </p>
-            <Button onClick={handleSeedCategories}>
-              {t("admin.seedCategories")}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Categories management - always show for admins */}
+      <Card className="mb-8 border-dashed">
+        <CardHeader>
+          <CardTitle>{t("admin.categoriesManagement")}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            {t("admin.categoriesCount", { count: categories.length })}
+          </p>
+          <Button onClick={handleSeedCategories} variant="outline">
+            {t("admin.reseedCategories")}
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
