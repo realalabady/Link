@@ -1,17 +1,21 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Users, CheckCircle, CreditCard, Activity, Gift } from "lucide-react";
+import { Users, CheckCircle, CreditCard, Activity, Gift, ImageIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import ReactApexChart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { useUsers } from "@/hooks/queries/useUsers";
 import { usePendingVerifications } from "@/hooks/queries/useVerifications";
 import { usePayouts } from "@/hooks/queries/usePayouts";
 import { usePayments } from "@/hooks/queries/usePayments";
+import { useBanner, useUpdateBanner } from "@/hooks/queries/useBanner";
 import {
   getBookings,
   forceReseedCategories,
@@ -19,7 +23,7 @@ import {
 } from "@/lib/firestore";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { toast } from "@/components/ui/sonner";
-import { BookingStatus } from "@/types";
+import { BookingStatus, BannerSettings } from "@/types";
 
 const AdminDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -30,6 +34,28 @@ const AdminDashboardPage: React.FC = () => {
   const { data: payouts = [] } = usePayouts();
   const { data: payments = [] } = usePayments();
   const { data: categories = [] } = useCategories();
+  const { data: banner } = useBanner();
+  const updateBanner = useUpdateBanner();
+
+  // Banner form state
+  const [bannerForm, setBannerForm] = useState<Partial<BannerSettings>>({});
+
+  // Initialize banner form when data loads
+  React.useEffect(() => {
+    if (banner && Object.keys(bannerForm).length === 0) {
+      setBannerForm(banner);
+    }
+  }, [banner]);
+
+  const handleBannerUpdate = async () => {
+    try {
+      await updateBanner.mutateAsync(bannerForm);
+      toast.success(t("admin.bannerUpdated"));
+    } catch (error) {
+      console.error("Failed to update banner:", error);
+      toast.error(t("common.error"));
+    }
+  };
 
   // Debug logging
   React.useEffect(() => {
@@ -531,6 +557,156 @@ const AdminDashboardPage: React.FC = () => {
           </p>
           <Button onClick={handleSeedCategories} variant="outline">
             {t("admin.reseedCategories")}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Banner Management */}
+      <Card className="mb-8 border-dashed">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            {t("admin.bannerManagement")}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="banner-active" className="text-sm">
+              {bannerForm.isActive ? t("admin.bannerActive") : t("admin.bannerInactive")}
+            </Label>
+            <Switch
+              id="banner-active"
+              checked={bannerForm.isActive ?? false}
+              onCheckedChange={(checked) =>
+                setBannerForm((prev) => ({ ...prev, isActive: checked }))
+              }
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Preview */}
+          {bannerForm.isActive && (
+            <div
+              className="mb-4 rounded-xl p-4"
+              style={{
+                backgroundColor: bannerForm.backgroundColor || "#7c3aed",
+                color: bannerForm.textColor || "#ffffff",
+              }}
+            >
+              <p className="font-bold">
+                {i18n.language === "ar" ? bannerForm.titleAr : bannerForm.titleEn}
+              </p>
+              <p className="text-sm opacity-80">
+                {i18n.language === "ar" ? bannerForm.subtitleAr : bannerForm.subtitleEn}
+              </p>
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="banner-title-en">{t("admin.bannerTitleEn")}</Label>
+              <Input
+                id="banner-title-en"
+                value={bannerForm.titleEn || ""}
+                onChange={(e) =>
+                  setBannerForm((prev) => ({ ...prev, titleEn: e.target.value }))
+                }
+                placeholder="Summer Sale!"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="banner-title-ar">{t("admin.bannerTitleAr")}</Label>
+              <Input
+                id="banner-title-ar"
+                value={bannerForm.titleAr || ""}
+                onChange={(e) =>
+                  setBannerForm((prev) => ({ ...prev, titleAr: e.target.value }))
+                }
+                placeholder="تخفيضات الصيف!"
+                dir="rtl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="banner-subtitle-en">{t("admin.bannerSubtitleEn")}</Label>
+              <Input
+                id="banner-subtitle-en"
+                value={bannerForm.subtitleEn || ""}
+                onChange={(e) =>
+                  setBannerForm((prev) => ({ ...prev, subtitleEn: e.target.value }))
+                }
+                placeholder="Get 20% off all services"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="banner-subtitle-ar">{t("admin.bannerSubtitleAr")}</Label>
+              <Input
+                id="banner-subtitle-ar"
+                value={bannerForm.subtitleAr || ""}
+                onChange={(e) =>
+                  setBannerForm((prev) => ({ ...prev, subtitleAr: e.target.value }))
+                }
+                placeholder="احصلي على خصم 20% على جميع الخدمات"
+                dir="rtl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="banner-bg-color">{t("admin.bannerBgColor")}</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="banner-bg-color"
+                  type="color"
+                  value={bannerForm.backgroundColor || "#7c3aed"}
+                  onChange={(e) =>
+                    setBannerForm((prev) => ({ ...prev, backgroundColor: e.target.value }))
+                  }
+                  className="h-10 w-14 p-1"
+                />
+                <Input
+                  value={bannerForm.backgroundColor || "#7c3aed"}
+                  onChange={(e) =>
+                    setBannerForm((prev) => ({ ...prev, backgroundColor: e.target.value }))
+                  }
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="banner-text-color">{t("admin.bannerTextColor")}</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="banner-text-color"
+                  type="color"
+                  value={bannerForm.textColor || "#ffffff"}
+                  onChange={(e) =>
+                    setBannerForm((prev) => ({ ...prev, textColor: e.target.value }))
+                  }
+                  className="h-10 w-14 p-1"
+                />
+                <Input
+                  value={bannerForm.textColor || "#ffffff"}
+                  onChange={(e) =>
+                    setBannerForm((prev) => ({ ...prev, textColor: e.target.value }))
+                  }
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="banner-link">{t("admin.bannerLink")}</Label>
+              <Input
+                id="banner-link"
+                value={bannerForm.linkUrl || ""}
+                onChange={(e) =>
+                  setBannerForm((prev) => ({ ...prev, linkUrl: e.target.value }))
+                }
+                placeholder="/client/search?categories=bridal"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleBannerUpdate}
+            disabled={updateBanner.isPending}
+            className="w-full sm:w-auto"
+          >
+            {updateBanner.isPending ? t("common.saving") : t("admin.updateBanner")}
           </Button>
         </CardContent>
       </Card>

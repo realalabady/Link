@@ -10,6 +10,8 @@ import {
   Briefcase,
   ArrowRight,
   Search,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
+import { useBanner } from "@/hooks/queries/useBanner";
 import logo from "@/assets/logo.jpeg";
 
 const ClientHomePage: React.FC = () => {
@@ -35,6 +38,7 @@ const ClientHomePage: React.FC = () => {
   });
   const { data: providers = [], isLoading: loadingProviders } =
     useVerifiedProviders(6);
+  const { data: banner } = useBanner();
 
   const categoriesWithServices = useMemo(() => {
     const map = new Map<string, { id: string; name: string; icon?: string }>();
@@ -62,6 +66,25 @@ const ClientHomePage: React.FC = () => {
 
     return Array.from(map.values());
   }, [services, categories, isArabic]);
+
+  // Get popular services (top 4 by provider rating)
+  const popularServices = useMemo(() => {
+    const servicesWithProviders = services.map((service) => {
+      const provider = providers.find((p) => p.uid === service.providerId);
+      return { ...service, provider };
+    });
+    
+    return servicesWithProviders
+      .filter((s) => s.provider)
+      .sort((a, b) => (b.provider?.ratingAvg || 0) - (a.provider?.ratingAvg || 0))
+      .slice(0, 4);
+  }, [services, providers]);
+
+  // Get category info for a service
+  const getCategoryInfo = (categoryId: string) => {
+    const cat = categories.find((c) => c.id === categoryId);
+    return cat ? { name: isArabic ? cat.nameAr : cat.nameEn, icon: cat.icon } : null;
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -113,6 +136,28 @@ const ClientHomePage: React.FC = () => {
           animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
         >
+          {/* Promotional Banner */}
+          {banner?.isActive && (
+            <motion.section variants={fadeInUp} className="mb-6">
+              <button
+                onClick={() => banner.linkUrl && navigate(banner.linkUrl)}
+                className="w-full rounded-2xl p-6 text-start transition-all hover:opacity-90"
+                style={{
+                  backgroundColor: banner.backgroundColor,
+                  color: banner.textColor,
+                }}
+                disabled={!banner.linkUrl}
+              >
+                <h2 className="text-xl font-bold">
+                  {isArabic ? banner.titleAr : banner.titleEn}
+                </h2>
+                <p className="mt-1 opacity-80">
+                  {isArabic ? banner.subtitleAr : banner.subtitleEn}
+                </p>
+              </button>
+            </motion.section>
+          )}
+
           {/* Categories */}
           <motion.section variants={fadeInUp} className="mb-8">
             <div className="mb-4 flex items-center justify-between">
@@ -129,30 +174,30 @@ const ClientHomePage: React.FC = () => {
               </Button>
             </div>
             {loadingCategories || loadingServices ? (
-              <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Skeleton key={i} className="h-24 rounded-2xl" />
+              <div className="grid grid-cols-4 gap-3 md:grid-cols-8">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <Skeleton key={i} className="h-20 rounded-2xl" />
                 ))}
               </div>
-            ) : categoriesWithServices.length === 0 ? (
+            ) : categories.length === 0 ? (
               <div className="rounded-2xl border-2 border-dashed border-border p-6 text-center text-muted-foreground">
                 {t("home.noCategories")}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-                {categoriesWithServices.slice(0, 4).map((category) => (
+              <div className="grid grid-cols-4 gap-2 md:grid-cols-8">
+                {categories.slice(0, 8).map((category) => (
                   <button
                     key={category.id}
                     onClick={() =>
                       navigate(`/client/search?category=${category.id}`)
                     }
-                    className="flex flex-col items-center rounded-2xl bg-card p-4 transition-all hover:bg-accent card-glow"
+                    className="flex flex-col items-center rounded-2xl bg-card p-3 transition-all hover:bg-accent card-glow"
                   >
-                    <span className="mb-2 text-3xl">
+                    <span className="mb-1 text-2xl">
                       {category.icon || "🎯"}
                     </span>
-                    <span className="text-sm font-medium text-card-foreground">
-                      {category.name}
+                    <span className="text-xs font-medium text-card-foreground text-center line-clamp-1">
+                      {isArabic ? category.nameAr : category.nameEn}
                     </span>
                   </button>
                 ))}
@@ -160,8 +205,70 @@ const ClientHomePage: React.FC = () => {
             )}
           </motion.section>
 
+          {/* Popular Services */}
+          {popularServices.length > 0 && (
+            <motion.section variants={fadeInUp} className="mb-8">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-foreground">
+                  <TrendingUp className="me-2 inline h-5 w-5 text-primary" />
+                  {t("home.popularServices")}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary"
+                  onClick={() => navigate("/client/search")}
+                >
+                  {t("common.seeAll")}
+                </Button>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {popularServices.map((service) => {
+                  const catInfo = getCategoryInfo(service.categoryId);
+                  return (
+                    <button
+                      key={service.id}
+                      onClick={() => navigate(`/client/provider/${service.providerId}`)}
+                      className="min-w-[200px] max-w-[200px] shrink-0 rounded-2xl bg-card p-3 text-start transition-all hover:bg-accent card-glow"
+                    >
+                      {service.mediaUrls?.[0] ? (
+                        <img
+                          src={service.mediaUrls[0]}
+                          alt={service.title}
+                          className="mb-2 h-24 w-full rounded-xl object-cover"
+                        />
+                      ) : (
+                        <div className="mb-2 flex h-24 w-full items-center justify-center rounded-xl bg-muted">
+                          <span className="text-3xl">{catInfo?.icon || "🎯"}</span>
+                        </div>
+                      )}
+                      <h3 className="font-medium text-foreground line-clamp-1">
+                        {service.title}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{service.durationMin} {t("search.min")}</span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-primary">
+                          {service.priceFrom} {t("common.currency")}
+                        </span>
+                        {service.provider && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            <span>{service.provider.ratingAvg.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.section>
+          )}
+
           {/* Featured Providers */}
-          <motion.section variants={fadeInUp}>
+          <motion.section variants={fadeInUp} className="mb-8">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">
                 <Sparkles className="me-2 inline h-5 w-5 text-primary" />

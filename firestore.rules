@@ -139,5 +139,10 @@ service cloud.firestore {
       allow create: if signedIn() && isClient() && request.resource.data.clientId == request.auth.uid;
       allow update, delete: if isAdmin();
     }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

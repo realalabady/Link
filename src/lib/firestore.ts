@@ -28,6 +28,7 @@ import {
   BookingStatus,
   Review,
   Payment,
+  BannerSettings,
 } from "@/types";
 
 // Collection names
@@ -42,6 +43,7 @@ export const COLLECTIONS = {
   MESSAGES: "messages",
   REVIEWS: "reviews",
   PAYOUTS: "payouts",
+  SETTINGS: "settings",
 } as const;
 
 // Convert Firestore timestamp to Date
@@ -1211,4 +1213,61 @@ export const createReview = async (
     createdAt: serverTimestamp(),
   });
   return docRef.id;
+};
+
+// ============================================
+// BANNER SETTINGS
+// ============================================
+
+const DEFAULT_BANNER: BannerSettings = {
+  isActive: false,
+  titleEn: "Welcome to Link",
+  titleAr: "مرحباً بك في لينك",
+  subtitleEn: "Find the best services near you",
+  subtitleAr: "اعثري على أفضل الخدمات بالقرب منك",
+  backgroundColor: "#f8e1e7",
+  textColor: "#1a1a1a",
+  linkUrl: "",
+  updatedAt: new Date(),
+};
+
+export const getBannerSettings = async (): Promise<BannerSettings> => {
+  try {
+    const bannerRef = doc(db, COLLECTIONS.SETTINGS, "banner");
+    const bannerSnap = await getDoc(bannerRef);
+
+    if (!bannerSnap.exists()) {
+      return DEFAULT_BANNER;
+    }
+
+    const data = bannerSnap.data();
+    return {
+      isActive: data.isActive ?? false,
+      titleEn: data.titleEn ?? DEFAULT_BANNER.titleEn,
+      titleAr: data.titleAr ?? DEFAULT_BANNER.titleAr,
+      subtitleEn: data.subtitleEn ?? DEFAULT_BANNER.subtitleEn,
+      subtitleAr: data.subtitleAr ?? DEFAULT_BANNER.subtitleAr,
+      backgroundColor: data.backgroundColor ?? DEFAULT_BANNER.backgroundColor,
+      textColor: data.textColor ?? DEFAULT_BANNER.textColor,
+      linkUrl: data.linkUrl ?? "",
+      updatedAt: timestampToDate(data.updatedAt),
+    };
+  } catch (error) {
+    console.warn("Error fetching banner settings:", error);
+    return DEFAULT_BANNER;
+  }
+};
+
+export const updateBannerSettings = async (
+  settings: Partial<BannerSettings>,
+): Promise<void> => {
+  const bannerRef = doc(db, COLLECTIONS.SETTINGS, "banner");
+  await setDoc(
+    bannerRef,
+    {
+      ...settings,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 };

@@ -278,3 +278,16 @@ export interface TimeSlot {
   endTime: string; // "HH:mm"
   isAvailable: boolean;
 }
+
+// Homepage banner settings
+export interface BannerSettings {
+  isActive: boolean;
+  titleEn: string;
+  titleAr: string;
+  subtitleEn: string;
+  subtitleAr: string;
+  backgroundColor: string; // hex color
+  textColor: string; // hex color
+  linkUrl?: string; // optional link when banner is clicked
+  updatedAt: Date;
+}
