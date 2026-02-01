@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { loadStripe } from "@stripe/stripe-js";
+import { loadStripe, PaymentRequest } from "@stripe/stripe-js";
 import { Button } from "@/components/ui/button";
+import { Apple } from "lucide-react";
 
 type StripeApplePayButtonProps = {
   amountSar: number;
@@ -15,7 +16,9 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
   onError,
 }) => {
   const [canUseApplePay, setCanUseApplePay] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
   const { t } = useTranslation();
 
   const stripePromise = useMemo(() => {
@@ -30,23 +33,58 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
     let mounted = true;
 
     const checkApplePay = async () => {
+      console.log("=== Apple Pay Debug Start ===");
+      console.log("1. Checking Stripe key:", !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+      
       const stripe = await stripePromise;
-      if (!stripe) return;
+      if (!stripe) {
+        console.log("2. ❌ Stripe failed to load");
+        setIsChecking(false);
+        return;
+      }
+      console.log("2. ✅ Stripe loaded successfully");
 
-      const paymentRequest = stripe.paymentRequest({
-        country: "AE",
-        currency: "sar",
+      console.log("3. Browser info:", {
+        userAgent: navigator.userAgent,
+        isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+        isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+        isMac: /Macintosh/.test(navigator.userAgent),
+      });
+
+      const pr = stripe.paymentRequest({
+        country: "US",
+        currency: "usd",
         total: {
-          label: "Booking",
-          amount: Math.round(amountSar * 100),
+          label: "Booking Payment",
+          amount: Math.round(amountSar * 100 * 0.27),
         },
         requestPayerName: true,
         requestPayerEmail: true,
       });
+      console.log("4. ✅ Payment Request created");
 
-      const result = await paymentRequest.canMakePayment();
+      const result = await pr.canMakePayment();
+      console.log("5. canMakePayment result:", result);
+      
       if (mounted) {
-        setCanUseApplePay(!!result?.applePay);
+        const applePayAvailable = !!result?.applePay;
+        console.log("6. Apple Pay available:", applePayAvailable ? "✅ YES" : "❌ NO");
+        
+        if (!applePayAvailable) {
+          console.log("   Reasons Apple Pay may not show:");
+          console.log("   - Not using Safari browser");
+          console.log("   - Apple Pay not set up on device");
+          console.log("   - Not on HTTPS (required for production)");
+          console.log("   - Domain not verified with Apple");
+        }
+        
+        console.log("=== Apple Pay Debug End ===");
+        
+        setCanUseApplePay(applePayAvailable);
+        if (applePayAvailable) {
+          setPaymentRequest(pr);
+        }
+        setIsChecking(false);
       }
     };
 
@@ -57,8 +95,20 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
     };
   }, [amountSar, stripePromise]);
 
+  // Update amount when it changes
+  useEffect(() => {
+    if (paymentRequest) {
+      paymentRequest.update({
+        total: {
+          label: "Booking Payment",
+          amount: Math.round(amountSar * 100 * 0.27),
+        },
+      });
+    }
+  }, [amountSar, paymentRequest]);
+
   const handleApplePay = async () => {
-    if (isProcessing) return;
+    if (isProcessing || !paymentRequest) return;
     const stripe = await stripePromise;
     if (!stripe) {
       onError?.("Stripe not configured.");
@@ -66,17 +116,6 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
     }
 
     setIsProcessing(true);
-
-    const paymentRequest = stripe.paymentRequest({
-      country: "AE",
-      currency: "sar",
-      total: {
-        label: "Booking",
-        amount: Math.round(amountSar * 100),
-      },
-      requestPayerName: true,
-      requestPayerEmail: true,
-    });
 
     paymentRequest.on("paymentmethod", async (event) => {
       try {
@@ -131,10 +170,12 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
     paymentRequest.show();
   };
 
-  if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
+  // Don't render if Stripe not configured or still checking
+  if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || isChecking) {
     return null;
   }
 
+  // Only show if Apple Pay is available
   if (!canUseApplePay) {
     return null;
   }
@@ -142,10 +183,12 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
   return (
     <Button
       type="button"
-      className="w-full"
+      variant="outline"
+      className="w-full gap-2 bg-black text-white hover:bg-black/90 hover:text-white"
       onClick={handleApplePay}
       disabled={isProcessing}
     >
+      <Apple className="h-5 w-5" />
       {isProcessing ? t("payment.processing") : t("payment.applePay")}
     </Button>
   );

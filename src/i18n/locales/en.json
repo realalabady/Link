@@ -196,6 +196,8 @@
   },
   "payment": {
     "applePay": "Pay with Apple Pay",
+    "googlePay": "Pay with Google Pay",
+    "walletPaymentUnavailable": "Apple Pay / Google Pay not available on this device",
     "processing": "Processing..."
   },
   "bookings": {
