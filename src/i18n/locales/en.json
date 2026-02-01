@@ -165,7 +165,9 @@
     "priceRange": "Price range",
     "applyFilters": "Apply filters",
     "tryDifferent": "Try a different search term",
-    "min": "min"
+    "min": "min",
+    "clearAll": "Clear all",
+    "selectedCount": "{{count}} selected"
   },
   "booking": {
     "validationError": "Please select date, time, and location.",

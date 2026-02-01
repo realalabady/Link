@@ -9,11 +9,14 @@ import {
   Star,
   Clock,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -37,7 +40,7 @@ const ClientSearchPage: React.FC = () => {
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"nearest" | "rating">("nearest");
@@ -46,18 +49,43 @@ const ClientSearchPage: React.FC = () => {
   useEffect(() => {
     const categoryParam = searchParams.get("category");
     if (categoryParam) {
-      setSelectedCategory(categoryParam);
+      // Support both single and multiple categories in URL
+      const cats = categoryParam.split(",");
+      setSelectedCategories(cats);
+    }
+    
+    // Open filter sheet if openFilter param is present
+    const openFilterParam = searchParams.get("openFilter");
+    if (openFilterParam === "true") {
+      setFilterOpen(true);
+      // Remove the param from URL after opening
+      searchParams.delete("openFilter");
+      setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams]);
 
-  // Update URL when category changes
-  const handleCategoryChange = (categoryId: string | null) => {
-    setSelectedCategory(categoryId);
-    if (categoryId) {
-      setSearchParams({ category: categoryId });
+  // Update URL when categories change
+  const updateCategoriesUrl = (cats: string[]) => {
+    if (cats.length > 0) {
+      setSearchParams({ category: cats.join(",") });
     } else {
       setSearchParams({});
     }
+  };
+
+  // Toggle a single category
+  const toggleCategory = (categoryId: string) => {
+    const newCategories = selectedCategories.includes(categoryId)
+      ? selectedCategories.filter((c) => c !== categoryId)
+      : [...selectedCategories, categoryId];
+    setSelectedCategories(newCategories);
+    updateCategoriesUrl(newCategories);
+  };
+
+  // Clear all categories
+  const clearCategories = () => {
+    setSelectedCategories([]);
+    setSearchParams({});
   };
 
   // Fetch data
@@ -150,7 +178,8 @@ const ClientSearchPage: React.FC = () => {
         service.description.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesCategory =
-        !selectedCategory || service.categoryId === selectedCategory;
+        selectedCategories.length === 0 ||
+        selectedCategories.includes(service.categoryId);
 
       const matchesPrice =
         service.priceFrom >= priceRange[0] &&
@@ -220,12 +249,11 @@ const ClientSearchPage: React.FC = () => {
   }, [
     services,
     searchQuery,
-    selectedCategory,
+    selectedCategories,
     priceRange,
     sortBy,
     providerMap,
-    user?.region,
-    user?.city,
+    user,
     storedLocation,
   ]);
 
@@ -273,29 +301,47 @@ const ClientSearchPage: React.FC = () => {
                   <SheetTitle>{t("common.filter")}</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6 space-y-6">
-                  {/* Sort */}
+                  {/* Categories */}
                   <div>
-                    <label className="mb-3 block text-sm font-medium">
-                      {t("search.sortBy")}
-                    </label>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant={sortBy === "nearest" ? "default" : "outline"}
-                        className="flex-1"
-                        onClick={() => setSortBy("nearest")}
-                      >
-                        {t("search.nearest")}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={sortBy === "rating" ? "default" : "outline"}
-                        className="flex-1"
-                        onClick={() => setSortBy("rating")}
-                      >
-                        {t("search.topRated")}
-                      </Button>
+                    <div className="mb-3 flex items-center justify-between">
+                      <label className="text-sm font-medium">
+                        {t("home.categories")}
+                      </label>
+                      {selectedCategories.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 text-xs text-muted-foreground"
+                          onClick={clearCategories}
+                        >
+                          {t("search.clearAll")}
+                        </Button>
+                      )}
                     </div>
+                    <ScrollArea className="h-48 rounded-lg border p-3">
+                      <div className="space-y-2">
+                        {categories.map((category) => (
+                          <label
+                            key={category.id}
+                            className="flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-accent"
+                          >
+                            <Checkbox
+                              checked={selectedCategories.includes(category.id)}
+                              onCheckedChange={() => toggleCategory(category.id)}
+                            />
+                            <span className="text-lg">{category.icon || "🎯"}</span>
+                            <span className="text-sm">
+                              {isArabic ? category.nameAr : category.nameEn}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    {selectedCategories.length > 0 && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {t("search.selectedCount", { count: selectedCategories.length })}
+                      </p>
+                    )}
                   </div>
 
                   {/* Price Range Filter */}
@@ -343,23 +389,26 @@ const ClientSearchPage: React.FC = () => {
             <motion.section variants={fadeInUp} className="mb-4">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 <Button
-                  variant={selectedCategory === null ? "default" : "outline"}
+                  variant={selectedCategories.length === 0 ? "default" : "outline"}
                   size="sm"
                   className="shrink-0 rounded-full"
-                  onClick={() => handleCategoryChange(null)}
+                  onClick={clearCategories}
                 >
                   {t("search.all")}
                 </Button>
                 {categories.map((category) => (
                   <Button
                     key={category.id}
-                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    variant={selectedCategories.includes(category.id) ? "default" : "outline"}
                     size="sm"
                     className="shrink-0 gap-1.5 rounded-full"
-                    onClick={() => handleCategoryChange(category.id)}
+                    onClick={() => toggleCategory(category.id)}
                   >
                     <span>{category.icon || "🎯"}</span>
                     <span>{isArabic ? category.nameAr : category.nameEn}</span>
+                    {selectedCategories.includes(category.id) && (
+                      <X className="h-3 w-3" />
+                    )}
                   </Button>
                 ))}
               </div>

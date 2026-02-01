@@ -123,7 +123,7 @@ const ClientHomePage: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 className="text-primary"
-                onClick={() => navigate("/client/search")}
+                onClick={() => navigate("/client/search?openFilter=true")}
               >
                 {t("common.seeAll")}
               </Button>

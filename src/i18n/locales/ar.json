@@ -165,7 +165,9 @@
     "nearest": "الأقرب",
     "topRated": "الأعلى تقييماً",
     "tryDifferent": "جربي مصطلح بحث مختلف",
-    "min": "دقيقة"
+    "min": "دقيقة",
+    "clearAll": "مسح الكل",
+    "selectedCount": "{{count}} محدد"
   },
   "booking": {
     "selectDate": "اختاري التاريخ",
