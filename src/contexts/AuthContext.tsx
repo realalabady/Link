@@ -18,6 +18,8 @@ import {
   createUserDocument,
   getUserDocument,
   updateUserRole as updateUserRoleInFirestore,
+  switchActiveRole as switchActiveRoleInFirestore,
+  addRoleToUser,
   userDocumentExists,
   createProviderProfile,
 } from "@/lib/firestore";
@@ -32,6 +34,13 @@ interface AuthContextType {
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   setUserRole: (role: UserRole) => Promise<void>;
+  switchRole: (role: UserRole) => Promise<void>;
+  becomeProvider: (providerData: {
+    bio: string;
+    region: string;
+    city: string;
+    area: string;
+  }) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -201,10 +210,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         // Update local state
-        const updatedUser = { ...user, role };
+        const updatedUser = {
+          ...user,
+          roles: user.roles.includes(role) ? user.roles : [...user.roles, role],
+          activeRole: role,
+        };
         setUser(updatedUser);
       } catch (error) {
         console.error("Error updating user role:", error);
+        throw error;
+      }
+    }
+  };
+
+  const switchRole = async (role: UserRole) => {
+    if (user && firebaseUser && user.roles.includes(role)) {
+      try {
+        // Update active role in Firestore
+        await switchActiveRoleInFirestore(firebaseUser.uid, role);
+
+        // Update local state
+        setUser({ ...user, activeRole: role });
+      } catch (error) {
+        console.error("Error switching role:", error);
+        throw error;
+      }
+    }
+  };
+
+  const becomeProvider = async (providerData: {
+    bio: string;
+    region: string;
+    city: string;
+    area: string;
+  }) => {
+    if (user && firebaseUser) {
+      try {
+        // Add PROVIDER role to user
+        await addRoleToUser(firebaseUser.uid, "PROVIDER");
+
+        // Create provider profile with provided data
+        await createProviderProfile(firebaseUser.uid, providerData);
+
+        // Update local state
+        const updatedRoles = user.roles.includes("PROVIDER")
+          ? user.roles
+          : [...user.roles, "PROVIDER" as UserRole];
+        setUser({
+          ...user,
+          roles: updatedRoles,
+          activeRole: "PROVIDER",
+        });
+      } catch (error) {
+        console.error("Error becoming provider:", error);
         throw error;
       }
     }
@@ -233,6 +291,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         signup,
         logout,
         setUserRole,
+        switchRole,
+        becomeProvider,
         refreshUser,
       }}
     >

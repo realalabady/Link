@@ -59,7 +59,10 @@ export type ReportStatus = "PENDING" | "REVIEWED" | "RESOLVED" | "DISMISSED";
 // User interface
 export interface User {
   uid: string;
-  role: UserRole | null;
+  roles: UserRole[]; // Array of roles user has access to
+  activeRole: UserRole | null; // Currently active role for UI
+  // Legacy field for backward compatibility - will be migrated to roles array
+  role?: UserRole | null;
   status: UserStatus;
   name: string;
   displayName?: string;

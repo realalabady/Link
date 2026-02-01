@@ -1,7 +1,7 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/types';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserRole } from "@/types";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -29,16 +29,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // Redirect based on role
-    if (user.role === 'CLIENT') {
-      return <Navigate to="/client" replace />;
-    } else if (user.role === 'PROVIDER') {
-      return <Navigate to="/provider" replace />;
-    } else if (user.role === 'ADMIN') {
-      return <Navigate to="/admin" replace />;
+  // Check if user has any of the allowed roles in their roles array
+  if (allowedRoles && user) {
+    const hasAllowedRole = allowedRoles.some((role) =>
+      user.roles?.includes(role),
+    );
+
+    if (!hasAllowedRole) {
+      // Redirect based on active role
+      if (user.activeRole === "CLIENT") {
+        return <Navigate to="/client" replace />;
+      } else if (user.activeRole === "PROVIDER") {
+        return <Navigate to="/provider" replace />;
+      } else if (user.activeRole === "ADMIN") {
+        return <Navigate to="/admin" replace />;
+      }
+      return <Navigate to="/" replace />;
     }
-    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

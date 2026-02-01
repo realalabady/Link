@@ -104,7 +104,37 @@
   "roles": {
     "client": "Client",
     "provider": "Provider",
-    "admin": "Admin"
+    "admin": "Admin",
+    "switch": "Switch Role",
+    "current": "Current"
+  },
+  "becomeProvider": {
+    "title": "Become a Provider",
+    "ctaTitle": "Become a Provider",
+    "ctaSubtitle": "Start earning by offering your services",
+    "headline": "Start Earning Today",
+    "subheadline": "Join our community of service providers and grow your business",
+    "benefits": "Why become a provider?",
+    "benefit1": "Reach more customers in your area",
+    "benefit2": "Set your own schedule and prices",
+    "benefit3": "Get paid securely through the app",
+    "benefit4": "Build your reputation with reviews",
+    "bioLabel": "About You",
+    "bioPlaceholder": "Tell clients about yourself, your experience, and the services you offer...",
+    "bioError": "Bio must be at least 20 characters",
+    "regionLabel": "Region",
+    "selectRegion": "Select your region",
+    "regionError": "Please select a region",
+    "cityLabel": "City",
+    "cityPlaceholder": "Enter your city",
+    "cityError": "Please enter your city",
+    "areaLabel": "Area / District",
+    "areaPlaceholder": "Enter your area or district",
+    "areaError": "Please enter your area/district",
+    "submit": "Complete Registration",
+    "success": "Welcome! You are now a provider",
+    "error": "Failed to complete registration",
+    "terms": "By registering, you agree to our Terms of Service and Provider Guidelines"
   },
   "nav": {
     "home": "Home",
@@ -200,7 +230,7 @@
     "online": "Online",
     "notFound": "Chat not found",
     "client": "Client",
-    "chatsWillAppear": "Chats with clients will appear here",
+    "chatsWillAppear": "Conversations with clients will appear here",
     "imageTooLarge": "Image is too large. Maximum size is 5MB."
   },
   "profile": {
@@ -379,20 +409,6 @@
     "endTime": "End time",
     "bookingsFor": "Bookings for",
     "noBookings": "No bookings on this day"
-  },
-  "chat": {
-    "typeMessage": "Type a message...",
-    "send": "Send",
-    "noChats": "No conversations yet",
-    "startChat": "Start a conversation by booking a service",
-    "yesterday": "Yesterday",
-    "noMessages": "No messages yet",
-    "today": "Today",
-    "startConversation": "Send a message to start the conversation",
-    "online": "Online",
-    "notFound": "Chat not found",
-    "chatsWillAppear": "Conversations with clients will appear here",
-    "client": "Client"
   },
   "landing": {
     "heroTitle": "Your trusted connection to",

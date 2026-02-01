@@ -55,7 +55,10 @@ export interface FirestoreUser {
   email: string;
   name: string;
   displayName?: string;
-  role: UserRole | null;
+  roles: UserRole[]; // Array of roles user has access to
+  activeRole: UserRole | null; // Currently active role
+  // Legacy field for backward compatibility
+  role?: UserRole | null;
   status: UserStatus;
   phone?: string;
   region?: string;
@@ -82,7 +85,8 @@ export const createUserDocument = async (
     email,
     name,
     displayName: name,
-    role: null, // Will be set during onboarding
+    roles: ["CLIENT"], // New users start as CLIENT
+    activeRole: "CLIENT", // Default active role
     status: "ACTIVE",
     phone: "",
     region: "",
@@ -99,7 +103,8 @@ export const createUserDocument = async (
     uid,
     email,
     name,
-    role: null, // User needs to complete onboarding to set role
+    roles: ["CLIENT"],
+    activeRole: "CLIENT",
     status: "ACTIVE",
     phone: "",
     region: "",
@@ -120,11 +125,28 @@ export const getUserDocument = async (uid: string): Promise<User | null> => {
 
   const data = userSnap.data() as FirestoreUser;
 
+  // Handle backward compatibility: migrate old role to roles array
+  let roles: UserRole[] = data.roles || [];
+  let activeRole: UserRole | null = data.activeRole || null;
+
+  // If user has old single role but no roles array, migrate
+  if (roles.length === 0 && data.role) {
+    roles = [data.role];
+    activeRole = data.role;
+    // Migrate in background (don't await to avoid blocking)
+    updateDoc(userRef, {
+      roles,
+      activeRole,
+      updatedAt: serverTimestamp(),
+    }).catch(console.error);
+  }
+
   return {
     uid: data.uid,
     email: data.email,
     name: data.name,
-    role: data.role, // Can be null if user hasn't completed onboarding
+    roles,
+    activeRole,
     status: data.status,
     phone: data.phone || "",
     region: data.region || "",
@@ -135,7 +157,7 @@ export const getUserDocument = async (uid: string): Promise<User | null> => {
   };
 };
 
-// Update user role in Firestore
+// Update user role in Firestore (legacy - kept for compatibility)
 export const updateUserRole = async (
   uid: string,
   role: UserRole,
@@ -143,8 +165,46 @@ export const updateUserRole = async (
   const userRef = doc(db, COLLECTIONS.USERS, uid);
   await updateDoc(userRef, {
     role,
+    activeRole: role,
     updatedAt: serverTimestamp(),
   });
+};
+
+// Switch active role (when user has multiple roles)
+export const switchActiveRole = async (
+  uid: string,
+  role: UserRole,
+): Promise<void> => {
+  const userRef = doc(db, COLLECTIONS.USERS, uid);
+  await updateDoc(userRef, {
+    activeRole: role,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+// Add a new role to user's roles array
+export const addRoleToUser = async (
+  uid: string,
+  newRole: UserRole,
+): Promise<void> => {
+  const userRef = doc(db, COLLECTIONS.USERS, uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    throw new Error("User not found");
+  }
+
+  const data = userSnap.data();
+  const currentRoles: UserRole[] = data.roles || [];
+
+  // Only add if not already present
+  if (!currentRoles.includes(newRole)) {
+    await updateDoc(userRef, {
+      roles: [...currentRoles, newRole],
+      activeRole: newRole, // Switch to new role
+      updatedAt: serverTimestamp(),
+    });
+  }
 };
 
 // Update user profile in Firestore

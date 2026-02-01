@@ -18,9 +18,12 @@ const ChatItem: React.FC<{
 }> = ({ chat, onClick, formatTime }) => {
   const { t } = useTranslation();
   const { data: fetchedClientName, isLoading } = useClientName(chat.clientId);
-  
+
   // Get client name with fallbacks
-  const clientName = chat.clientName || fetchedClientName || (isLoading ? "..." : t("chat.client"));
+  const clientName =
+    chat.clientName ||
+    fetchedClientName ||
+    (isLoading ? "..." : t("chat.client"));
 
   return (
     <motion.button
@@ -39,9 +42,7 @@ const ChatItem: React.FC<{
       {/* Chat Info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-foreground">
-            {clientName}
-          </h3>
+          <h3 className="font-semibold text-foreground">{clientName}</h3>
           <span className="text-xs text-muted-foreground">
             {formatTime(chat.lastMessageAt)}
           </span>

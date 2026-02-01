@@ -37,6 +37,7 @@ import ClientProfilePage from "@/pages/client/ClientProfilePage";
 import ProviderViewPage from "@/pages/client/ProviderProfilePage";
 import BookingPage from "@/pages/client/BookingPage";
 import BookingDetailsPage from "@/pages/client/BookingDetailsPage";
+import BecomeProviderPage from "@/pages/client/BecomeProviderPage";
 
 // Provider pages
 import ProviderDashboardPage from "@/pages/provider/ProviderDashboardPage";
@@ -67,7 +68,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Root redirect based on user role
+// Root redirect based on user's active role
 const RoleBasedRedirect = () => {
   const { user, isAuthenticated } = useAuth();
 
@@ -75,15 +76,28 @@ const RoleBasedRedirect = () => {
     return <LandingPage />;
   }
 
-  if (user?.role === "CLIENT") {
+  // Use activeRole for navigation
+  if (user?.activeRole === "CLIENT") {
     return <Navigate to="/client" replace />;
-  } else if (user?.role === "PROVIDER") {
+  } else if (user?.activeRole === "PROVIDER") {
     return <Navigate to="/provider" replace />;
-  } else if (user?.role === "ADMIN") {
+  } else if (user?.activeRole === "ADMIN") {
     return <Navigate to="/admin" replace />;
   }
 
-  return <Navigate to="/onboarding" replace />;
+  // Fallback: if no activeRole but has roles, use first role
+  if (user?.roles?.length > 0) {
+    const firstRole = user.roles[0];
+    if (firstRole === "PROVIDER") {
+      return <Navigate to="/provider" replace />;
+    } else if (firstRole === "ADMIN") {
+      return <Navigate to="/admin" replace />;
+    }
+    return <Navigate to="/client" replace />;
+  }
+
+  // No roles at all - go to client (default)
+  return <Navigate to="/client" replace />;
 };
 
 const AppRoutes = () => {
@@ -124,6 +138,7 @@ const AppRoutes = () => {
         <Route path="profile" element={<ClientProfilePage />} />
         <Route path="provider/:id" element={<ProviderViewPage />} />
         <Route path="book/:serviceId" element={<BookingPage />} />
+        <Route path="become-provider" element={<BecomeProviderPage />} />
       </Route>
 
       {/* Provider routes */}

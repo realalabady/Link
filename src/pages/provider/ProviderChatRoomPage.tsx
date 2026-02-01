@@ -27,14 +27,19 @@ const ProviderChatRoomPage: React.FC = () => {
 
   // Fetch data
   const { data: chat, isLoading: loadingChat } = useChat(chatId || "");
-  const { data: fetchedClientName, isLoading: loadingClient } = useClientName(chat?.clientId || "");
+  const { data: fetchedClientName, isLoading: loadingClient } = useClientName(
+    chat?.clientId || "",
+  );
   const { data: messages = [], isLoading: loadingMessages } = useChatMessages(
     chatId || "",
   );
   const sendMessageMutation = useSendMessage();
 
   // Get client name with fallbacks
-  const clientName = chat?.clientName || fetchedClientName || (loadingClient ? "..." : t("chat.client"));
+  const clientName =
+    chat?.clientName ||
+    fetchedClientName ||
+    (loadingClient ? "..." : t("chat.client"));
 
   // Scroll to bottom on new messages
   useEffect(() => {

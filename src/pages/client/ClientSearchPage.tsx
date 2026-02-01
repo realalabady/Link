@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -31,14 +31,34 @@ import { Service, ProviderProfile } from "@/types";
 const ClientSearchPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isArabic = i18n.language === "ar";
   const { user } = useAuth();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"nearest" | "rating">("nearest");
+
+  // Read category from URL params on mount
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [searchParams]);
+
+  // Update URL when category changes
+  const handleCategoryChange = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+    if (categoryId) {
+      setSearchParams({ category: categoryId });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   // Fetch data
   const { data: categories = [], isLoading: loadingCategories } =
@@ -121,7 +141,7 @@ const ClientSearchPage: React.FC = () => {
     return R * c;
   };
 
-  // Filter services based on search and price
+  // Filter services based on search, category, and price
   const filteredServices = useMemo(() => {
     const filtered = services.filter((service) => {
       const matchesSearch =
@@ -129,11 +149,14 @@ const ClientSearchPage: React.FC = () => {
         service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         service.description.toLowerCase().includes(searchQuery.toLowerCase());
 
+      const matchesCategory =
+        !selectedCategory || service.categoryId === selectedCategory;
+
       const matchesPrice =
         service.priceFrom >= priceRange[0] &&
         service.priceFrom <= priceRange[1];
 
-      return matchesSearch && matchesPrice;
+      return matchesSearch && matchesCategory && matchesPrice;
     });
 
     if (sortBy === "rating") {
@@ -197,6 +220,7 @@ const ClientSearchPage: React.FC = () => {
   }, [
     services,
     searchQuery,
+    selectedCategory,
     priceRange,
     sortBy,
     providerMap,
@@ -314,6 +338,34 @@ const ClientSearchPage: React.FC = () => {
           animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
         >
+          {/* Category Filter */}
+          {categoriesWithServices.length > 0 && (
+            <motion.section variants={fadeInUp} className="mb-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <Button
+                  variant={selectedCategory === null ? "default" : "outline"}
+                  size="sm"
+                  className="shrink-0 rounded-full"
+                  onClick={() => handleCategoryChange(null)}
+                >
+                  {t("search.all")}
+                </Button>
+                {categoriesWithServices.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    size="sm"
+                    className="shrink-0 gap-1.5 rounded-full"
+                    onClick={() => handleCategoryChange(category.id)}
+                  >
+                    <span>{category.icon || "🎯"}</span>
+                    <span>{category.name}</span>
+                  </Button>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
           {/* Results */}
           <motion.section variants={fadeInUp}>
             <div className="mb-3 flex items-center justify-between">

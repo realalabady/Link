@@ -2,12 +2,20 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Sparkles, Search, LogOut, Star, MapPin } from "lucide-react";
+import {
+  Sparkles,
+  LogOut,
+  Star,
+  MapPin,
+  Briefcase,
+  ArrowRight,
+  Search,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
@@ -85,6 +93,7 @@ const ClientHomePage: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <RoleSwitcher />
             <LanguageSwitcher />
             <Button
               variant="ghost"
@@ -104,15 +113,6 @@ const ClientHomePage: React.FC = () => {
           animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
         >
-          {/* Search */}
-          <motion.div variants={fadeInUp} className="relative mb-8">
-            <Search className="absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t("common.search") + "..."}
-              className="h-14 rounded-2xl border-2 ps-12 text-lg"
-            />
-          </motion.div>
-
           {/* Categories */}
           <motion.section variants={fadeInUp} className="mb-8">
             <div className="mb-4 flex items-center justify-between">
@@ -231,6 +231,36 @@ const ClientHomePage: React.FC = () => {
               </div>
             )}
           </motion.section>
+
+          {/* Become a Provider CTA - Only show if user is not already a provider */}
+          {!user?.roles?.includes("PROVIDER") && (
+            <motion.section variants={fadeInUp} className="mt-8">
+              <button
+                onClick={() => navigate("/client/become-provider")}
+                className="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/80 p-6 text-start text-primary-foreground transition-all hover:opacity-90"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20">
+                      <Briefcase className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">
+                        {t("becomeProvider.ctaTitle", "Become a Provider")}
+                      </h3>
+                      <p className="text-sm opacity-90">
+                        {t(
+                          "becomeProvider.ctaSubtitle",
+                          "Start earning by offering your services",
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-6 w-6 rtl:rotate-180" />
+                </div>
+              </button>
+            </motion.section>
+          )}
         </motion.div>
       </main>
     </div>
