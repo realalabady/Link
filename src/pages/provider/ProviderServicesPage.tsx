@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
@@ -9,7 +9,12 @@ import {
   Clock,
   MapPin,
   DollarSign,
+  ImagePlus,
+  X,
+  Loader2,
 } from "lucide-react";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,6 +60,7 @@ import {
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { toast } from "@/components/ui/sonner";
+import { CategoryIcon } from "@/components/CategoryIcon";
 import { Service, LocationType } from "@/types";
 import { z } from "zod";
 
@@ -69,6 +75,8 @@ const ProviderServicesPage: React.FC = () => {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -80,6 +88,7 @@ const ProviderServicesPage: React.FC = () => {
     priceTo: "",
     durationMin: "",
     locationType: "AT_PROVIDER" as LocationType,
+    mediaUrls: [] as string[],
   });
 
   // Fetch data
@@ -113,6 +122,7 @@ const ProviderServicesPage: React.FC = () => {
       priceTo: "",
       durationMin: "",
       locationType: "AT_PROVIDER",
+      mediaUrls: [],
     });
     setEditingService(null);
   };
@@ -155,6 +165,7 @@ const ProviderServicesPage: React.FC = () => {
       priceTo: service.priceTo.toString(),
       durationMin: service.durationMin.toString(),
       locationType: service.locationType,
+      mediaUrls: service.mediaUrls || [],
     });
     setIsFormOpen(true);
   };
@@ -165,6 +176,63 @@ const ProviderServicesPage: React.FC = () => {
       .toLowerCase()
       .replace(/[^a-z0-9\u0600-\u06FF]+/gi, "-")
       .replace(/^-+|-+$/g, "");
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
+
+    // Limit to 5 images total
+    const remainingSlots = 5 - formData.mediaUrls.length;
+    if (remainingSlots <= 0) {
+      toast.error(t("services.maxImagesReached"));
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingSlots);
+    setIsUploading(true);
+
+    try {
+      const uploadPromises = filesToUpload.map(async (file) => {
+        // Validate file type
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Invalid file type");
+        }
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error("File too large");
+        }
+
+        const timestamp = Date.now();
+        const fileName = `services/${user.uid}/${timestamp}-${file.name}`;
+        const storageRef = ref(storage, fileName);
+        await uploadBytes(storageRef, file);
+        return getDownloadURL(storageRef);
+      });
+
+      const newUrls = await Promise.all(uploadPromises);
+      setFormData((prev) => ({
+        ...prev,
+        mediaUrls: [...prev.mediaUrls, ...newUrls],
+      }));
+      toast.success(t("services.imagesUploaded"));
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error(t("services.uploadFailed"));
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      mediaUrls: prev.mediaUrls.filter((_, i) => i !== index),
+    }));
   };
 
   const handleSubmit = async () => {
@@ -249,7 +317,7 @@ const ProviderServicesPage: React.FC = () => {
       locationType: validation.data.locationType,
       providerId: user.uid,
       isActive: true,
-      mediaUrls: [],
+      mediaUrls: formData.mediaUrls,
     };
 
     try {
@@ -389,8 +457,8 @@ const ProviderServicesPage: React.FC = () => {
 
                       {/* Category */}
                       {category && (
-                        <Badge variant="outline" className="mt-2">
-                          {category.icon}{" "}
+                        <Badge variant="outline" className="mt-2 gap-1">
+                          <CategoryIcon icon={category.icon} size={12} />
                           {isArabic ? category.nameAr : category.nameEn}
                         </Badge>
                       )}
@@ -498,6 +566,70 @@ const ProviderServicesPage: React.FC = () => {
               />
             </div>
 
+            {/* Service Images */}
+            <div>
+              <Label>{t("services.images")}</Label>
+              <p className="mb-2 text-xs text-muted-foreground">
+                {t("services.imagesHint")}
+              </p>
+
+              {/* Image Preview Grid */}
+              {formData.mediaUrls.length > 0 && (
+                <div className="mb-3 grid grid-cols-3 gap-2">
+                  {formData.mediaUrls.map((url, index) => (
+                    <div key={index} className="group relative aspect-square">
+                      <img
+                        src={url}
+                        alt={`Service ${index + 1}`}
+                        className="h-full w-full rounded-lg object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Button */}
+              {formData.mediaUrls.length < 5 && (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="service-images"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t("services.uploading")}
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="mr-2 h-4 w-4" />
+                        {t("services.addImages")}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+
             {/* Category */}
             <div>
               <Label>{t("services.category")}</Label>
@@ -515,9 +647,15 @@ const ProviderServicesPage: React.FC = () => {
                     {t("services.customCategory")}
                   </SelectItem>
                   {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.icon}{" "}
-                      {isArabic ? category.nameAr : category.nameEn}
+                    <SelectItem
+                      key={category.id}
+                      value={category.id}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        <CategoryIcon icon={category.icon} size={14} />
+                        {isArabic ? category.nameAr : category.nameEn}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -123,6 +123,7 @@ export interface Category {
   parentId?: string;
   isActive: boolean;
   icon?: string;
+  imageUrl?: string;
 }
 
 // Service

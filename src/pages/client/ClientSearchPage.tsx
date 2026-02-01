@@ -25,6 +25,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
+import { CategoryIcon } from "@/components/CategoryIcon";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
@@ -53,7 +54,7 @@ const ClientSearchPage: React.FC = () => {
       const cats = categoryParam.split(",");
       setSelectedCategories(cats);
     }
-    
+
     // Open filter sheet if openFilter param is present
     const openFilterParam = searchParams.get("openFilter");
     if (openFilterParam === "true") {
@@ -327,9 +328,15 @@ const ClientSearchPage: React.FC = () => {
                           >
                             <Checkbox
                               checked={selectedCategories.includes(category.id)}
-                              onCheckedChange={() => toggleCategory(category.id)}
+                              onCheckedChange={() =>
+                                toggleCategory(category.id)
+                              }
                             />
-                            <span className="text-lg">{category.icon || "🎯"}</span>
+                            <CategoryIcon
+                              icon={category.icon}
+                              size={18}
+                              className="text-primary"
+                            />
                             <span className="text-sm">
                               {isArabic ? category.nameAr : category.nameEn}
                             </span>
@@ -339,7 +346,9 @@ const ClientSearchPage: React.FC = () => {
                     </ScrollArea>
                     {selectedCategories.length > 0 && (
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {t("search.selectedCount", { count: selectedCategories.length })}
+                        {t("search.selectedCount", {
+                          count: selectedCategories.length,
+                        })}
                       </p>
                     )}
                   </div>
@@ -389,7 +398,9 @@ const ClientSearchPage: React.FC = () => {
             <motion.section variants={fadeInUp} className="mb-4">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 <Button
-                  variant={selectedCategories.length === 0 ? "default" : "outline"}
+                  variant={
+                    selectedCategories.length === 0 ? "default" : "outline"
+                  }
                   size="sm"
                   className="shrink-0 rounded-full"
                   onClick={clearCategories}
@@ -399,12 +410,24 @@ const ClientSearchPage: React.FC = () => {
                 {categories.map((category) => (
                   <Button
                     key={category.id}
-                    variant={selectedCategories.includes(category.id) ? "default" : "outline"}
+                    variant={
+                      selectedCategories.includes(category.id)
+                        ? "default"
+                        : "outline"
+                    }
                     size="sm"
                     className="shrink-0 gap-1.5 rounded-full"
                     onClick={() => toggleCategory(category.id)}
                   >
-                    <span>{category.icon || "🎯"}</span>
+                    {category.imageUrl ? (
+                      <img
+                        src={category.imageUrl}
+                        alt=""
+                        className="h-5 w-5 rounded object-cover"
+                      />
+                    ) : (
+                      <CategoryIcon icon={category.icon} size={14} />
+                    )}
                     <span>{isArabic ? category.nameAr : category.nameEn}</span>
                     {selectedCategories.includes(category.id) && (
                       <X className="h-3 w-3" />
@@ -458,9 +481,11 @@ const ClientSearchPage: React.FC = () => {
                           />
                         ) : (
                           <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-muted">
-                            <span className="text-3xl">
-                              {categoryLookup[service.categoryId]?.icon || "🎯"}
-                            </span>
+                            <CategoryIcon
+                              icon={categoryLookup[service.categoryId]?.icon}
+                              size={32}
+                              className="text-muted-foreground"
+                            />
                           </div>
                         )}
 

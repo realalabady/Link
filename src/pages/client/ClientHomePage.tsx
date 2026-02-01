@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
+import { CategoryIcon } from "@/components/CategoryIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
@@ -73,17 +74,21 @@ const ClientHomePage: React.FC = () => {
       const provider = providers.find((p) => p.uid === service.providerId);
       return { ...service, provider };
     });
-    
+
     return servicesWithProviders
       .filter((s) => s.provider)
-      .sort((a, b) => (b.provider?.ratingAvg || 0) - (a.provider?.ratingAvg || 0))
+      .sort(
+        (a, b) => (b.provider?.ratingAvg || 0) - (a.provider?.ratingAvg || 0),
+      )
       .slice(0, 4);
   }, [services, providers]);
 
   // Get category info for a service
   const getCategoryInfo = (categoryId: string) => {
     const cat = categories.find((c) => c.id === categoryId);
-    return cat ? { name: isArabic ? cat.nameAr : cat.nameEn, icon: cat.icon } : null;
+    return cat
+      ? { name: isArabic ? cat.nameAr : cat.nameEn, icon: cat.icon }
+      : null;
   };
 
   const handleLogout = async () => {
@@ -184,18 +189,26 @@ const ClientHomePage: React.FC = () => {
                 {t("home.noCategories")}
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-2 md:grid-cols-8">
+              <div className="grid grid-cols-4 gap-3 md:grid-cols-8">
                 {categories.slice(0, 8).map((category) => (
                   <button
                     key={category.id}
                     onClick={() =>
                       navigate(`/client/search?category=${category.id}`)
                     }
-                    className="flex flex-col items-center rounded-2xl bg-card p-3 transition-all hover:bg-accent card-glow"
+                    className="flex flex-col items-center rounded-2xl bg-card p-2 transition-all hover:bg-accent card-glow"
                   >
-                    <span className="mb-1 text-2xl">
-                      {category.icon || "🎯"}
-                    </span>
+                    {category.imageUrl ? (
+                      <img
+                        src={category.imageUrl}
+                        alt={isArabic ? category.nameAr : category.nameEn}
+                        className="mb-2 h-20 w-20 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="mb-2 flex h-20 w-20 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <CategoryIcon icon={category.icon} size={36} />
+                      </div>
+                    )}
                     <span className="text-xs font-medium text-card-foreground text-center line-clamp-1">
                       {isArabic ? category.nameAr : category.nameEn}
                     </span>
@@ -228,7 +241,9 @@ const ClientHomePage: React.FC = () => {
                   return (
                     <button
                       key={service.id}
-                      onClick={() => navigate(`/client/provider/${service.providerId}`)}
+                      onClick={() =>
+                        navigate(`/client/provider/${service.providerId}`)
+                      }
                       className="min-w-[200px] max-w-[200px] shrink-0 rounded-2xl bg-card p-3 text-start transition-all hover:bg-accent card-glow"
                     >
                       {service.mediaUrls?.[0] ? (
@@ -239,7 +254,9 @@ const ClientHomePage: React.FC = () => {
                         />
                       ) : (
                         <div className="mb-2 flex h-24 w-full items-center justify-center rounded-xl bg-muted">
-                          <span className="text-3xl">{catInfo?.icon || "🎯"}</span>
+                          <span className="text-3xl">
+                            {catInfo?.icon || "🎯"}
+                          </span>
                         </div>
                       )}
                       <h3 className="font-medium text-foreground line-clamp-1">
@@ -247,7 +264,9 @@ const ClientHomePage: React.FC = () => {
                       </h3>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        <span>{service.durationMin} {t("search.min")}</span>
+                        <span>
+                          {service.durationMin} {t("search.min")}
+                        </span>
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-sm font-semibold text-primary">

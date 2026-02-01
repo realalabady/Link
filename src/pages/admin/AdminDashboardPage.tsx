@@ -1,14 +1,39 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Users, CheckCircle, CreditCard, Activity, Gift, ImageIcon } from "lucide-react";
+import {
+  Users,
+  CheckCircle,
+  CreditCard,
+  Activity,
+  Gift,
+  ImageIcon,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Loader2,
+  FolderOpen,
+} from "lucide-react";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactApexChart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { useUsers } from "@/hooks/queries/useUsers";
@@ -17,13 +42,19 @@ import { usePayouts } from "@/hooks/queries/usePayouts";
 import { usePayments } from "@/hooks/queries/usePayments";
 import { useBanner, useUpdateBanner } from "@/hooks/queries/useBanner";
 import {
+  useAllCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+} from "@/hooks/queries/useCategories";
+import { CategoryIcon } from "@/components/CategoryIcon";
+import {
   getBookings,
   forceReseedCategories,
   getProviderProfile,
 } from "@/lib/firestore";
-import { useCategories } from "@/hooks/queries/useCategories";
 import { toast } from "@/components/ui/sonner";
-import { BookingStatus, BannerSettings } from "@/types";
+import { BookingStatus, BannerSettings, Category } from "@/types";
 
 const AdminDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -33,12 +64,30 @@ const AdminDashboardPage: React.FC = () => {
   const { data: verifications = [] } = usePendingVerifications();
   const { data: payouts = [] } = usePayouts();
   const { data: payments = [] } = usePayments();
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [], isLoading: loadingCategories } = useAllCategories();
   const { data: banner } = useBanner();
   const updateBanner = useUpdateBanner();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategoryMutation = useDeleteCategory();
 
   // Banner form state
   const [bannerForm, setBannerForm] = useState<Partial<BannerSettings>>({});
+
+  // Category management state
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deleteCategoryDialog, setDeleteCategoryDialog] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [isUploadingCategoryImage, setIsUploadingCategoryImage] = useState(false);
+  const categoryImageInputRef = useRef<HTMLInputElement>(null);
+  const [categoryForm, setCategoryForm] = useState({
+    nameEn: "",
+    nameAr: "",
+    icon: "",
+    imageUrl: "",
+    isActive: true,
+  });
 
   // Initialize banner form when data loads
   React.useEffect(() => {
@@ -53,6 +102,119 @@ const AdminDashboardPage: React.FC = () => {
       toast.success(t("admin.bannerUpdated"));
     } catch (error) {
       console.error("Failed to update banner:", error);
+      toast.error(t("common.error"));
+    }
+  };
+
+  // Category management handlers
+  const resetCategoryForm = () => {
+    setCategoryForm({
+      nameEn: "",
+      nameAr: "",
+      icon: "",
+      imageUrl: "",
+      isActive: true,
+    });
+    setEditingCategory(null);
+  };
+
+  const openAddCategory = () => {
+    resetCategoryForm();
+    setCategoryDialogOpen(true);
+  };
+
+  const openEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setCategoryForm({
+      nameEn: category.nameEn,
+      nameAr: category.nameAr,
+      icon: category.icon || "",
+      imageUrl: category.imageUrl || "",
+      isActive: category.isActive,
+    });
+    setCategoryDialogOpen(true);
+  };
+
+  const handleCategoryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error(t("admin.invalidImageType"));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(t("admin.imageTooLarge"));
+      return;
+    }
+
+    setIsUploadingCategoryImage(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `categories/${timestamp}-${file.name}`;
+      const storageRef = ref(storage, fileName);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setCategoryForm((prev) => ({ ...prev, imageUrl: url }));
+      toast.success(t("admin.imageUploaded"));
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error(t("admin.uploadFailed"));
+    } finally {
+      setIsUploadingCategoryImage(false);
+      if (categoryImageInputRef.current) {
+        categoryImageInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleSaveCategory = async () => {
+    if (!categoryForm.nameEn.trim() || !categoryForm.nameAr.trim()) {
+      toast.error(t("admin.categoryNameRequired"));
+      return;
+    }
+
+    try {
+      if (editingCategory) {
+        await updateCategory.mutateAsync({
+          id: editingCategory.id,
+          updates: {
+            nameEn: categoryForm.nameEn.trim(),
+            nameAr: categoryForm.nameAr.trim(),
+            icon: categoryForm.icon.trim(),
+            imageUrl: categoryForm.imageUrl,
+            isActive: categoryForm.isActive,
+          },
+        });
+        toast.success(t("admin.categoryUpdated"));
+      } else {
+        await createCategory.mutateAsync({
+          nameEn: categoryForm.nameEn.trim(),
+          nameAr: categoryForm.nameAr.trim(),
+          icon: categoryForm.icon.trim(),
+          imageUrl: categoryForm.imageUrl,
+          isActive: categoryForm.isActive,
+        });
+        toast.success(t("admin.categoryCreated"));
+      }
+      setCategoryDialogOpen(false);
+      resetCategoryForm();
+    } catch (error) {
+      console.error("Failed to save category:", error);
+      toast.error(t("common.error"));
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+
+    try {
+      await deleteCategoryMutation.mutateAsync(categoryToDelete.id);
+      toast.success(t("admin.categoryDeleted"));
+      setDeleteCategoryDialog(false);
+      setCategoryToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete category:", error);
       toast.error(t("common.error"));
     }
   };
@@ -547,19 +709,264 @@ const AdminDashboardPage: React.FC = () => {
       </div>
 
       {/* Categories management - always show for admins */}
-      <Card className="mb-8 border-dashed">
-        <CardHeader>
-          <CardTitle>{t("admin.categoriesManagement")}</CardTitle>
+      <Card className="mb-8">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5" />
+            {t("admin.categoriesManagement")}
+          </CardTitle>
+          <div className="flex gap-2">
+            <Button onClick={handleSeedCategories} variant="outline" size="sm">
+              {t("admin.reseedCategories")}
+            </Button>
+            <Button onClick={openAddCategory} size="sm">
+              <Plus className="mr-1 h-4 w-4" />
+              {t("admin.addCategory")}
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
+        <CardContent>
+          <p className="mb-4 text-sm text-muted-foreground">
             {t("admin.categoriesCount", { count: categories.length })}
           </p>
-          <Button onClick={handleSeedCategories} variant="outline">
-            {t("admin.reseedCategories")}
-          </Button>
+          
+          {loadingCategories ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : categories.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">
+              {t("admin.noCategories")}
+            </p>
+          ) : (
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {categories.map((category) => (
+                  <div
+                    key={category.id}
+                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      {category.imageUrl ? (
+                        <img
+                          src={category.imageUrl}
+                          alt={category.nameEn}
+                          className="h-10 w-10 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                          <CategoryIcon icon={category.icon} size={20} className="text-primary" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">
+                          {i18n.language === "ar" ? category.nameAr : category.nameEn}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {i18n.language === "ar" ? category.nameEn : category.nameAr}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={category.isActive ? "default" : "secondary"}>
+                        {category.isActive ? t("admin.active") : t("admin.inactive")}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditCategory(category)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setCategoryToDelete(category);
+                          setDeleteCategoryDialog(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
         </CardContent>
       </Card>
+
+      {/* Category Add/Edit Dialog */}
+      <Dialog open={categoryDialogOpen} onOpenChange={(open) => {
+        if (!open) resetCategoryForm();
+        setCategoryDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCategory ? t("admin.editCategory") : t("admin.addCategory")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Image Upload */}
+            <div>
+              <Label>{t("admin.categoryImage")}</Label>
+              <div className="mt-2 flex items-center gap-4">
+                {categoryForm.imageUrl ? (
+                  <div className="group relative">
+                    <img
+                      src={categoryForm.imageUrl}
+                      alt="Category"
+                      className="h-20 w-20 rounded-lg object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCategoryForm((prev) => ({ ...prev, imageUrl: "" }))}
+                      className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed">
+                    <CategoryIcon icon={categoryForm.icon} size={32} className="text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    ref={categoryImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCategoryImageUpload}
+                    className="hidden"
+                    id="category-image"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => categoryImageInputRef.current?.click()}
+                    disabled={isUploadingCategoryImage}
+                  >
+                    {isUploadingCategoryImage ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t("common.uploading")}
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="mr-2 h-4 w-4" />
+                        {t("admin.uploadImage")}
+                      </>
+                    )}
+                  </Button>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("admin.categoryImageHint")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Name English */}
+            <div>
+              <Label htmlFor="cat-name-en">{t("admin.categoryNameEn")}</Label>
+              <Input
+                id="cat-name-en"
+                value={categoryForm.nameEn}
+                onChange={(e) => setCategoryForm((prev) => ({ ...prev, nameEn: e.target.value }))}
+                placeholder="e.g. Makeup"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Name Arabic */}
+            <div>
+              <Label htmlFor="cat-name-ar">{t("admin.categoryNameAr")}</Label>
+              <Input
+                id="cat-name-ar"
+                value={categoryForm.nameAr}
+                onChange={(e) => setCategoryForm((prev) => ({ ...prev, nameAr: e.target.value }))}
+                placeholder="مثال: المكياج"
+                dir="rtl"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Icon (Lucide name) */}
+            <div>
+              <Label htmlFor="cat-icon">{t("admin.categoryIcon")}</Label>
+              <Input
+                id="cat-icon"
+                value={categoryForm.icon}
+                onChange={(e) => setCategoryForm((prev) => ({ ...prev, icon: e.target.value }))}
+                placeholder="e.g. Palette, Scissors, Heart"
+                className="mt-1"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("admin.categoryIconHint")}
+              </p>
+            </div>
+
+            {/* Active Toggle */}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="cat-active">{t("admin.categoryActive")}</Label>
+              <Switch
+                id="cat-active"
+                checked={categoryForm.isActive}
+                onCheckedChange={(checked) => setCategoryForm((prev) => ({ ...prev, isActive: checked }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleSaveCategory}
+              disabled={createCategory.isPending || updateCategory.isPending}
+            >
+              {(createCategory.isPending || updateCategory.isPending) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {editingCategory ? t("common.save") : t("admin.addCategory")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Category Confirmation */}
+      <Dialog open={deleteCategoryDialog} onOpenChange={setDeleteCategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("admin.deleteCategoryTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("admin.deleteCategoryDescription", {
+                name: categoryToDelete
+                  ? i18n.language === "ar"
+                    ? categoryToDelete.nameAr
+                    : categoryToDelete.nameEn
+                  : "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteCategoryDialog(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteCategory}
+              disabled={deleteCategoryMutation.isPending}
+            >
+              {deleteCategoryMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {t("common.delete")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Banner Management */}
       <Card className="mb-8 border-dashed">
@@ -570,7 +977,9 @@ const AdminDashboardPage: React.FC = () => {
           </CardTitle>
           <div className="flex items-center gap-2">
             <Label htmlFor="banner-active" className="text-sm">
-              {bannerForm.isActive ? t("admin.bannerActive") : t("admin.bannerInactive")}
+              {bannerForm.isActive
+                ? t("admin.bannerActive")
+                : t("admin.bannerInactive")}
             </Label>
             <Switch
               id="banner-active"
@@ -592,98 +1001,138 @@ const AdminDashboardPage: React.FC = () => {
               }}
             >
               <p className="font-bold">
-                {i18n.language === "ar" ? bannerForm.titleAr : bannerForm.titleEn}
+                {i18n.language === "ar"
+                  ? bannerForm.titleAr
+                  : bannerForm.titleEn}
               </p>
               <p className="text-sm opacity-80">
-                {i18n.language === "ar" ? bannerForm.subtitleAr : bannerForm.subtitleEn}
+                {i18n.language === "ar"
+                  ? bannerForm.subtitleAr
+                  : bannerForm.subtitleEn}
               </p>
             </div>
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="banner-title-en">{t("admin.bannerTitleEn")}</Label>
+              <Label htmlFor="banner-title-en">
+                {t("admin.bannerTitleEn")}
+              </Label>
               <Input
                 id="banner-title-en"
                 value={bannerForm.titleEn || ""}
                 onChange={(e) =>
-                  setBannerForm((prev) => ({ ...prev, titleEn: e.target.value }))
+                  setBannerForm((prev) => ({
+                    ...prev,
+                    titleEn: e.target.value,
+                  }))
                 }
                 placeholder="Summer Sale!"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="banner-title-ar">{t("admin.bannerTitleAr")}</Label>
+              <Label htmlFor="banner-title-ar">
+                {t("admin.bannerTitleAr")}
+              </Label>
               <Input
                 id="banner-title-ar"
                 value={bannerForm.titleAr || ""}
                 onChange={(e) =>
-                  setBannerForm((prev) => ({ ...prev, titleAr: e.target.value }))
+                  setBannerForm((prev) => ({
+                    ...prev,
+                    titleAr: e.target.value,
+                  }))
                 }
                 placeholder="تخفيضات الصيف!"
                 dir="rtl"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="banner-subtitle-en">{t("admin.bannerSubtitleEn")}</Label>
+              <Label htmlFor="banner-subtitle-en">
+                {t("admin.bannerSubtitleEn")}
+              </Label>
               <Input
                 id="banner-subtitle-en"
                 value={bannerForm.subtitleEn || ""}
                 onChange={(e) =>
-                  setBannerForm((prev) => ({ ...prev, subtitleEn: e.target.value }))
+                  setBannerForm((prev) => ({
+                    ...prev,
+                    subtitleEn: e.target.value,
+                  }))
                 }
                 placeholder="Get 20% off all services"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="banner-subtitle-ar">{t("admin.bannerSubtitleAr")}</Label>
+              <Label htmlFor="banner-subtitle-ar">
+                {t("admin.bannerSubtitleAr")}
+              </Label>
               <Input
                 id="banner-subtitle-ar"
                 value={bannerForm.subtitleAr || ""}
                 onChange={(e) =>
-                  setBannerForm((prev) => ({ ...prev, subtitleAr: e.target.value }))
+                  setBannerForm((prev) => ({
+                    ...prev,
+                    subtitleAr: e.target.value,
+                  }))
                 }
                 placeholder="احصلي على خصم 20% على جميع الخدمات"
                 dir="rtl"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="banner-bg-color">{t("admin.bannerBgColor")}</Label>
+              <Label htmlFor="banner-bg-color">
+                {t("admin.bannerBgColor")}
+              </Label>
               <div className="flex gap-2">
                 <Input
                   id="banner-bg-color"
                   type="color"
                   value={bannerForm.backgroundColor || "#7c3aed"}
                   onChange={(e) =>
-                    setBannerForm((prev) => ({ ...prev, backgroundColor: e.target.value }))
+                    setBannerForm((prev) => ({
+                      ...prev,
+                      backgroundColor: e.target.value,
+                    }))
                   }
                   className="h-10 w-14 p-1"
                 />
                 <Input
                   value={bannerForm.backgroundColor || "#7c3aed"}
                   onChange={(e) =>
-                    setBannerForm((prev) => ({ ...prev, backgroundColor: e.target.value }))
+                    setBannerForm((prev) => ({
+                      ...prev,
+                      backgroundColor: e.target.value,
+                    }))
                   }
                   className="flex-1"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="banner-text-color">{t("admin.bannerTextColor")}</Label>
+              <Label htmlFor="banner-text-color">
+                {t("admin.bannerTextColor")}
+              </Label>
               <div className="flex gap-2">
                 <Input
                   id="banner-text-color"
                   type="color"
                   value={bannerForm.textColor || "#ffffff"}
                   onChange={(e) =>
-                    setBannerForm((prev) => ({ ...prev, textColor: e.target.value }))
+                    setBannerForm((prev) => ({
+                      ...prev,
+                      textColor: e.target.value,
+                    }))
                   }
                   className="h-10 w-14 p-1"
                 />
                 <Input
                   value={bannerForm.textColor || "#ffffff"}
                   onChange={(e) =>
-                    setBannerForm((prev) => ({ ...prev, textColor: e.target.value }))
+                    setBannerForm((prev) => ({
+                      ...prev,
+                      textColor: e.target.value,
+                    }))
                   }
                   className="flex-1"
                 />
@@ -695,7 +1144,10 @@ const AdminDashboardPage: React.FC = () => {
                 id="banner-link"
                 value={bannerForm.linkUrl || ""}
                 onChange={(e) =>
-                  setBannerForm((prev) => ({ ...prev, linkUrl: e.target.value }))
+                  setBannerForm((prev) => ({
+                    ...prev,
+                    linkUrl: e.target.value,
+                  }))
                 }
                 placeholder="/client/search?categories=bridal"
               />
@@ -706,7 +1158,9 @@ const AdminDashboardPage: React.FC = () => {
             disabled={updateBanner.isPending}
             className="w-full sm:w-auto"
           >
-            {updateBanner.isPending ? t("common.saving") : t("admin.updateBanner")}
+            {updateBanner.isPending
+              ? t("common.saving")
+              : t("admin.updateBanner")}
           </Button>
         </CardContent>
       </Card>

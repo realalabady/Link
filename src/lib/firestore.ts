@@ -250,161 +250,161 @@ export const DEFAULT_CATEGORIES: Category[] = [
     id: "makeup",
     nameEn: "Makeup",
     nameAr: "المكياج",
-    icon: "💄",
+    icon: "Palette",
     isActive: true,
   },
   {
     id: "hair",
     nameEn: "Hair Styling",
     nameAr: "تصفيف الشعر",
-    icon: "💇‍♀️",
+    icon: "Scissors",
     isActive: true,
   },
   {
     id: "nails",
     nameEn: "Nails",
     nameAr: "الأظافر",
-    icon: "💅",
+    icon: "Sparkles",
     isActive: true,
   },
   {
     id: "skincare",
     nameEn: "Skincare",
     nameAr: "العناية بالبشرة",
-    icon: "✨",
+    icon: "Droplets",
     isActive: true,
   },
   {
     id: "spa",
     nameEn: "Spa & Relaxation",
     nameAr: "السبا والاسترخاء",
-    icon: "🧖‍♀️",
+    icon: "Flower2",
     isActive: true,
   },
   {
     id: "massage",
     nameEn: "Massage",
     nameAr: "المساج",
-    icon: "💆‍♀️",
+    icon: "Hand",
     isActive: true,
   },
   {
     id: "henna",
     nameEn: "Henna",
     nameAr: "الحناء",
-    icon: "🌿",
+    icon: "Leaf",
     isActive: true,
   },
   {
     id: "waxing",
     nameEn: "Hair Removal",
     nameAr: "إزالة الشعر",
-    icon: "🪷",
+    icon: "Star",
     isActive: true,
   },
   {
     id: "lashes",
     nameEn: "Lashes & Brows",
     nameAr: "الرموش والحواجب",
-    icon: "👁️",
+    icon: "Eye",
     isActive: true,
   },
   {
     id: "aesthetics",
     nameEn: "Medical Aesthetics",
     nameAr: "التجميل الطبي",
-    icon: "💉",
+    icon: "Syringe",
     isActive: true,
   },
   {
     id: "bridal",
     nameEn: "Bridal Services",
     nameAr: "خدمات العروس",
-    icon: "👰",
+    icon: "Crown",
     isActive: true,
   },
   {
     id: "yoga",
     nameEn: "Yoga & Pilates",
     nameAr: "اليوغا والبيلاتس",
-    icon: "🧘‍♀️",
+    icon: "Heart",
     isActive: true,
   },
   {
     id: "fitness",
     nameEn: "Women's Fitness",
     nameAr: "لياقة نسائية",
-    icon: "🏃‍♀️",
+    icon: "Dumbbell",
     isActive: true,
   },
   {
     id: "nutrition",
     nameEn: "Nutrition & Diet",
     nameAr: "التغذية والحمية",
-    icon: "🥗",
+    icon: "Apple",
     isActive: true,
   },
   {
     id: "photography",
     nameEn: "Photography",
     nameAr: "التصوير",
-    icon: "📸",
+    icon: "Camera",
     isActive: true,
   },
   {
     id: "tailoring",
     nameEn: "Tailoring & Alterations",
     nameAr: "الخياطة والتعديلات",
-    icon: "👗",
+    icon: "Shirt",
     isActive: true,
   },
   {
     id: "personal_shopping",
     nameEn: "Personal Shopping",
     nameAr: "التسوق الشخصي",
-    icon: "🛍️",
+    icon: "ShoppingBag",
     isActive: true,
   },
   {
     id: "events",
     nameEn: "Event Planning",
     nameAr: "تنظيم الفعاليات",
-    icon: "🎀",
+    icon: "PartyPopper",
     isActive: true,
   },
   {
     id: "cooking",
     nameEn: "Cooking & Catering",
     nameAr: "الطبخ والتموين",
-    icon: "🍰",
+    icon: "ChefHat",
     isActive: true,
   },
   {
     id: "childcare",
     nameEn: "Childcare",
     nameAr: "رعاية الأطفال",
-    icon: "👶",
+    icon: "Baby",
     isActive: true,
   },
   {
     id: "tutoring",
     nameEn: "Tutoring",
     nameAr: "دروس خصوصية",
-    icon: "📚",
+    icon: "BookOpen",
     isActive: true,
   },
   {
     id: "cleaning",
     nameEn: "Home Cleaning",
     nameAr: "تنظيف المنزل",
-    icon: "🏠",
+    icon: "Home",
     isActive: true,
   },
   {
     id: "organizing",
     nameEn: "Home Organizing",
     nameAr: "تنظيم المنزل",
-    icon: "🗂️",
+    icon: "FolderOpen",
     isActive: true,
   },
 ];
@@ -429,27 +429,43 @@ export const seedDefaultCategories = async (): Promise<void> => {
   await batch.commit();
 };
 
-// Force reseed all categories (replaces existing ones)
+// Force reseed all categories (replaces existing ones but preserves imageUrl)
 export const forceReseedCategories = async (): Promise<void> => {
   const batch = writeBatch(db);
-  
-  // First, deactivate all existing categories
+
+  // First, get existing categories to preserve their imageUrl
   const categoriesRef = collection(db, COLLECTIONS.CATEGORIES);
   const existingSnapshot = await getDocs(categoriesRef);
+  
+  // Create a map of existing category imageUrls
+  const existingImages: Record<string, string> = {};
   existingSnapshot.docs.forEach((docSnap) => {
-    batch.update(docSnap.ref, { isActive: false });
+    const data = docSnap.data();
+    if (data.imageUrl) {
+      existingImages[docSnap.id] = data.imageUrl;
+    }
+    // Deactivate categories not in DEFAULT_CATEGORIES
+    if (!DEFAULT_CATEGORIES.some(c => c.id === docSnap.id)) {
+      batch.update(docSnap.ref, { isActive: false });
+    }
   });
 
-  // Then add/update all default categories
+  // Then add/update all default categories, preserving imageUrl
   DEFAULT_CATEGORIES.forEach((category) => {
     const categoryRef = doc(db, COLLECTIONS.CATEGORIES, category.id);
-    batch.set(categoryRef, {
-      nameAr: category.nameAr,
-      nameEn: category.nameEn,
-      isActive: category.isActive,
-      icon: category.icon || "",
-      parentId: category.parentId || null,
-    }, { merge: true });
+    batch.set(
+      categoryRef,
+      {
+        nameAr: category.nameAr,
+        nameEn: category.nameEn,
+        isActive: category.isActive,
+        icon: category.icon || "",
+        parentId: category.parentId || null,
+        // Preserve existing imageUrl if it exists
+        ...(existingImages[category.id] && { imageUrl: existingImages[category.id] }),
+      },
+      { merge: true },
+    );
   });
 
   await batch.commit();
@@ -484,6 +500,46 @@ export const getCategoryById = async (id: string): Promise<Category | null> => {
   if (!categorySnap.exists()) return null;
 
   return { id: categorySnap.id, ...categorySnap.data() } as Category;
+};
+
+export const getAllCategories = async (): Promise<Category[]> => {
+  try {
+    const categoriesRef = collection(db, COLLECTIONS.CATEGORIES);
+    const snapshot = await getDocs(categoriesRef);
+
+    if (snapshot.docs.length === 0) {
+      return DEFAULT_CATEGORIES;
+    }
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Category[];
+  } catch (error) {
+    console.warn("Error fetching all categories:", error);
+    return DEFAULT_CATEGORIES;
+  }
+};
+
+export const createCategory = async (
+  category: Omit<Category, "id">,
+): Promise<string> => {
+  const categoriesRef = collection(db, COLLECTIONS.CATEGORIES);
+  const docRef = await addDoc(categoriesRef, category);
+  return docRef.id;
+};
+
+export const updateCategory = async (
+  id: string,
+  updates: Partial<Omit<Category, "id">>,
+): Promise<void> => {
+  const categoryRef = doc(db, COLLECTIONS.CATEGORIES, id);
+  await updateDoc(categoryRef, updates);
+};
+
+export const deleteCategory = async (id: string): Promise<void> => {
+  const categoryRef = doc(db, COLLECTIONS.CATEGORIES, id);
+  await deleteDoc(categoryRef);
 };
 
 // ============================================
