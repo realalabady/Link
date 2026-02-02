@@ -114,7 +114,7 @@ const MoyasarCheckout: React.FC<MoyasarCheckoutProps> = ({
 
     try {
       const apiBaseUrl = import.meta.env.VITE_PAYPAL_API_BASE_URL || "";
-      
+
       window.Moyasar.init({
         element: ".moyasar-form",
         amount: Math.round(amount * 100), // Convert to halalas

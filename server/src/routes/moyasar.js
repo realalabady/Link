@@ -156,7 +156,11 @@ router.post("/apple-pay-session", async (req, res) => {
   try {
     const { validation_url, display_name, domain_name } = req.body;
 
-    console.log("Apple Pay session request:", { validation_url, display_name, domain_name });
+    console.log("Apple Pay session request:", {
+      validation_url,
+      display_name,
+      domain_name,
+    });
 
     const response = await fetch(`${MOYASAR_API_BASE}/applepay/initiate`, {
       method: "POST",
