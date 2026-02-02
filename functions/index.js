@@ -71,7 +71,7 @@ exports.onBookingCreated = onDocumentCreated(
     const clientEmail = client?.email;
     const providerEmail = providerUser?.email;
 
-    const clientAppUrl = "https://link-22.com";
+    const clientAppUrl = "https://www.link-22.com";
     const bookingUrl = `${clientAppUrl}/client/bookings/${event.params.bookingId}`;
     const providerUrl = `${clientAppUrl}/provider/booking/${event.params.bookingId}`;
 
