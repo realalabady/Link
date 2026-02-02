@@ -124,7 +124,6 @@ const MoyasarCheckout: React.FC<MoyasarCheckoutProps> = ({
         apple_pay: {
           country: "SA",
           label: "Link Booking",
-          validate_merchant_url: `${import.meta.env.VITE_PAYPAL_API_BASE_URL}/moyasar/apple-pay-session`,
         },
         on_completed: async (payment: MoyasarPayment) => {
           console.log("Moyasar payment completed:", payment);
