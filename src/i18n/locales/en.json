@@ -160,6 +160,15 @@
     "nearYou": "Near you",
     "topRated": "Top rated"
   },
+  "location": {
+    "enableLocation": "Enable location",
+    "enableDescription": "See providers near you",
+    "enable": "Enable",
+    "showingNearest": "Showing nearest providers first",
+    "kmAway": "{{distance}} km away",
+    "permissionDenied": "Location permission denied",
+    "unavailable": "Location unavailable"
+  },
   "search": {
     "placeholder": "Search services...",
     "all": "All",

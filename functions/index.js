@@ -2,7 +2,10 @@ require("dotenv").config();
 const admin = require("firebase-admin");
 const { Resend } = require("resend");
 const { defineSecret } = require("firebase-functions/params");
-const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const {
+  onDocumentCreated,
+  onDocumentUpdated,
+} = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 
 admin.initializeApp();
@@ -74,18 +77,21 @@ const processRefund = async (paymentId, amount = null) => {
   }
 
   const authHeader = `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`;
-  
+
   try {
     const body = amount ? { amount: Math.round(Number(amount) * 100) } : {};
-    
-    const response = await fetch(`https://api.moyasar.com/v1/payments/${paymentId}/refund`, {
-      method: "POST",
-      headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/json",
+
+    const response = await fetch(
+      `https://api.moyasar.com/v1/payments/${paymentId}/refund`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: authHeader,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+    );
 
     const data = await response.json();
 
@@ -105,7 +111,7 @@ const processRefund = async (paymentId, amount = null) => {
 // Refund booking payment and update records
 const refundBookingPayment = async (bookingId, reason = "rejected") => {
   const payment = await getPaymentByBookingId(bookingId);
-  
+
   if (!payment) {
     console.warn(`No payment found for booking ${bookingId}`);
     return { success: false, error: "No payment found" };
@@ -123,7 +129,7 @@ const refundBookingPayment = async (bookingId, reason = "rejected") => {
   }
 
   const refundResult = await processRefund(moyasarPaymentId);
-  
+
   if (refundResult.success) {
     // Update payment record
     await db.collection("payments").doc(payment.id).update({
@@ -221,7 +227,10 @@ exports.autoRejectExpiredBookings = onSchedule(
       const booking = doc.data();
 
       // Process refund first
-      const refundResult = await refundBookingPayment(bookingId, "auto_rejected_timeout");
+      const refundResult = await refundBookingPayment(
+        bookingId,
+        "auto_rejected_timeout",
+      );
       console.log(`Refund for booking ${bookingId}:`, refundResult);
 
       // Update booking status
@@ -241,10 +250,10 @@ exports.autoRejectExpiredBookings = onSchedule(
       const providerEmail = providerUser?.email;
 
       if (clientEmail) {
-        const refundMessage = refundResult.success 
+        const refundMessage = refundResult.success
           ? "Your payment has been refunded automatically."
           : "Please contact support for your refund.";
-        
+
         await sendEmail({
           to: clientEmail,
           subject: "Booking auto-rejected - Payment refunded",
@@ -283,7 +292,7 @@ exports.onBookingStatusChanged = onDocumentUpdated(
   async (event) => {
     const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    
+
     if (!beforeData || !afterData) return;
 
     const bookingId = event.params.bookingId;
@@ -297,14 +306,21 @@ exports.onBookingStatusChanged = onDocumentUpdated(
 
     // Skip if this was from auto-reject (already handled by autoRejectExpiredBookings)
     if (afterData.rejectionReason === "auto_rejected_timeout") {
-      console.log(`Booking ${bookingId} was auto-rejected, skipping duplicate refund`);
+      console.log(
+        `Booking ${bookingId} was auto-rejected, skipping duplicate refund`,
+      );
       return;
     }
 
-    console.log(`Booking ${bookingId} manually rejected by provider, processing refund...`);
+    console.log(
+      `Booking ${bookingId} manually rejected by provider, processing refund...`,
+    );
 
     // Process refund
-    const refundResult = await refundBookingPayment(bookingId, "provider_rejected");
+    const refundResult = await refundBookingPayment(
+      bookingId,
+      "provider_rejected",
+    );
     console.log(`Refund result for booking ${bookingId}:`, refundResult);
 
     // Send email to client about refund
@@ -315,7 +331,7 @@ exports.onBookingStatusChanged = onDocumentUpdated(
 
     const clientEmail = client?.email;
     if (clientEmail) {
-      const refundMessage = refundResult.success 
+      const refundMessage = refundResult.success
         ? "Your payment has been refunded automatically."
         : "Please contact support for your refund.";
 

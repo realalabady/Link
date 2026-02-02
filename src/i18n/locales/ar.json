@@ -160,6 +160,15 @@
     "nearYou": "بالقرب منك",
     "topRated": "الأعلى تقييماً"
   },
+  "location": {
+    "enableLocation": "تفعيل الموقع",
+    "enableDescription": "شاهدي مقدمات الخدمات القريبات منك",
+    "enable": "تفعيل",
+    "showingNearest": "عرض الأقرب أولاً",
+    "kmAway": "{{distance}} كم",
+    "permissionDenied": "تم رفض إذن الموقع",
+    "unavailable": "الموقع غير متاح"
+  },
   "search": {
     "placeholder": "البحث عن خدمات...",
     "all": "الكل",

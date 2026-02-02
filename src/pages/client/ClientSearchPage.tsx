@@ -10,6 +10,7 @@ import {
   Clock,
   ChevronRight,
   X,
+  Navigation,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGeolocation, calculateDistanceKm, formatDistance } from "@/hooks/useGeolocation";
 import { Service, ProviderProfile } from "@/types";
 
 const ClientSearchPage: React.FC = () => {
@@ -38,6 +40,7 @@ const ClientSearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const isArabic = i18n.language === "ar";
   const { user } = useAuth();
+  const { location } = useGeolocation();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
@@ -105,15 +108,16 @@ const ClientSearchPage: React.FC = () => {
     return map;
   }, [providers]);
 
-  const storedLocation = useMemo(() => {
-    const raw = localStorage.getItem("link_location");
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw) as { lat: number; lng: number };
-    } catch {
-      return null;
-    }
-  }, []);
+  // Helper to get distance for a provider
+  const getProviderDistance = (provider: ProviderProfile | undefined) => {
+    if (!location || !provider?.latitude || !provider?.longitude) return null;
+    return calculateDistanceKm(
+      location.lat,
+      location.lng,
+      provider.latitude,
+      provider.longitude
+    );
+  };
 
   const categoriesWithServices = useMemo(() => {
     const map = new Map<string, { id: string; name: string; icon?: string }>();
@@ -150,26 +154,6 @@ const ClientSearchPage: React.FC = () => {
     return map;
   }, [categoriesWithServices]);
 
-  const distanceKm = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ) => {
-    const toRad = (value: number) => (value * Math.PI) / 180;
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
   // Filter services based on search, category, and price
   const filteredServices = useMemo(() => {
     const filtered = services.filter((service) => {
@@ -205,21 +189,21 @@ const ClientSearchPage: React.FC = () => {
       const providerB = providerMap[b.providerId];
 
       if (
-        storedLocation &&
+        location &&
         providerA?.latitude &&
         providerA?.longitude &&
         providerB?.latitude &&
         providerB?.longitude
       ) {
-        const distanceA = distanceKm(
-          storedLocation.lat,
-          storedLocation.lng,
+        const distanceA = calculateDistanceKm(
+          location.lat,
+          location.lng,
           providerA.latitude,
           providerA.longitude,
         );
-        const distanceB = distanceKm(
-          storedLocation.lat,
-          storedLocation.lng,
+        const distanceB = calculateDistanceKm(
+          location.lat,
+          location.lng,
           providerB.latitude,
           providerB.longitude,
         );
@@ -255,7 +239,7 @@ const ClientSearchPage: React.FC = () => {
     sortBy,
     providerMap,
     user,
-    storedLocation,
+    location,
   ]);
 
   const handleServiceClick = (service: Service) => {
@@ -464,6 +448,7 @@ const ClientSearchPage: React.FC = () => {
               <div className="space-y-4">
                 {filteredServices.map((service) => {
                   const provider = providerMap[service.providerId];
+                  const distance = getProviderDistance(provider);
                   return (
                     <motion.button
                       key={service.id}
@@ -513,8 +498,16 @@ const ClientSearchPage: React.FC = () => {
                               {service.durationMin} {t("search.min")}
                             </Badge>
 
-                            {/* Location */}
-                            {provider && (
+                            {/* Distance */}
+                            {distance !== null && (
+                              <Badge variant="outline" className="gap-1 text-primary">
+                                <Navigation className="h-3 w-3" />
+                                {formatDistance(distance)}
+                              </Badge>
+                            )}
+
+                            {/* Location - show only if no distance */}
+                            {distance === null && provider && (
                               <Badge variant="outline" className="gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {provider.area}

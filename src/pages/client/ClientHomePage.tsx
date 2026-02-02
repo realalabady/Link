@@ -12,6 +12,8 @@ import {
   Search,
   Clock,
   TrendingUp,
+  Navigation,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +26,7 @@ import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
 import { useBanner } from "@/hooks/queries/useBanner";
+import { useGeolocation, calculateDistanceKm, formatDistance } from "@/hooks/useGeolocation";
 import logo from "@/assets/logo.jpeg";
 
 const ClientHomePage: React.FC = () => {
@@ -31,6 +34,8 @@ const ClientHomePage: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
+
+  const { location, loading: locationLoading, requestLocation } = useGeolocation();
 
   const { data: categories = [], isLoading: loadingCategories } =
     useCategories();
@@ -40,6 +45,30 @@ const ClientHomePage: React.FC = () => {
   const { data: providers = [], isLoading: loadingProviders } =
     useVerifiedProviders(6);
   const { data: banner } = useBanner();
+
+  // Calculate distance for a provider
+  const getProviderDistance = (provider: { latitude?: number; longitude?: number }) => {
+    if (!location || !provider.latitude || !provider.longitude) return null;
+    return calculateDistanceKm(
+      location.lat,
+      location.lng,
+      provider.latitude,
+      provider.longitude
+    );
+  };
+
+  // Sort providers by distance if location is available
+  const sortedProviders = useMemo(() => {
+    if (!location) return providers;
+    return [...providers].sort((a, b) => {
+      const distA = getProviderDistance(a);
+      const distB = getProviderDistance(b);
+      if (distA === null && distB === null) return 0;
+      if (distA === null) return 1;
+      if (distB === null) return -1;
+      return distA - distB;
+    });
+  }, [providers, location]);
 
   const categoriesWithServices = useMemo(() => {
     const map = new Map<string, { id: string; name: string; icon?: string }>();
@@ -160,6 +189,48 @@ const ClientHomePage: React.FC = () => {
                   {isArabic ? banner.subtitleAr : banner.subtitleEn}
                 </p>
               </button>
+            </motion.section>
+          )}
+
+          {/* Location Prompt - Show if no location set */}
+          {!location && (
+            <motion.section variants={fadeInUp} className="mb-6">
+              <div className="flex items-center justify-between rounded-2xl bg-primary/10 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                    <Navigation className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {t("location.enableLocation")}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("location.enableDescription")}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={requestLocation}
+                  disabled={locationLoading}
+                >
+                  {locationLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t("location.enable")
+                  )}
+                </Button>
+              </div>
+            </motion.section>
+          )}
+
+          {/* Location Active Indicator */}
+          {location && (
+            <motion.section variants={fadeInUp} className="mb-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span>{t("location.showingNearest")}</span>
+              </div>
             </motion.section>
           )}
 
@@ -318,7 +389,9 @@ const ClientHomePage: React.FC = () => {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                {providers.map((provider) => (
+                {sortedProviders.map((provider) => {
+                  const distance = getProviderDistance(provider);
+                  return (
                   <button
                     key={provider.uid}
                     onClick={() => navigate(`/client/provider/${provider.uid}`)}
@@ -345,15 +418,24 @@ const ClientHomePage: React.FC = () => {
                           ({provider.ratingCount} {t("provider.reviews")})
                         </span>
                       </div>
-                      <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span className="truncate">
-                          {provider.city}, {provider.area}
-                        </span>
+                      <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          <span className="truncate">
+                            {provider.city}, {provider.area}
+                          </span>
+                        </div>
+                        {distance !== null && (
+                          <Badge variant="outline" className="shrink-0 gap-1">
+                            <Navigation className="h-3 w-3" />
+                            {formatDistance(distance)}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </motion.section>
