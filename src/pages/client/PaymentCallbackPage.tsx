@@ -20,12 +20,6 @@ const PaymentCallbackPage: React.FC = () => {
     const paymentStatus = searchParams.get("status");
     const paymentMessage = searchParams.get("message");
 
-    console.log("Payment callback received:", {
-      paymentId,
-      paymentStatus,
-      paymentMessage,
-    });
-
     if (paymentStatus === "paid") {
       setStatus("success");
       setMessage(t("booking.bookingConfirmed"));

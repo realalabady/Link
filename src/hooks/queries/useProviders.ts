@@ -44,7 +44,7 @@ export const useCreateProviderProfile = () => {
       uid: string;
       profile: Omit<
         ProviderProfile,
-        "uid" | "updatedAt" | "ratingAvg" | "ratingCount" | "isVerified"
+        "uid" | "updatedAt" | "ratingAvg" | "ratingCount" | "isVerified" | "identityVerified"
       >;
     }) => createProviderProfile(uid, profile),
     onSuccess: (_, variables) => {

@@ -471,7 +471,6 @@ export const forceReseedCategories = async (): Promise<void> => {
   });
 
   await batch.commit();
-  console.log("Categories reseeded successfully!");
 };
 
 export const getCategories = async (): Promise<Category[]> => {
@@ -560,7 +559,8 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     latitude: 24.7136,
     longitude: 46.6753,
     radiusKm: 15,
-    isVerified: true,
+    isVerified: true, // Trusted badge (10+ completed bookings)
+    identityVerified: true, // Account verified, can add services
     ratingAvg: 4.8,
     ratingCount: 124,
     updatedAt: new Date(),
@@ -578,7 +578,8 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     latitude: 21.4858,
     longitude: 39.1925,
     radiusKm: 20,
-    isVerified: true,
+    isVerified: true, // Trusted badge (10+ completed bookings)
+    identityVerified: true, // Account verified, can add services
     ratingAvg: 4.9,
     ratingCount: 89,
     updatedAt: new Date(),
@@ -596,7 +597,8 @@ export const DEFAULT_PROVIDERS: ProviderProfile[] = [
     latitude: 24.8103,
     longitude: 46.6766,
     radiusKm: 10,
-    isVerified: true,
+    isVerified: true, // Trusted badge (10+ completed bookings)
+    identityVerified: true, // Account verified, can add services
     ratingAvg: 4.7,
     ratingCount: 56,
     updatedAt: new Date(),
@@ -638,7 +640,8 @@ export const getProviderProfile = async (
           region: "",
           city: "",
           area: "",
-          isVerified: false,
+          isVerified: false, // Trusted badge - earned after 10 completed bookings
+          identityVerified: false, // Account verification - required to add services
           ratingAvg: 0,
           ratingCount: 0,
           updatedAt: new Date(),
@@ -694,18 +697,32 @@ export const getProviderProfile = async (
   }
 };
 
+// Get active providers (ordered by rating)
+// Note: Email verification is checked via Firebase Auth, not a Firestore field
 export const getVerifiedProviders = async (
   limitCount = 20,
 ): Promise<ProviderProfile[]> => {
   try {
     const providersRef = collection(db, COLLECTIONS.PROVIDERS);
-    const q = query(
+    
+    // First try with accountStatus filter
+    let q = query(
       providersRef,
-      where("isVerified", "==", true),
+      where("accountStatus", "==", "ACTIVE"),
       orderBy("ratingAvg", "desc"),
       limit(limitCount),
     );
-    const snapshot = await getDocs(q);
+    let snapshot = await getDocs(q);
+    
+    // If no results, try without the accountStatus filter (for backwards compatibility)
+    if (snapshot.empty) {
+      q = query(
+        providersRef,
+        orderBy("ratingAvg", "desc"),
+        limit(limitCount),
+      );
+      snapshot = await getDocs(q);
+    }
 
     return snapshot.docs.map((doc) => {
       const data = doc.data() as FirestoreProviderProfile;
@@ -729,24 +746,43 @@ export const createProviderProfile = async (
     | "ratingAvg"
     | "ratingCount"
     | "isVerified"
+    | "identityVerified"
     | "isSubscribed"
     | "subscriptionStatus"
     | "accountStatus"
   >,
 ): Promise<void> => {
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
+  
+  // Fetch subscription settings to determine trial period
+  const subscriptionSettings = await getSubscriptionSettings();
+  const trialDays = subscriptionSettings.trialDays || 0;
+  
+  // Calculate trial end date if trial is enabled
+  let subscriptionStatus: "TRIAL" | "EXPIRED" = "EXPIRED";
+  let subscriptionEndDate: Date | null = null;
+  let subscriptionStartDate: Date | null = null;
+  
+  if (trialDays > 0) {
+    subscriptionStatus = "TRIAL";
+    subscriptionStartDate = new Date();
+    subscriptionEndDate = new Date();
+    subscriptionEndDate.setDate(subscriptionEndDate.getDate() + trialDays);
+  }
+  
   await setDoc(providerRef, {
     uid,
     ...profile,
-    isVerified: false,
+    isVerified: false, // Trusted badge - earned after 10 completed bookings
+    identityVerified: false, // Account verification - required to add services
     ratingAvg: 0,
     ratingCount: 0,
-    // Subscription initialization
-    isSubscribed: false,
-    subscriptionStatus: "EXPIRED",
-    subscriptionStartDate: null,
-    subscriptionEndDate: null,
-    subscriptionPrice: 10, // SAR per month
+    // Subscription initialization with trial support
+    isSubscribed: trialDays > 0, // Subscribed during trial
+    subscriptionStatus,
+    subscriptionStartDate,
+    subscriptionEndDate,
+    subscriptionPrice: subscriptionSettings.monthlyPrice || 10, // SAR per month
     autoRenew: false,
     cancellationDate: null,
     accountStatus: "ACTIVE",
@@ -816,7 +852,7 @@ export const verifySubscriptionPayment = async (
 // Update subscription status manually (admin action)
 export const updateSubscriptionStatus = async (
   providerId: string,
-  status: "ACTIVE" | "EXPIRED" | "CANCELLED",
+  status: "ACTIVE" | "TRIAL" | "EXPIRED" | "CANCELLED",
   startDate?: Date,
   endDate?: Date,
   price?: number,
@@ -838,6 +874,64 @@ export const updateSubscriptionStatus = async (
   await updateDoc(providerRef, updates);
 };
 
+// Check and expire trial if it has ended
+export const checkAndExpireTrial = async (providerId: string): Promise<boolean> => {
+  const profile = await getProviderProfile(providerId);
+  if (!profile) return false;
+  
+  // Only check TRIAL status providers
+  if (profile.subscriptionStatus !== "TRIAL") return false;
+  
+  // Check if trial has expired
+  if (profile.subscriptionEndDate) {
+    const now = new Date();
+    const endDate = new Date(profile.subscriptionEndDate);
+    
+    if (now > endDate) {
+      // Trial has expired, update status
+      const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
+      await updateDoc(providerRef, {
+        subscriptionStatus: "EXPIRED",
+        isSubscribed: false,
+        updatedAt: serverTimestamp(),
+      });
+      return true; // Trial was expired
+    }
+  }
+  
+  return false; // Trial still active
+};
+
+// Grant trial to an existing provider (admin action)
+export const grantTrialToProvider = async (
+  providerId: string,
+  trialDays?: number,
+): Promise<void> => {
+  // Fetch subscription settings if trial days not provided
+  let days = trialDays;
+  if (!days) {
+    const settings = await getSubscriptionSettings();
+    days = settings.trialDays || 14; // Default to 14 days if not set
+  }
+  
+  if (days <= 0) {
+    throw new Error("Trial days must be greater than 0");
+  }
+  
+  const now = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + days);
+  
+  const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
+  await updateDoc(providerRef, {
+    subscriptionStatus: "TRIAL",
+    subscriptionStartDate: now,
+    subscriptionEndDate: endDate,
+    isSubscribed: true,
+    updatedAt: serverTimestamp(),
+  });
+};
+
 // Fix provider displayName by fetching from user document
 export const fixProviderDisplayName = async (uid: string): Promise<string> => {
   const userDoc = await getUserDocument(uid);
@@ -847,7 +941,6 @@ export const fixProviderDisplayName = async (uid: string): Promise<string> => {
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
   await setDoc(providerRef, { displayName }, { merge: true });
 
-  console.log(`Fixed provider ${uid} displayName to: ${displayName}`);
   return displayName;
 };
 
@@ -863,8 +956,7 @@ export const DEFAULT_SERVICES: Service[] = [
     categoryId: "makeup",
     title: "Bridal Makeup",
     description: "Complete bridal makeup with premium products",
-    priceFrom: 300,
-    priceTo: 500,
+    price: 400,
     durationMin: 120,
     locationType: "BOTH",
     mediaUrls: [],
@@ -878,8 +970,7 @@ export const DEFAULT_SERVICES: Service[] = [
     categoryId: "makeup",
     title: "Party Makeup",
     description: "Glamorous makeup for special occasions",
-    priceFrom: 150,
-    priceTo: 250,
+    price: 200,
     durationMin: 60,
     locationType: "BOTH",
     mediaUrls: [],
@@ -893,8 +984,7 @@ export const DEFAULT_SERVICES: Service[] = [
     categoryId: "hair",
     title: "Bridal Hair Styling",
     description: "Elegant updos and bridal hairstyles",
-    priceFrom: 250,
-    priceTo: 400,
+    price: 325,
     durationMin: 90,
     locationType: "AT_PROVIDER",
     mediaUrls: [],
@@ -908,8 +998,7 @@ export const DEFAULT_SERVICES: Service[] = [
     categoryId: "hair",
     title: "Haircut & Blowdry",
     description: "Professional cut and styling",
-    priceFrom: 100,
-    priceTo: 150,
+    price: 125,
     durationMin: 45,
     locationType: "AT_PROVIDER",
     mediaUrls: [],
@@ -923,8 +1012,7 @@ export const DEFAULT_SERVICES: Service[] = [
     categoryId: "nails",
     title: "Gel Manicure",
     description: "Long-lasting gel polish manicure",
-    priceFrom: 80,
-    priceTo: 120,
+    price: 100,
     durationMin: 60,
     locationType: "BOTH",
     mediaUrls: [],
@@ -938,8 +1026,7 @@ export const DEFAULT_SERVICES: Service[] = [
     categoryId: "henna",
     title: "Henna Design",
     description: "Traditional and modern henna art",
-    priceFrom: 100,
-    priceTo: 300,
+    price: 200,
     durationMin: 90,
     locationType: "AT_CLIENT",
     mediaUrls: [],
@@ -953,8 +1040,7 @@ export const DEFAULT_SERVICES: Service[] = [
     categoryId: "cooking",
     title: "Home Cooking",
     description: "Delicious home-cooked meals prepared at your place.",
-    priceFrom: 80,
-    priceTo: 200,
+    price: 140,
     durationMin: 120,
     locationType: "AT_CLIENT",
     mediaUrls: ["/assets/services/cooking1.jpg"],
@@ -1204,10 +1290,60 @@ export const updateBookingStatus = async (
   status: BookingStatus,
 ): Promise<void> => {
   const bookingRef = doc(db, COLLECTIONS.BOOKINGS, id);
+  
+  // Get the booking to find the providerId for badge check
+  const bookingSnap = await getDoc(bookingRef);
+  const bookingData = bookingSnap.data();
+  
   await updateDoc(bookingRef, {
     status,
     updatedAt: serverTimestamp(),
   });
+  
+  // If status changed to COMPLETED, check if provider should get Trusted badge
+  if (status === "COMPLETED" && bookingData?.providerId) {
+    await checkAndGrantTrustedBadge(bookingData.providerId);
+  }
+};
+
+// Check if provider has 10+ completed bookings and grant Trusted Provider badge
+export const checkAndGrantTrustedBadge = async (providerId: string): Promise<boolean> => {
+  try {
+    // First check if provider already has the badge
+    const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
+    const providerSnap = await getDoc(providerRef);
+    
+    if (!providerSnap.exists()) return false;
+    
+    const providerData = providerSnap.data();
+    if (providerData.isVerified) {
+      // Already has the badge
+      return true;
+    }
+    
+    // Count completed bookings
+    const bookingsRef = collection(db, COLLECTIONS.BOOKINGS);
+    const q = query(
+      bookingsRef,
+      where("providerId", "==", providerId),
+      where("status", "==", "COMPLETED")
+    );
+    const snapshot = await getDocs(q);
+    const completedCount = snapshot.size;
+    
+    // If 10 or more completed bookings, grant the badge
+    if (completedCount >= 10) {
+      await updateDoc(providerRef, {
+        isVerified: true,
+        verifiedAt: serverTimestamp(),
+      });
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    return false;
+  }
 };
 
 // ============================================
@@ -1322,6 +1458,68 @@ export const updateBannerSettings = async (
   const bannerRef = doc(db, COLLECTIONS.SETTINGS, "banner");
   await setDoc(
     bannerRef,
+    {
+      ...settings,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+};
+
+// SUBSCRIPTION SETTINGS
+export interface SubscriptionPlan {
+  id: string;
+  months: number;
+  price: number;
+  discountPercent: number; // 0-100
+  isActive: boolean;
+}
+
+export interface SubscriptionSettings {
+  monthlyPrice: number; // Base price in SAR per month
+  trialDays: number; // Number of free trial days for new providers
+  plans: SubscriptionPlan[];
+  updatedAt?: Date;
+}
+
+const DEFAULT_SUBSCRIPTION_SETTINGS: SubscriptionSettings = {
+  monthlyPrice: 10,
+  trialDays: 0,
+  plans: [
+    { id: "monthly", months: 1, price: 10, discountPercent: 0, isActive: true },
+    { id: "quarterly", months: 3, price: 27, discountPercent: 10, isActive: true },
+    { id: "yearly", months: 12, price: 96, discountPercent: 20, isActive: true },
+  ],
+};
+
+export const getSubscriptionSettings = async (): Promise<SubscriptionSettings> => {
+  try {
+    const settingsRef = doc(db, COLLECTIONS.SETTINGS, "subscription");
+    const snapshot = await getDoc(settingsRef);
+    
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      return {
+        monthlyPrice: data.monthlyPrice ?? DEFAULT_SUBSCRIPTION_SETTINGS.monthlyPrice,
+        trialDays: data.trialDays ?? DEFAULT_SUBSCRIPTION_SETTINGS.trialDays,
+        plans: data.plans ?? DEFAULT_SUBSCRIPTION_SETTINGS.plans,
+        updatedAt: data.updatedAt ? timestampToDate(data.updatedAt) : undefined,
+      };
+    }
+    
+    return DEFAULT_SUBSCRIPTION_SETTINGS;
+  } catch (error) {
+    console.warn("Error fetching subscription settings:", error);
+    return DEFAULT_SUBSCRIPTION_SETTINGS;
+  }
+};
+
+export const updateSubscriptionSettings = async (
+  settings: Partial<SubscriptionSettings>,
+): Promise<void> => {
+  const settingsRef = doc(db, COLLECTIONS.SETTINGS, "subscription");
+  await setDoc(
+    settingsRef,
     {
       ...settings,
       updatedAt: serverTimestamp(),

@@ -12,6 +12,8 @@ import {
   Check,
   MapPin,
   User,
+  Gift,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +42,8 @@ import { Booking } from "@/types";
 const ProviderDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
-  const { isLocked } = useSubscriptionStatus();
+  const subscriptionStatus = useSubscriptionStatus();
+  const { isLocked, isTrial, trialDaysRemaining, isExpired, profile } = subscriptionStatus;
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
 
@@ -187,6 +190,58 @@ const ProviderDashboardPage: React.FC = () => {
       </header>
 
       <main className="container py-6">
+        {/* Trial Banner */}
+        {isTrial && trialDaysRemaining > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 p-4 border border-primary/20"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                <Gift className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground">
+                  {t("subscription.trialActive")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t("subscription.trialDaysRemaining", { days: trialDaysRemaining })}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => navigate("/provider/subscription")}
+              >
+                {t("subscription.subscribe")}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Trial Expiring Soon Warning */}
+        {isTrial && trialDaysRemaining <= 3 && trialDaysRemaining > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-2xl bg-yellow-500/10 p-4 border border-yellow-500/20"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-500/20">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-700 dark:text-yellow-400">
+                  {t("subscription.trialExpiringSoon")}
+                </h3>
+                <p className="text-sm text-yellow-600 dark:text-yellow-500">
+                  {t("subscription.subscribeToKeepAccess")}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <motion.div
           initial="hidden"
           animate="visible"

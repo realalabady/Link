@@ -90,7 +90,9 @@ export const useUsers = () => {
             email: data.email || "",
             name: data.name || "",
             displayName: data.displayName || data.name || "",
-            role: data.role || null,
+            roles: data.roles || [], // Multi-role support
+            role: data.role || null, // Legacy field
+            activeRole: data.activeRole || null,
             status: data.status || "ACTIVE",
             phone: data.phone || "",
             region: data.region || "",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -13,13 +13,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionSettings } from "@/hooks/queries/useSubscriptionSettings";
 
 // Admin contact information
 const ADMIN_CONTACT = {
-  phone: "+966-50-1234567", // Update with actual admin number
-  email: "support@linkboom.app",
-  whatsapp: "https://wa.me/966501234567", // WhatsApp link
+  phone: "+966 55 297 9710",
+  email: "60azsazs@gmail.com",
+  whatsapp: "https://wa.me/966552979710",
 };
 
 const SubscriptionPaymentPage: React.FC = () => {
@@ -31,33 +33,39 @@ const SubscriptionPaymentPage: React.FC = () => {
     "bank_transfer" | "card"
   >("bank_transfer");
 
-  const subscriptionPrice = 10; // SAR per month
-  const plans = [
-    {
-      id: "monthly",
-      name: t("subscription.monthlyPlan") || "Monthly",
-      months: 1,
-      price: subscriptionPrice,
-      savings: 0,
-      recommended: true,
-    },
-    {
-      id: "quarterly",
-      name: t("subscription.quarterlyPlan") || "Quarterly (3 Months)",
-      months: 3,
-      price: subscriptionPrice * 3 * 0.9, // 10% discount
-      savings: subscriptionPrice * 0.3,
-      recommended: false,
-    },
-    {
-      id: "yearly",
-      name: t("subscription.yearlyPlan") || "Yearly",
-      months: 12,
-      price: subscriptionPrice * 12 * 0.8, // 20% discount
-      savings: subscriptionPrice * 2.4,
-      recommended: false,
-    },
-  ];
+  // Fetch subscription settings from database
+  const { data: settings, isLoading: settingsLoading } = useSubscriptionSettings();
+
+  // Build plans from settings
+  const plans = useMemo(() => {
+    if (!settings?.plans) return [];
+    
+    const monthlyPlan = settings.plans.find(p => p.months === 1);
+    const monthlyPrice = monthlyPlan?.price || settings.monthlyPrice || 10;
+    
+    return settings.plans
+      .filter(plan => plan.isActive)
+      .map(plan => {
+        // Calculate savings based on what full price would be
+        const fullPrice = monthlyPrice * plan.months;
+        const savings = fullPrice - plan.price;
+        
+        return {
+          id: plan.id,
+          name: plan.months === 1 
+            ? (t("subscription.monthlyPlan") || "Monthly")
+            : plan.months === 3 
+              ? (t("subscription.quarterlyPlan") || "Quarterly (3 Months)")
+              : (t("subscription.yearlyPlan") || "Yearly"),
+          months: plan.months,
+          price: plan.price,
+          savings: savings > 0 ? savings : 0,
+          recommended: plan.months === 1, // Monthly is recommended by default
+          discountPercent: plan.discountPercent,
+        };
+      })
+      .sort((a, b) => a.months - b.months);
+  }, [settings, t]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -113,6 +121,24 @@ const SubscriptionPaymentPage: React.FC = () => {
             <h2 className="mb-4 text-lg font-semibold text-foreground">
               {t("subscription.choosePlan") || "Choose Your Plan"}
             </h2>
+            {settingsLoading ? (
+              <div className="grid gap-4 md:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="p-6">
+                    <Skeleton className="h-6 w-24 mb-2" />
+                    <Skeleton className="h-10 w-32 mb-2" />
+                    <Skeleton className="h-4 w-20" />
+                  </Card>
+                ))}
+              </div>
+            ) : plans.length === 0 ? (
+              <Card className="p-6 text-center">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  {t("subscription.noPlansAvailable") || "No subscription plans available at this time."}
+                </p>
+              </Card>
+            ) : (
             <div className="grid gap-4 md:grid-cols-3">
               {plans.map((plan) => (
                 <motion.div
@@ -160,17 +186,12 @@ const SubscriptionPaymentPage: React.FC = () => {
                             : `${plan.months} ${t("subscription.months") || "months"}`}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-muted-foreground">
-                          {t("subscription.autoRenew") || "Auto-renews"}
-                        </span>
-                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
               ))}
             </div>
+            )}
           </div>
 
           {/* Payment Method */}

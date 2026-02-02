@@ -106,7 +106,6 @@ const ProviderWalletPage: React.FC = () => {
 
         // Combine booking results
         const allBookings = [...acceptedSnap.docs, ...completedSnap.docs];
-        console.log("Bookings found:", allBookings.length);
 
         let totalEarnings = 0;
         const txns: typeof transactions = [];
@@ -115,14 +114,6 @@ const ProviderWalletPage: React.FC = () => {
           const booking = doc.data();
           const amount =
             booking.priceTotal || booking.price || booking.amount || 0;
-          console.log(
-            "Booking:",
-            doc.id,
-            "Amount:",
-            amount,
-            "Status:",
-            booking.status,
-          );
           totalEarnings += amount;
 
           txns.push({

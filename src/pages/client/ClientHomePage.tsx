@@ -341,7 +341,7 @@ const ClientHomePage: React.FC = () => {
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-sm font-semibold text-primary">
-                          {service.priceFrom} {t("common.currency")}
+                          {service.price} {t("common.currency")}
                         </span>
                         {service.provider && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">

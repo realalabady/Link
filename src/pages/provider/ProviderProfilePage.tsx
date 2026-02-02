@@ -19,6 +19,7 @@ import {
   Moon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
@@ -44,8 +45,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { updateUserProfile } from "@/lib/firestore";
 import { useProviderBookings } from "@/hooks/queries/useBookings";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
+import { sendEmailVerification } from "firebase/auth";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   useProviderProfile,
@@ -403,7 +405,7 @@ const SAUDI_REGIONS = [
 
 const ProviderProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user, logout, refreshUser } = useAuth();
+  const { user, firebaseUser, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const isArabic = i18n.language === "ar";
@@ -419,28 +421,51 @@ const ProviderProfilePage: React.FC = () => {
   const completedBookingsCount = providerBookings.filter(
     (b) => b.status === "COMPLETED",
   ).length;
-  const [verificationStatus, setVerificationStatus] = useState<
-    "NONE" | "PENDING" | "APPROVED"
-  >("NONE");
-  // Check if already requested (mock: in real app, fetch from verifications collection)
-  useEffect(() => {
-    // TODO: Replace with Firestore check for real status
-    setVerificationStatus(providerProfile?.isVerified ? "APPROVED" : "NONE");
-  }, [providerProfile]);
 
-  const handleRequestVerification = async () => {
-    setIsLoading(true);
+  // Email verification status (from Firebase Auth)
+  const isEmailVerified = firebaseUser?.emailVerified || false;
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+
+  // Trusted Provider badge (earned after 10 completed bookings)
+  const isTrustedProvider = providerProfile?.isVerified || false;
+  const progressToTrusted = Math.min(completedBookingsCount, 10);
+
+  const handleResendVerificationEmail = async () => {
+    if (!firebaseUser || isSendingVerification) return;
+    setIsSendingVerification(true);
     try {
-      await addDoc(collection(db, "verifications"), {
-        providerId: user?.uid,
-        status: "PENDING",
-        requestedAt: serverTimestamp(),
-      });
-      setVerificationStatus("PENDING");
+      await sendEmailVerification(firebaseUser);
+      // Show success message
+      alert(t("auth.verificationEmailSent"));
+    } catch (error) {
+      console.error("Error sending verification email:", error);
     } finally {
-      setIsLoading(false);
+      setIsSendingVerification(false);
     }
   };
+
+  // Auto-grant Trusted Provider badge when reaching 10 completed bookings
+  useEffect(() => {
+    const checkAndGrantBadge = async () => {
+      if (
+        completedBookingsCount >= 10 &&
+        !isTrustedProvider &&
+        user?.uid &&
+        providerProfile
+      ) {
+        try {
+          const providerRef = doc(db, "providers", user.uid);
+          await updateDoc(providerRef, {
+            isVerified: true,
+            verifiedAt: new Date(),
+          });
+        } catch (error) {
+          console.error("Error granting trusted badge:", error);
+        }
+      }
+    };
+    checkAndGrantBadge();
+  }, [completedBookingsCount, isTrustedProvider, user?.uid, providerProfile]);
   const updateProviderProfileMutation = useUpdateProviderProfile();
 
   const [formValues, setFormValues] = useState({
@@ -1000,26 +1025,40 @@ const ProviderProfilePage: React.FC = () => {
                   />
                 </div>
 
-                {/* Get Verified Button */}
+                {/* Email Verification */}
                 <div className="flex items-center justify-between p-4 border-b">
                   <div className="flex items-center gap-3">
                     <AlertCircle className="h-5 w-5 text-muted-foreground" />
-                    <span>Get Verified</span>
+                    <span>{t("profile.emailVerification")}</span>
                   </div>
-                  {verificationStatus === "APPROVED" ? (
-                    <Badge className="bg-green-500">Verified</Badge>
-                  ) : verificationStatus === "PENDING" ? (
-                    <Badge className="bg-yellow-500">Pending</Badge>
+                  {isEmailVerified ? (
+                    <Badge className="bg-green-500">{t("profile.verified")}</Badge>
                   ) : (
                     <Button
                       size="sm"
-                      disabled={completedBookingsCount < 10 || isLoading}
-                      onClick={handleRequestVerification}
+                      variant="outline"
+                      disabled={isSendingVerification}
+                      onClick={handleResendVerificationEmail}
                     >
-                      {isLoading
-                        ? "Requesting..."
-                        : `Get Verified (${completedBookingsCount}/10)`}
+                      {isSendingVerification
+                        ? t("common.sending")
+                        : t("profile.verifyEmail")}
                     </Button>
+                  )}
+                </div>
+
+                {/* Trusted Provider Badge */}
+                <div className="flex items-center justify-between p-4 border-b">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                    <span>{t("profile.trustedProviderBadge")}</span>
+                  </div>
+                  {isTrustedProvider ? (
+                    <Badge className="bg-green-500">{t("profile.trusted")}</Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {progressToTrusted}/10 {t("profile.bookingsCompleted")}
+                    </span>
                   )}
                 </div>
 

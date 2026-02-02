@@ -40,12 +40,20 @@ const ClientSearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const isArabic = i18n.language === "ar";
   const { user } = useAuth();
-  const { location } = useGeolocation();
+  const { location, requestLocation, hasPermission, loading: locationLoading } = useGeolocation();
+
+  // Auto-request location on mount if permission was previously granted or not yet asked
+  useEffect(() => {
+    if (!location && hasPermission !== false) {
+      requestLocation();
+    }
+  }, [hasPermission]);
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
+  const [maxDistance, setMaxDistance] = useState<number | null>(null); // null = no limit
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"nearest" | "rating">("nearest");
 
@@ -110,7 +118,14 @@ const ClientSearchPage: React.FC = () => {
 
   // Helper to get distance for a provider
   const getProviderDistance = (provider: ProviderProfile | undefined) => {
-    if (!location || !provider?.latitude || !provider?.longitude) return null;
+    if (!location) {
+      // User's location not available
+      return null;
+    }
+    if (!provider?.latitude || !provider?.longitude) {
+      // Provider hasn't set their location
+      return null;
+    }
     return calculateDistanceKm(
       location.lat,
       location.lng,
@@ -154,7 +169,7 @@ const ClientSearchPage: React.FC = () => {
     return map;
   }, [categoriesWithServices]);
 
-  // Filter services based on search, category, and price
+  // Filter services based on search, category, price, and distance
   const filteredServices = useMemo(() => {
     const filtered = services.filter((service) => {
       const matchesSearch =
@@ -167,10 +182,28 @@ const ClientSearchPage: React.FC = () => {
         selectedCategories.includes(service.categoryId);
 
       const matchesPrice =
-        service.priceFrom >= priceRange[0] &&
-        service.priceFrom <= priceRange[1];
+        service.price >= priceRange[0] &&
+        service.price <= priceRange[1];
 
-      return matchesSearch && matchesCategory && matchesPrice;
+      // Distance filter
+      let matchesDistance = true;
+      if (maxDistance !== null && location) {
+        const provider = providerMap[service.providerId];
+        if (provider?.latitude && provider?.longitude) {
+          const distance = calculateDistanceKm(
+            location.lat,
+            location.lng,
+            provider.latitude,
+            provider.longitude
+          );
+          matchesDistance = distance <= maxDistance;
+        } else {
+          // If provider has no location, exclude when distance filter is active
+          matchesDistance = false;
+        }
+      }
+
+      return matchesSearch && matchesCategory && matchesPrice && matchesDistance;
     });
 
     if (sortBy === "rating") {
@@ -236,6 +269,7 @@ const ClientSearchPage: React.FC = () => {
     searchQuery,
     selectedCategories,
     priceRange,
+    maxDistance,
     sortBy,
     providerMap,
     user,
@@ -358,6 +392,62 @@ const ClientSearchPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Distance Filter */}
+                  {location && (
+                    <div>
+                      <div className="mb-3 flex items-center justify-between">
+                        <label className="text-sm font-medium">
+                          {t("search.maxDistance")}
+                        </label>
+                        {maxDistance !== null && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 text-xs text-muted-foreground"
+                            onClick={() => setMaxDistance(null)}
+                          >
+                            {t("search.noLimit")}
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[5, 10, 25, 50].map((km) => (
+                          <Button
+                            key={km}
+                            variant={maxDistance === km ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setMaxDistance(maxDistance === km ? null : km)}
+                            className="rounded-lg"
+                          >
+                            {km} {t("search.km")}
+                          </Button>
+                        ))}
+                      </div>
+                      {maxDistance !== null && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {t("search.showingWithin", { distance: maxDistance })}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {!location && (
+                    <button
+                      onClick={requestLocation}
+                      disabled={locationLoading}
+                      className="w-full rounded-lg bg-primary/10 p-3 text-start transition-colors hover:bg-primary/20"
+                    >
+                      <div className="flex items-center gap-2 text-sm text-primary">
+                        <Navigation className="h-4 w-4" />
+                        <span>
+                          {locationLoading
+                            ? t("search.gettingLocation")
+                            : t("search.tapToEnableLocation")}
+                        </span>
+                      </div>
+                    </button>
+                  )}
+
                   <Button
                     className="w-full"
                     onClick={() => setFilterOpen(false)}
@@ -372,6 +462,38 @@ const ClientSearchPage: React.FC = () => {
       </header>
 
       <main className="container py-4">
+        {/* Location Request Banner */}
+        {!location && hasPermission !== false && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4"
+          >
+            <button
+              onClick={requestLocation}
+              disabled={locationLoading}
+              className="flex w-full items-center justify-between rounded-xl bg-primary/10 p-4 text-start transition-colors hover:bg-primary/20"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                  <Navigation className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">
+                    {t("search.enableLocationTitle")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("search.enableLocationDescription")}
+                  </p>
+                </div>
+              </div>
+              {locationLoading && (
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              )}
+            </button>
+          </motion.div>
+        )}
+
         <motion.div
           initial="hidden"
           animate="visible"
@@ -428,6 +550,22 @@ const ClientSearchPage: React.FC = () => {
               <h2 className="font-medium text-foreground">
                 {t("search.results")} ({filteredServices.length})
               </h2>
+              {/* Location status indicator */}
+              {location ? (
+                <Badge variant="secondary" className="gap-1 text-green-600">
+                  <Navigation className="h-3 w-3" />
+                  {t("search.locationEnabled")}
+                </Badge>
+              ) : (
+                <Badge 
+                  variant="outline" 
+                  className="cursor-pointer gap-1 text-muted-foreground hover:text-primary"
+                  onClick={requestLocation}
+                >
+                  <Navigation className="h-3 w-3" />
+                  {t("search.enableLocation")}
+                </Badge>
+              )}
             </div>
 
             {loadingServices || loadingProviders ? (
@@ -499,28 +637,40 @@ const ClientSearchPage: React.FC = () => {
                             </Badge>
 
                             {/* Distance */}
-                            {distance !== null && (
+                            {distance !== null ? (
                               <Badge variant="outline" className="gap-1 text-primary">
                                 <Navigation className="h-3 w-3" />
                                 {formatDistance(distance)}
                               </Badge>
-                            )}
-
-                            {/* Location - show only if no distance */}
-                            {distance === null && provider && (
-                              <Badge variant="outline" className="gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {provider.area}
+                            ) : location && provider?.latitude && provider?.longitude ? (
+                              // Both locations available but still null - shouldn't happen
+                              <Badge variant="outline" className="gap-1 text-orange-500">
+                                <Navigation className="h-3 w-3" />
+                                ???
                               </Badge>
+                            ) : !location ? (
+                              // User location not available - show area instead
+                              provider && (
+                                <Badge variant="outline" className="gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {provider.area || provider.city}
+                                </Badge>
+                              )
+                            ) : (
+                              // Provider has no location set - show their area
+                              provider && (
+                                <Badge variant="outline" className="gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {provider.area || provider.city}
+                                </Badge>
+                              )
                             )}
                           </div>
 
                           {/* Price */}
                           <div className="mt-2 flex items-center justify-between">
                             <span className="font-semibold text-primary">
-                              {service.priceFrom === service.priceTo
-                                ? `${service.priceFrom} SAR`
-                                : `${service.priceFrom} - ${service.priceTo} SAR`}
+                              {service.price} SAR
                             </span>
                             <ChevronRight className="h-5 w-5 text-muted-foreground rtl:rotate-180" />
                           </div>

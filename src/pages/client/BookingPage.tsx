@@ -115,7 +115,7 @@ const BookingPage: React.FC = () => {
         endAt,
         bookingDate: startAt.toISOString().split("T")[0], // "YYYY-MM-DD"
         status: "PENDING",
-        priceTotal: service.priceFrom,
+        priceTotal: service.price,
         depositAmount: 0,
         addressText:
           selectedLocation === "AT_PROVIDER"
@@ -130,13 +130,13 @@ const BookingPage: React.FC = () => {
         payType: "FULL",
         status: "CAPTURED",
         gateway: "MOYASAR",
-        amount: service.priceFrom,
+        amount: service.price,
         currency: "SAR",
-        amountSar: service.priceFrom,
+        amountSar: service.price,
         orderId: payload.paymentId,
         platformFee: 0,
         gatewayFee: 0,
-        providerAmount: service.priceFrom,
+        providerAmount: service.price,
       });
 
       // Send booking confirmation email
@@ -250,7 +250,7 @@ const BookingPage: React.FC = () => {
                 </span>
               </div>
               <p className="font-semibold text-primary">
-                {service.priceFrom} SAR
+                {service.price} SAR
               </p>
             </div>
           </div>
@@ -384,7 +384,7 @@ const BookingPage: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>{t("booking.paymentRequired")}</DialogTitle>
                 <DialogDescription>
-                  {service.title} - {service.priceFrom} SAR
+                  {service.title} - {service.price} SAR
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
@@ -423,7 +423,7 @@ const BookingPage: React.FC = () => {
                 )}
 
                 <MoyasarCheckout
-                  amount={service.priceFrom}
+                  amount={service.price}
                   onSuccess={handleMoyasarPaymentSuccess}
                   onError={(message) => setPaymentError(message)}
                   metadata={{

@@ -73,8 +73,7 @@ service cloud.firestore {
         && (isClient() || !hasUserDoc())
         && request.resource.data.serviceId != null
         && serviceDoc(request.resource.data.serviceId).data.providerId == request.resource.data.providerId
-        && request.resource.data.priceTotal >= serviceDoc(request.resource.data.serviceId).data.priceFrom
-        && request.resource.data.priceTotal <= serviceDoc(request.resource.data.serviceId).data.priceTo;
+        && request.resource.data.priceTotal == serviceDoc(request.resource.data.serviceId).data.price;
       allow update: if signedIn() && (
         (isClient() && resource.data.clientId == request.auth.uid) ||
         (isProvider() && resource.data.providerId == request.auth.uid) ||

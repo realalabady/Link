@@ -15,6 +15,7 @@ import {
   X,
   Loader2,
   FolderOpen,
+  Settings,
 } from "lucide-react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
@@ -42,6 +43,10 @@ import { usePayouts } from "@/hooks/queries/usePayouts";
 import { usePayments } from "@/hooks/queries/usePayments";
 import { useBanner, useUpdateBanner } from "@/hooks/queries/useBanner";
 import {
+  useSubscriptionSettings,
+  useUpdateSubscriptionSettings,
+} from "@/hooks/queries/useSubscriptionSettings";
+import {
   useAllCategories,
   useCreateCategory,
   useUpdateCategory,
@@ -68,12 +73,25 @@ const AdminDashboardPage: React.FC = () => {
     useAllCategories();
   const { data: banner } = useBanner();
   const updateBanner = useUpdateBanner();
+  const { data: subscriptionSettings } = useSubscriptionSettings();
+  const updateSubscriptionSettings = useUpdateSubscriptionSettings();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
 
   // Banner form state
   const [bannerForm, setBannerForm] = useState<Partial<BannerSettings>>({});
+
+  // Subscription settings form state
+  const [subscriptionForm, setSubscriptionForm] = useState({
+    monthlyPrice: 99,
+    trialDays: 0,
+    plans: [
+      { id: "monthly", months: 1, price: 10, discountPercent: 0, isActive: true },
+      { id: "quarterly", months: 3, price: 27, discountPercent: 10, isActive: true },
+      { id: "yearly", months: 12, price: 96, discountPercent: 20, isActive: true },
+    ] as Array<{ id: string; months: number; price: number; discountPercent: number; isActive: boolean }>,
+  });
 
   // Category management state
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -100,12 +118,37 @@ const AdminDashboardPage: React.FC = () => {
     }
   }, [banner]);
 
+  // Initialize subscription form when data loads
+  React.useEffect(() => {
+    if (subscriptionSettings) {
+      setSubscriptionForm({
+        monthlyPrice: subscriptionSettings.monthlyPrice ?? 99,
+        trialDays: subscriptionSettings.trialDays ?? 0,
+        plans: subscriptionSettings.plans || [
+          { id: "monthly", months: 1, price: 10, discountPercent: 0, isActive: true },
+          { id: "quarterly", months: 3, price: 27, discountPercent: 10, isActive: true },
+          { id: "yearly", months: 12, price: 96, discountPercent: 20, isActive: true },
+        ],
+      });
+    }
+  }, [subscriptionSettings]);
+
   const handleBannerUpdate = async () => {
     try {
       await updateBanner.mutateAsync(bannerForm);
       toast.success(t("admin.bannerUpdated"));
     } catch (error) {
       console.error("Failed to update banner:", error);
+      toast.error(t("common.error"));
+    }
+  };
+
+  const handleSubscriptionUpdate = async () => {
+    try {
+      await updateSubscriptionSettings.mutateAsync(subscriptionForm);
+      toast.success(t("admin.subscriptionUpdated"));
+    } catch (error) {
+      console.error("Failed to update subscription settings:", error);
       toast.error(t("common.error"));
     }
   };
@@ -1213,6 +1256,153 @@ const AdminDashboardPage: React.FC = () => {
             {updateBanner.isPending
               ? t("common.saving")
               : t("admin.updateBanner")}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Subscription Settings */}
+      <Card className="mb-8 border-dashed">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            {t("admin.subscriptionSettings")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Basic Settings */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="monthly-price">
+                {t("admin.monthlyPrice")} ({t("common.currency")})
+              </Label>
+              <Input
+                id="monthly-price"
+                type="number"
+                min="0"
+                step="1"
+                value={subscriptionForm.monthlyPrice}
+                onChange={(e) =>
+                  setSubscriptionForm((prev) => ({
+                    ...prev,
+                    monthlyPrice: parseFloat(e.target.value) || 0,
+                  }))
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("admin.monthlyPriceHint")}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="trial-days">{t("admin.trialDays")}</Label>
+              <Input
+                id="trial-days"
+                type="number"
+                min="0"
+                step="1"
+                value={subscriptionForm.trialDays}
+                onChange={(e) =>
+                  setSubscriptionForm((prev) => ({
+                    ...prev,
+                    trialDays: parseInt(e.target.value) || 0,
+                  }))
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("admin.trialDaysHint")}
+              </p>
+            </div>
+          </div>
+
+          {/* Subscription Plans */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold">
+                {t("admin.subscriptionPlans")}
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("admin.subscriptionPlansHint")}
+            </p>
+            
+            <div className="grid gap-4 sm:grid-cols-3">
+              {subscriptionForm.plans.map((plan, index) => (
+                <Card key={plan.id} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">
+                        {plan.months === 1 
+                          ? t("subscription.monthlyPlan") 
+                          : plan.months === 3 
+                            ? t("subscription.quarterlyPlan")
+                            : t("subscription.yearlyPlan")}
+                      </span>
+                      <Switch
+                        checked={plan.isActive}
+                        onCheckedChange={(checked) => {
+                          const newPlans = [...subscriptionForm.plans];
+                          newPlans[index] = { ...plan, isActive: checked };
+                          setSubscriptionForm((prev) => ({ ...prev, plans: newPlans }));
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {plan.months} {t("subscription.months")}
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-xs">{t("admin.planPrice")} (SAR)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={plan.price}
+                        onChange={(e) => {
+                          const newPlans = [...subscriptionForm.plans];
+                          newPlans[index] = { ...plan, price: parseFloat(e.target.value) || 0 };
+                          setSubscriptionForm((prev) => ({ ...prev, plans: newPlans }));
+                        }}
+                        disabled={!plan.isActive}
+                        className="h-8"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-xs">{t("admin.discountPercent")} (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={plan.discountPercent}
+                        onChange={(e) => {
+                          const newPlans = [...subscriptionForm.plans];
+                          newPlans[index] = { ...plan, discountPercent: parseFloat(e.target.value) || 0 };
+                          setSubscriptionForm((prev) => ({ ...prev, plans: newPlans }));
+                        }}
+                        disabled={!plan.isActive}
+                        className="h-8"
+                      />
+                    </div>
+                    
+                    {plan.months > 1 && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("admin.effectiveMonthlyRate")}: {(plan.price / plan.months).toFixed(2)} SAR
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSubscriptionUpdate}
+            disabled={updateSubscriptionSettings.isPending}
+            className="w-full sm:w-auto"
+          >
+            {updateSubscriptionSettings.isPending
+              ? t("common.saving")
+              : t("admin.saveSubscription")}
           </Button>
         </CardContent>
       </Card>

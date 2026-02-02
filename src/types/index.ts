@@ -86,7 +86,8 @@ export interface ProviderProfile {
   phone?: string;
   latitude?: number;
   longitude?: number;
-  isVerified: boolean;
+  isVerified: boolean; // "Trusted Provider" badge - earned after 10 completed bookings
+  identityVerified?: boolean; // Account/identity verification - required to add services
   ratingAvg: number;
   ratingCount: number;
   radiusKm?: number;
@@ -98,7 +99,7 @@ export interface ProviderProfile {
   bankIBAN?: string;
   // Subscription fields
   isSubscribed: boolean;
-  subscriptionStatus: "ACTIVE" | "EXPIRED" | "CANCELLED";
+  subscriptionStatus: "ACTIVE" | "TRIAL" | "EXPIRED" | "CANCELLED";
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
   subscriptionPrice?: number;
@@ -134,8 +135,7 @@ export interface Service {
   categoryName?: string;
   title: string;
   description: string;
-  priceFrom: number;
-  priceTo: number;
+  price: number;
   durationMin: number;
   locationType: LocationType;
   isActive: boolean;

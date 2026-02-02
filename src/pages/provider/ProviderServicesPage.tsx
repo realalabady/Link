@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -12,6 +13,7 @@ import {
   ImagePlus,
   X,
   Loader2,
+  Shield,
 } from "lucide-react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
@@ -36,6 +38,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -50,6 +53,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { sendEmailVerification } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import {
   useProviderServices,
@@ -66,9 +71,11 @@ import { z } from "zod";
 
 const ProviderServicesPage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
+  const navigate = useNavigate();
   const { isLocked } = useSubscriptionStatus();
   const isArabic = i18n.language === "ar";
+  const [isSendingVerification, setIsSendingVerification] = React.useState(false);
 
   // State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -84,12 +91,14 @@ const ProviderServicesPage: React.FC = () => {
     description: "",
     categoryId: "",
     customCategory: "",
-    priceFrom: "",
-    priceTo: "",
+    price: "",
     durationMin: "",
     locationType: "AT_PROVIDER" as LocationType,
     mediaUrls: [] as string[],
   });
+
+  // Form validation errors
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Fetch data
   const { data: services = [], isLoading } = useProviderServices(
@@ -118,12 +127,12 @@ const ProviderServicesPage: React.FC = () => {
       description: "",
       categoryId: "",
       customCategory: "",
-      priceFrom: "",
-      priceTo: "",
+      price: "",
       durationMin: "",
       locationType: "AT_PROVIDER",
       mediaUrls: [],
     });
+    setFormErrors({});
     setEditingService(null);
   };
 
@@ -140,14 +149,28 @@ const ProviderServicesPage: React.FC = () => {
       });
       return;
     }
-    if (providerProfile && !providerProfile.isVerified) {
-      toast.error(t("services.verificationRequiredTitle"), {
-        description: t("services.verificationRequiredDescription"),
+    // Check if email is verified
+    if (!firebaseUser?.emailVerified) {
+      toast.error(t("services.emailVerificationRequiredTitle"), {
+        description: t("services.emailVerificationRequiredDescription"),
       });
       return;
     }
     resetForm();
     setIsFormOpen(true);
+  };
+
+  const handleResendVerification = async () => {
+    if (!firebaseUser || isSendingVerification) return;
+    setIsSendingVerification(true);
+    try {
+      await sendEmailVerification(firebaseUser);
+      toast.success(t("auth.verificationEmailSent"));
+    } catch (error) {
+      toast.error(t("auth.verificationEmailError"));
+    } finally {
+      setIsSendingVerification(false);
+    }
   };
 
   const openEditForm = (service: Service) => {
@@ -161,8 +184,7 @@ const ProviderServicesPage: React.FC = () => {
       customCategory: isCustomCategory
         ? service.categoryName || service.categoryId
         : "",
-      priceFrom: service.priceFrom.toString(),
-      priceTo: service.priceTo.toString(),
+      price: service.price.toString(),
       durationMin: service.durationMin.toString(),
       locationType: service.locationType,
       mediaUrls: service.mediaUrls || [],
@@ -238,22 +260,51 @@ const ProviderServicesPage: React.FC = () => {
   const handleSubmit = async () => {
     if (!user) return;
 
-    const parsedPriceFrom = parseFloat(formData.priceFrom);
-    const parsedPriceTo = parseFloat(formData.priceTo);
+    // Clear previous errors
+    setFormErrors({});
+    const errors: Record<string, string> = {};
+
+    // Validate fields
+    if (!formData.title.trim() || formData.title.trim().length < 3) {
+      errors.title = t("services.errors.titleRequired");
+    }
+    if (!formData.description.trim() || formData.description.trim().length < 10) {
+      errors.description = t("services.errors.descriptionRequired");
+    }
+    if (!formData.categoryId) {
+      errors.categoryId = t("services.errors.categoryRequired");
+    }
+    if (formData.categoryId === "__custom__" && !formData.customCategory.trim()) {
+      errors.customCategory = t("services.errors.customCategoryRequired");
+    }
+    
+    const parsedPrice = parseFloat(formData.price);
+    if (!formData.price || isNaN(parsedPrice) || parsedPrice < 1) {
+      errors.price = t("services.errors.priceRequired");
+    }
+    
     const parsedDuration = parseInt(formData.durationMin);
+    if (!formData.durationMin || isNaN(parsedDuration) || parsedDuration < 15) {
+      errors.durationMin = t("services.errors.durationRequired");
+    }
+
+    // If there are errors, show them and stop
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error(t("common.error"), {
+        description: t("services.validationError"),
+      });
+      return;
+    }
 
     const serviceSchema = z
       .object({
         title: z.string().min(3),
         description: z.string().min(10),
         categoryId: z.string().min(1),
-        priceFrom: z.number().min(1),
-        priceTo: z.number().min(1),
+        price: z.number().min(1),
         durationMin: z.number().min(15),
         locationType: z.enum(["AT_PROVIDER", "AT_CLIENT", "BOTH"]),
-      })
-      .refine((data) => data.priceTo >= data.priceFrom, {
-        path: ["priceTo"],
       });
 
     const isCustom = formData.categoryId === "__custom__";
@@ -293,8 +344,7 @@ const ProviderServicesPage: React.FC = () => {
       title: formData.title.trim(),
       description: formData.description.trim(),
       categoryId: resolvedCategoryId,
-      priceFrom: parsedPriceFrom,
-      priceTo: isNaN(parsedPriceTo) ? parsedPriceFrom : parsedPriceTo,
+      price: parsedPrice,
       durationMin: parsedDuration,
       locationType: formData.locationType,
     });
@@ -311,8 +361,7 @@ const ProviderServicesPage: React.FC = () => {
       description: validation.data.description,
       categoryId: validation.data.categoryId,
       categoryName: resolvedCategoryName || undefined,
-      priceFrom: validation.data.priceFrom,
-      priceTo: validation.data.priceTo,
+      price: validation.data.price,
       durationMin: validation.data.durationMin,
       locationType: validation.data.locationType,
       providerId: user.uid,
@@ -375,6 +424,9 @@ const ProviderServicesPage: React.FC = () => {
     visible: { opacity: 1, y: 0 },
   };
 
+  // Check if email verification is needed
+  const needsEmailVerification = firebaseUser && !firebaseUser.emailVerified;
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -387,7 +439,7 @@ const ProviderServicesPage: React.FC = () => {
             onClick={openAddForm}
             size="sm"
             className="gap-2"
-            disabled={!isProfileComplete || isLocked}
+            disabled={!isProfileComplete || isLocked || needsEmailVerification}
           >
             <Plus className="h-4 w-4" />
             {t("services.addService")}
@@ -396,6 +448,41 @@ const ProviderServicesPage: React.FC = () => {
       </header>
 
       <main className="container py-4">
+        {/* Email Verification Banner */}
+        {needsEmailVerification && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+          >
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-medium text-amber-800 dark:text-amber-200">
+                  {t("services.emailVerificationRequiredTitle")}
+                </h3>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  {t("services.emailVerificationRequiredDescription")}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900"
+                  onClick={handleResendVerification}
+                  disabled={isSendingVerification}
+                >
+                  {isSendingVerification ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Shield className="h-4 w-4 mr-2" />
+                  )}
+                  {t("services.resendVerificationEmail")}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -467,9 +554,7 @@ const ProviderServicesPage: React.FC = () => {
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <DollarSign className="h-4 w-4" />
-                          {service.priceFrom === service.priceTo
-                            ? `${service.priceFrom} SAR`
-                            : `${service.priceFrom} - ${service.priceTo} SAR`}
+                          {service.price} SAR
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
@@ -534,36 +619,49 @@ const ProviderServicesPage: React.FC = () => {
                 ? t("services.editService")
                 : t("services.addService")}
             </SheetTitle>
+            <SheetDescription>
+              {editingService
+                ? t("services.editServiceDescription")
+                : t("services.addServiceDescription")}
+            </SheetDescription>
           </SheetHeader>
 
           <div className="mt-6 space-y-4">
             {/* Title */}
             <div>
-              <Label htmlFor="title">{t("services.title")}</Label>
+              <Label htmlFor="title">{t("services.title")} <span className="text-destructive">*</span></Label>
               <Input
                 id="title"
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, title: e.target.value });
+                  if (formErrors.title) setFormErrors({ ...formErrors, title: "" });
+                }}
                 placeholder={t("services.titlePlaceholder")}
-                className="mt-1"
+                className={`mt-1 ${formErrors.title ? "border-destructive" : ""}`}
               />
+              {formErrors.title && (
+                <p className="mt-1 text-xs text-destructive">{formErrors.title}</p>
+              )}
             </div>
 
             {/* Description */}
             <div>
-              <Label htmlFor="description">{t("services.description")}</Label>
+              <Label htmlFor="description">{t("services.description")} <span className="text-destructive">*</span></Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, description: e.target.value });
+                  if (formErrors.description) setFormErrors({ ...formErrors, description: "" });
+                }}
                 placeholder={t("services.descriptionPlaceholder")}
-                className="mt-1"
+                className={`mt-1 ${formErrors.description ? "border-destructive" : ""}`}
                 rows={3}
               />
+              {formErrors.description && (
+                <p className="mt-1 text-xs text-destructive">{formErrors.description}</p>
+              )}
             </div>
 
             {/* Service Images */}
@@ -632,14 +730,15 @@ const ProviderServicesPage: React.FC = () => {
 
             {/* Category */}
             <div>
-              <Label>{t("services.category")}</Label>
+              <Label>{t("services.category")} <span className="text-destructive">*</span></Label>
               <Select
                 value={formData.categoryId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, categoryId: value })
-                }
+                onValueChange={(value) => {
+                  setFormData({ ...formData, categoryId: value });
+                  if (formErrors.categoryId) setFormErrors({ ...formErrors, categoryId: "" });
+                }}
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className={`mt-1 ${formErrors.categoryId ? "border-destructive" : ""}`}>
                   <SelectValue placeholder={t("services.selectCategory")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -660,71 +759,71 @@ const ProviderServicesPage: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {formErrors.categoryId && (
+                <p className="mt-1 text-xs text-destructive">{formErrors.categoryId}</p>
+              )}
             </div>
 
             {formData.categoryId === "__custom__" && (
               <div>
                 <Label htmlFor="customCategory">
-                  {t("services.customCategory")}
+                  {t("services.customCategory")} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="customCategory"
                   value={formData.customCategory}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       customCategory: e.target.value,
-                    })
-                  }
+                    });
+                    if (formErrors.customCategory) setFormErrors({ ...formErrors, customCategory: "" });
+                  }}
                   placeholder={t("services.customCategoryPlaceholder")}
-                  className="mt-1"
+                  className={`mt-1 ${formErrors.customCategory ? "border-destructive" : ""}`}
                 />
+                {formErrors.customCategory && (
+                  <p className="mt-1 text-xs text-destructive">{formErrors.customCategory}</p>
+                )}
               </div>
             )}
 
-            {/* Price Range */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="priceFrom">{t("services.priceFrom")}</Label>
-                <Input
-                  id="priceFrom"
-                  type="number"
-                  value={formData.priceFrom}
-                  onChange={(e) =>
-                    setFormData({ ...formData, priceFrom: e.target.value })
-                  }
-                  placeholder="0"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="priceTo">{t("services.priceTo")}</Label>
-                <Input
-                  id="priceTo"
-                  type="number"
-                  value={formData.priceTo}
-                  onChange={(e) =>
-                    setFormData({ ...formData, priceTo: e.target.value })
-                  }
-                  placeholder="0"
-                  className="mt-1"
-                />
-              </div>
+            {/* Price */}
+            <div>
+              <Label htmlFor="price">{t("services.price")} <span className="text-destructive">*</span></Label>
+              <Input
+                id="price"
+                type="number"
+                value={formData.price}
+                onChange={(e) => {
+                  setFormData({ ...formData, price: e.target.value });
+                  if (formErrors.price) setFormErrors({ ...formErrors, price: "" });
+                }}
+                placeholder="0"
+                className={`mt-1 ${formErrors.price ? "border-destructive" : ""}`}
+              />
+              {formErrors.price && (
+                <p className="mt-1 text-xs text-destructive">{formErrors.price}</p>
+              )}
             </div>
 
             {/* Duration */}
             <div>
-              <Label htmlFor="duration">{t("services.duration")}</Label>
+              <Label htmlFor="duration">{t("services.duration")} <span className="text-destructive">*</span></Label>
               <Input
                 id="duration"
                 type="number"
                 value={formData.durationMin}
-                onChange={(e) =>
-                  setFormData({ ...formData, durationMin: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, durationMin: e.target.value });
+                  if (formErrors.durationMin) setFormErrors({ ...formErrors, durationMin: "" });
+                }}
                 placeholder="60"
-                className="mt-1"
+                className={`mt-1 ${formErrors.durationMin ? "border-destructive" : ""}`}
               />
+              {formErrors.durationMin && (
+                <p className="mt-1 text-xs text-destructive">{formErrors.durationMin}</p>
+              )}
               <p className="mt-1 text-xs text-muted-foreground">
                 {t("services.durationHint")}
               </p>
@@ -766,7 +865,7 @@ const ProviderServicesPage: React.FC = () => {
                 !formData.categoryId ||
                 (formData.categoryId === "__custom__" &&
                   !formData.customCategory.trim()) ||
-                !formData.priceFrom ||
+                !formData.price ||
                 createServiceMutation.isPending ||
                 updateServiceMutation.isPending
               }

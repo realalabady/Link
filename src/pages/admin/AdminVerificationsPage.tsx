@@ -130,12 +130,12 @@ const AdminVerificationsPage: React.FC = () => {
 
       await updateDoc(verificationRef, updateData);
 
-      // If approved, update provider's isVerified flag
+      // If approved, update provider's identityVerified flag (allows adding services)
       if (actionType === "approve") {
         const providerRef = doc(db, "providers", selectedRequest.providerId);
         await updateDoc(providerRef, {
-          isVerified: true,
-          verifiedAt: new Date(),
+          identityVerified: true,
+          identityVerifiedAt: new Date(),
         });
       }
 

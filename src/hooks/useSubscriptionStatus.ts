@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProviderProfile } from "./queries/useProviders";
+import { checkAndExpireTrial } from "@/lib/firestore";
 import { ProviderProfile } from "@/types";
 
 interface SubscriptionStatus {
   isLocked: boolean;
   isExpired: boolean;
+  isTrial: boolean;
+  trialDaysRemaining: number;
   daysUntilExpiry: number;
   profile: ProviderProfile | null;
   isLoading: boolean;
@@ -14,23 +17,42 @@ interface SubscriptionStatus {
 /**
  * Hook to check provider's subscription and account status
  * Returns whether account is locked and days until expiration
+ * Also checks and expires trials on-access
  */
 export const useSubscriptionStatus = (): SubscriptionStatus => {
   const { user } = useAuth();
-  const { data: profile, isLoading } = useProviderProfile(user?.uid || "");
+  const { data: profile, isLoading, refetch } = useProviderProfile(user?.uid || "");
   const [status, setStatus] = useState<SubscriptionStatus>({
     isLocked: false,
     isExpired: false,
+    isTrial: false,
+    trialDaysRemaining: 0,
     daysUntilExpiry: -1,
     profile: null,
     isLoading: true,
   });
+
+  // Check and expire trial on-access
+  useEffect(() => {
+    const checkTrial = async () => {
+      if (profile?.subscriptionStatus === "TRIAL" && user?.uid) {
+        const wasExpired = await checkAndExpireTrial(user.uid);
+        if (wasExpired) {
+          // Refetch profile to get updated status
+          refetch();
+        }
+      }
+    };
+    checkTrial();
+  }, [profile?.subscriptionStatus, user?.uid, refetch]);
 
   useEffect(() => {
     if (!profile) {
       setStatus({
         isLocked: false,
         isExpired: false,
+        isTrial: false,
+        trialDaysRemaining: 0,
         daysUntilExpiry: -1,
         profile: null,
         isLoading,
@@ -39,22 +61,44 @@ export const useSubscriptionStatus = (): SubscriptionStatus => {
     }
 
     const isLocked = profile.accountStatus === "LOCKED";
+    const isTrial = profile.subscriptionStatus === "TRIAL";
+    // Treat undefined or missing status as expired
     const isExpired =
+      !profile.subscriptionStatus ||
       profile.subscriptionStatus === "EXPIRED" ||
       profile.subscriptionStatus === "CANCELLED";
 
     let daysUntilExpiry = -1;
+    let trialDaysRemaining = 0;
     if (profile.subscriptionEndDate) {
       const today = new Date();
-      const endDate = new Date(profile.subscriptionEndDate);
+      // Handle Firestore Timestamp or regular Date
+      let endDate: Date;
+      const rawDate = profile.subscriptionEndDate as any;
+      if (rawDate?.toDate && typeof rawDate.toDate === "function") {
+        // Firestore Timestamp
+        endDate = rawDate.toDate();
+      } else if (rawDate instanceof Date) {
+        endDate = rawDate;
+      } else {
+        endDate = new Date(rawDate);
+      }
+      
       daysUntilExpiry = Math.ceil(
         (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
+      
+      // If in trial, calculate trial days remaining
+      if (isTrial) {
+        trialDaysRemaining = Math.max(0, daysUntilExpiry);
+      }
     }
 
     setStatus({
       isLocked,
       isExpired,
+      isTrial,
+      trialDaysRemaining,
       daysUntilExpiry,
       profile,
       isLoading,

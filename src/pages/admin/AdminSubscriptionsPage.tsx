@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Edit2,
   CheckCircle,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,7 @@ import {
   getProviderProfile,
   verifySubscriptionPayment,
   updateSubscriptionStatus,
+  grantTrialToProvider,
 } from "@/lib/firestore";
 import { useToast } from "@/components/ui/use-toast";
 import { Label } from "@/components/ui/label";
@@ -50,7 +52,7 @@ const AdminSubscriptionsPage: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "ALL" | "ACTIVE" | "EXPIRED" | "LOCKED"
+    "ALL" | "ACTIVE" | "TRIAL" | "EXPIRED" | "LOCKED"
   >("ALL");
   const [lockDialog, setLockDialog] = useState<{
     open: boolean;
@@ -79,15 +81,27 @@ const AdminSubscriptionsPage: React.FC = () => {
     paymentMethod: "BANK_TRANSFER",
   });
 
+  const [trialDialog, setTrialDialog] = useState<{
+    open: boolean;
+    provider: ProviderProfile | null;
+    trialDays: string;
+  }>({
+    open: false,
+    provider: null,
+    trialDays: "14",
+  });
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
 
   const { data: users = [], isLoading } = useUsers();
   const updateProviderMutation = useUpdateProviderProfile();
 
-  // Get all providers
+  // Get all providers - check both roles array and legacy role field
   const providers = useMemo(() => {
-    return users.filter((user) => user.role === "PROVIDER");
+    return users.filter((user) => 
+      user.roles?.includes("PROVIDER") || user.role === "PROVIDER"
+    );
   }, [users]);
 
   // Get provider profiles and subscription data
@@ -142,6 +156,8 @@ const AdminSubscriptionsPage: React.FC = () => {
         if (statusFilter === "ALL") return matchesSearch;
         if (statusFilter === "LOCKED")
           return matchesSearch && item.profile?.accountStatus === "LOCKED";
+        if (statusFilter === "TRIAL")
+          return matchesSearch && item.profile?.subscriptionStatus === "TRIAL";
         return (
           matchesSearch && item.profile?.subscriptionStatus === statusFilter
         );
@@ -154,12 +170,15 @@ const AdminSubscriptionsPage: React.FC = () => {
     const active = profiles.filter(
       (p) => p.subscriptionStatus === "ACTIVE" && p.accountStatus === "ACTIVE",
     ).length;
+    const trial = profiles.filter(
+      (p) => p.subscriptionStatus === "TRIAL",
+    ).length;
     const expired = profiles.filter(
-      (p) => p.subscriptionStatus === "EXPIRED",
+      (p) => p.subscriptionStatus === "EXPIRED" || !p.subscriptionStatus,
     ).length;
     const locked = profiles.filter((p) => p.accountStatus === "LOCKED").length;
 
-    return { active, expired, locked };
+    return { active, trial, expired, locked };
   }, [providerProfiles]);
 
   const handleLockUnlock = async (
@@ -313,6 +332,44 @@ const AdminSubscriptionsPage: React.FC = () => {
     }
   };
 
+  const handleGrantTrial = async (provider: ProviderProfile, trialDays: number) => {
+    try {
+      setIsUpdating(true);
+      await grantTrialToProvider(provider.uid, trialDays);
+
+      // Update local state
+      const updated = new Map(providerProfiles);
+      const existing = updated.get(provider.uid);
+      if (existing) {
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + trialDays);
+        updated.set(provider.uid, {
+          ...existing,
+          subscriptionStatus: "TRIAL",
+          subscriptionStartDate: new Date(),
+          subscriptionEndDate: endDate,
+          isSubscribed: true,
+        });
+        setProviderProfiles(updated);
+      }
+
+      toast({
+        title: t("common.success"),
+        description: t("admin.trialGranted", { days: trialDays }),
+      });
+      setTrialDialog({ open: false, provider: null, trialDays: "14" });
+    } catch (error) {
+      console.error("Failed to grant trial:", error);
+      toast({
+        title: t("common.error"),
+        description: "Failed to grant trial",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const formatDate = (date: Date | undefined) => {
     if (!date) return t("admin.notProvided");
     return new Date(date).toLocaleDateString();
@@ -337,7 +394,7 @@ const AdminSubscriptionsPage: React.FC = () => {
       </h1>
 
       {/* Metrics Cards */}
-      <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -346,6 +403,17 @@ const AdminSubscriptionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{metrics.active}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("admin.trialSubscriptions")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-primary">{metrics.trial}</p>
           </CardContent>
         </Card>
 
@@ -399,6 +467,7 @@ const AdminSubscriptionsPage: React.FC = () => {
           <SelectContent>
             <SelectItem value="ALL">{t("common.all")}</SelectItem>
             <SelectItem value="ACTIVE">{t("admin.active")}</SelectItem>
+            <SelectItem value="TRIAL">{t("admin.trial")}</SelectItem>
             <SelectItem value="EXPIRED">{t("admin.expired")}</SelectItem>
             <SelectItem value="LOCKED">{t("admin.locked")}</SelectItem>
           </SelectContent>
@@ -500,6 +569,25 @@ const AdminSubscriptionsPage: React.FC = () => {
                       <Edit2 className="mr-2 h-4 w-4" />
                       Edit Status
                     </Button>
+
+                    {/* Grant Trial button - show for non-TRIAL and non-ACTIVE providers */}
+                    {profile?.subscriptionStatus !== "TRIAL" &&
+                      profile?.subscriptionStatus !== "ACTIVE" && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            setTrialDialog({
+                              open: true,
+                              provider: profile,
+                              trialDays: "14",
+                            })
+                          }
+                        >
+                          <Gift className="mr-2 h-4 w-4" />
+                          {t("admin.grantTrial")}
+                        </Button>
+                      )}
 
                     {profile?.accountStatus === "LOCKED" ? (
                       <Button
@@ -787,6 +875,70 @@ const AdminSubscriptionsPage: React.FC = () => {
               disabled={isUpdating}
             >
               Verify Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Grant Trial Dialog */}
+      <Dialog
+        open={trialDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setTrialDialog({ open: false, provider: null, trialDays: "14" });
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("admin.grantTrialTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("admin.grantTrialDescription", {
+                name: trialDialog.provider?.displayName || "Provider",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="trial-days">{t("admin.trialDays")}</Label>
+            <Input
+              id="trial-days"
+              type="number"
+              min="1"
+              max="90"
+              value={trialDialog.trialDays}
+              onChange={(e) =>
+                setTrialDialog({
+                  ...trialDialog,
+                  trialDays: e.target.value,
+                })
+              }
+              className="mt-2"
+            />
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t("admin.trialDaysHint")}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setTrialDialog({ open: false, provider: null, trialDays: "14" })
+              }
+              disabled={isUpdating}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                if (trialDialog.provider && parseInt(trialDialog.trialDays) > 0) {
+                  handleGrantTrial(
+                    trialDialog.provider,
+                    parseInt(trialDialog.trialDays),
+                  );
+                }
+              }}
+              disabled={isUpdating}
+            >
+              <Gift className="mr-2 h-4 w-4" />
+              {t("admin.grantTrial")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -129,7 +129,6 @@ const MoyasarCheckout: React.FC<MoyasarCheckoutProps> = ({
           validate_merchant_url: `${apiBaseUrl}/moyasar/apple-pay-session`,
         },
         on_completed: async (payment: MoyasarPayment) => {
-          console.log("Moyasar payment completed:", payment);
           if (payment.status === "paid") {
             await onSuccess({
               paymentId: payment.id,
@@ -140,7 +139,6 @@ const MoyasarCheckout: React.FC<MoyasarCheckoutProps> = ({
           }
         },
         on_failure: (error: Error) => {
-          console.error("Moyasar payment failed:", error);
           onError?.(error.message || t("payment.paymentFailed"));
         },
       });

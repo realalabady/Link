@@ -113,7 +113,9 @@ const AdminUsersPage: React.FC = () => {
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesRole = roleFilter === "ALL" || user.role === roleFilter;
+      const matchesRole = roleFilter === "ALL" || 
+        user.roles?.includes(roleFilter as any) || 
+        user.role === roleFilter;
       const matchesStatus =
         statusFilter === "ALL" || user.status === statusFilter;
 
@@ -358,7 +360,7 @@ const AdminUsersPage: React.FC = () => {
                         {t("admin.activateUser")}
                       </DropdownMenuItem>
                     )}
-                    {user.role === "PROVIDER" && (
+                    {(user.roles?.includes("PROVIDER") || user.role === "PROVIDER") && (
                       <DropdownMenuItem
                         onClick={(event) => {
                           event.stopPropagation();
@@ -508,7 +510,7 @@ const AdminUsersPage: React.FC = () => {
                         {t("admin.verificationStatus")}
                       </p>
                       <div className="mt-1">
-                        {providerProfile.isVerified ? (
+                        {providerProfile.identityVerified ? (
                           <Badge variant="default">
                             {t("provider.verified")}
                           </Badge>

@@ -100,10 +100,11 @@ const AdminVerificationsPage: React.FC = () => {
         approvedAt: new Date(),
       });
 
-      // Also update provider's isVerified flag
+      // Also update provider's identityVerified flag (allows adding services)
       const providerRef = doc(db, "providers", selectedVerification.providerId);
       await updateDoc(providerRef, {
-        isVerified: true,
+        identityVerified: true,
+        identityVerifiedAt: new Date(),
       });
 
       // Update local state

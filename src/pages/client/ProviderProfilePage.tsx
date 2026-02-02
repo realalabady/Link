@@ -10,6 +10,7 @@ import {
   Clock,
   MessageSquare,
   Calendar,
+  Navigation,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { useProviderProfile, useProviderServices } from "@/hooks/queries";
 import { useReviews } from "@/hooks/queries/useReviews";
 import { useCreateChat } from "@/hooks/queries/useChats";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGeolocation, calculateDistanceKm, formatDistance } from "@/hooks/useGeolocation";
 import { Service } from "@/types";
 
 const ProviderProfilePage: React.FC = () => {
@@ -30,6 +32,16 @@ const ProviderProfilePage: React.FC = () => {
 
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
+  // Geolocation for distance calculation
+  const { location, requestLocation } = useGeolocation();
+
+  // Request location on mount
+  React.useEffect(() => {
+    if (!location) {
+      requestLocation();
+    }
+  }, []);
+
   // Fetch data
   const { data: provider, isLoading: loadingProvider } = useProviderProfile(
     id || "",
@@ -39,6 +51,17 @@ const ProviderProfilePage: React.FC = () => {
   const { data: reviews = [], isLoading: loadingReviews } = useReviews({
     providerId: id,
   });
+
+  // Calculate distance to provider (must be after provider is fetched)
+  const distanceToProvider = React.useMemo(() => {
+    if (!location || !provider?.latitude || !provider?.longitude) return null;
+    return calculateDistanceKm(
+      location.lat,
+      location.lng,
+      provider.latitude,
+      provider.longitude
+    );
+  }, [location, provider?.latitude, provider?.longitude]);
 
   const createChatMutation = useCreateChat();
 
@@ -149,6 +172,14 @@ const ProviderProfilePage: React.FC = () => {
                   </div>
                 )}
 
+                {/* Distance */}
+                {distanceToProvider !== null && (
+                  <div className="mt-2 flex items-center gap-1 text-sm font-medium text-primary">
+                    <Navigation className="h-4 w-4" />
+                    <span>{formatDistance(distanceToProvider)} {t("profile.awayFromYou")}</span>
+                  </div>
+                )}
+
                 {provider.isVerified && (
                   <Badge variant="secondary" className="mt-2">
                     {t("provider.verified")}
@@ -218,9 +249,7 @@ const ProviderProfilePage: React.FC = () => {
                         </div>
                         <div className="text-end">
                           <p className="font-semibold text-primary">
-                            {service.priceFrom === service.priceTo
-                              ? `${service.priceFrom} SAR`
-                              : `${service.priceFrom} - ${service.priceTo} SAR`}
+                            {service.price} SAR
                           </p>
                         </div>
                       </div>
