@@ -151,4 +151,42 @@ router.post("/refund/:id", async (req, res) => {
   }
 });
 
+// Apple Pay merchant validation
+router.post("/apple-pay-session", async (req, res) => {
+  try {
+    const { validation_url, display_name, domain_name } = req.body;
+
+    console.log("Apple Pay session request:", { validation_url, display_name, domain_name });
+
+    const response = await fetch(`${MOYASAR_API_BASE}/applepay/initiate`, {
+      method: "POST",
+      headers: {
+        Authorization: getAuthHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        validation_url: validation_url,
+        display_name: display_name || "Link",
+        domain_name: domain_name || "www.link-22.com",
+      }),
+    });
+
+    const data = await response.json();
+
+    console.log("Apple Pay session response:", data);
+
+    if (!response.ok) {
+      console.error("Apple Pay session error:", data);
+      return res
+        .status(response.status)
+        .json({ error: data.message || "Apple Pay session failed" });
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error("Apple Pay session error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

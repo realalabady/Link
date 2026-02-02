@@ -113,6 +113,8 @@ const MoyasarCheckout: React.FC<MoyasarCheckoutProps> = ({
     moyasarRef.current.innerHTML = "";
 
     try {
+      const apiBaseUrl = import.meta.env.VITE_PAYPAL_API_BASE_URL || "";
+      
       window.Moyasar.init({
         element: ".moyasar-form",
         amount: Math.round(amount * 100), // Convert to halalas
@@ -124,6 +126,7 @@ const MoyasarCheckout: React.FC<MoyasarCheckoutProps> = ({
         apple_pay: {
           country: "SA",
           label: "Link Booking",
+          validate_merchant_url: `${apiBaseUrl}/moyasar/apple-pay-session`,
         },
         on_completed: async (payment: MoyasarPayment) => {
           console.log("Moyasar payment completed:", payment);
