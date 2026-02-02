@@ -26,7 +26,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   await resend.emails.send({
-    from: emailFromParam.value() || "Link <noreply@link-22.com>",
+    from: "Link <noreply@link-22.com>",
     to,
     subject,
     html,
@@ -71,7 +71,7 @@ exports.onBookingCreated = onDocumentCreated(
     const clientEmail = client?.email;
     const providerEmail = providerUser?.email;
 
-    const clientAppUrl = clientAppUrlParam.value() || "http://localhost:8080";
+    const clientAppUrl = "https://link-22.com";
     const bookingUrl = `${clientAppUrl}/client/bookings/${event.params.bookingId}`;
     const providerUrl = `${clientAppUrl}/provider/booking/${event.params.bookingId}`;
 

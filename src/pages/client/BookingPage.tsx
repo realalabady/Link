@@ -18,8 +18,7 @@ import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { useCreateBooking } from "@/hooks/queries/useBookings";
 import { useCreatePayment } from "@/hooks/queries/usePayments";
 import { useAuth } from "@/contexts/AuthContext";
-import PayPalCheckout from "@/components/payments/PayPalCheckout";
-import StripeApplePayButton from "@/components/payments/StripeApplePayButton";
+import MoyasarCheckout from "@/components/payments/MoyasarCheckout";
 import { toast } from "@/components/ui/sonner";
 
 // Generate time slots
@@ -80,11 +79,9 @@ const BookingPage: React.FC = () => {
     setShowConfirmation(true);
   };
 
-  const handlePaymentAuthorized = async (payload: {
-    orderId: string;
-    authorizationId: string;
-    amountUsd: number;
-    fxRate: number;
+  const handleMoyasarPaymentSuccess = async (payload: {
+    paymentId: string;
+    status: string;
   }) => {
     if (
       !service ||
@@ -131,117 +128,12 @@ const BookingPage: React.FC = () => {
         clientId: user.uid,
         providerId: service.providerId,
         payType: "FULL",
-        status: "AUTHORIZED",
-        gateway: "PAYPAL",
-        amount: payload.amountUsd,
-        currency: "USD",
-        amountSar: service.priceFrom,
-        amountUsd: payload.amountUsd,
-        fxRate: payload.fxRate,
-        orderId: payload.orderId,
-        authorizationId: payload.authorizationId,
-        platformFee: 0,
-        gatewayFee: 0,
-        providerAmount: service.priceFrom,
-      });
-
-      // Send booking confirmation email
-      try {
-        const dateStr = startAt.toLocaleDateString(
-          i18n.language === "ar" ? "ar-SA" : "en-US",
-          {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          },
-        );
-        const timeStr = startAt.toLocaleTimeString(
-          i18n.language === "ar" ? "ar-SA" : "en-US",
-          {
-            hour: "2-digit",
-            minute: "2-digit",
-          },
-        );
-
-        await fetch("/api/auth/send-booking-confirmation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            clientEmail: user.email,
-            clientName: user.displayName || user.email.split("@")[0],
-            providerName: provider?.name || "Provider",
-            serviceName: service.title,
-            date: dateStr,
-            time: timeStr,
-          }),
-        });
-      } catch (emailError) {
-        // Non-blocking: Email failure doesn't prevent booking
-        console.error("Failed to send booking confirmation email:", emailError);
-      }
-
-      setBookingSuccess(true);
-    } catch (error) {
-      console.error("Failed to finalize booking:", error);
-      setPaymentError(t("common.error"));
-    } finally {
-      setIsPaying(false);
-    }
-  };
-
-  const handleStripePaymentSuccess = async (payload: {
-    paymentIntentId: string;
-  }) => {
-    if (
-      !service ||
-      !selectedDate ||
-      !selectedTime ||
-      !selectedLocation ||
-      !user
-    ) {
-      setPaymentError(t("booking.validationError"));
-      return;
-    }
-
-    setIsPaying(true);
-    setPaymentError(null);
-
-    const [hours, minutes] = selectedTime.split(":").map(Number);
-    const startAt = new Date(selectedDate);
-    startAt.setHours(hours, minutes, 0, 0);
-
-    const endAt = new Date(startAt);
-    endAt.setMinutes(endAt.getMinutes() + service.durationMin);
-
-    try {
-      const bookingId = await createBookingMutation.mutateAsync({
-        clientId: user.uid,
-        providerId: service.providerId,
-        serviceId: service.id,
-        startAt,
-        endAt,
-        bookingDate: startAt.toISOString().split("T")[0],
-        status: "PENDING",
-        priceTotal: service.priceFrom,
-        depositAmount: 0,
-        addressText:
-          selectedLocation === "AT_PROVIDER"
-            ? t("services.atProvider")
-            : t("services.atClient"),
-      });
-
-      await createPaymentMutation.mutateAsync({
-        bookingId,
-        clientId: user.uid,
-        providerId: service.providerId,
-        payType: "FULL",
         status: "CAPTURED",
-        gateway: "STRIPE",
+        gateway: "MOYASAR",
         amount: service.priceFrom,
         currency: "SAR",
         amountSar: service.priceFrom,
-        orderId: payload.paymentIntentId,
+        orderId: payload.paymentId,
         platformFee: 0,
         gatewayFee: 0,
         providerAmount: service.priceFrom,
@@ -266,7 +158,8 @@ const BookingPage: React.FC = () => {
           },
         );
 
-        await fetch("/api/auth/send-booking-confirmation", {
+        const apiBaseUrl = import.meta.env.VITE_PAYPAL_API_BASE_URL || "";
+        await fetch(`${apiBaseUrl}/api/auth/send-booking-confirmation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -529,21 +422,14 @@ const BookingPage: React.FC = () => {
                   </div>
                 )}
 
-                <StripeApplePayButton
-                  amountSar={service.priceFrom}
-                  onSuccess={handleStripePaymentSuccess}
-                  onError={(message) => setPaymentError(message)}
-                />
-
-                <PayPalCheckout
+                <MoyasarCheckout
                   amount={service.priceFrom}
-                  currency="USD"
-                  bookingMeta={{
+                  onSuccess={handleMoyasarPaymentSuccess}
+                  onError={(message) => setPaymentError(message)}
+                  metadata={{
                     serviceId: service.id,
                     providerId: service.providerId,
                   }}
-                  onAuthorized={handlePaymentAuthorized}
-                  onError={(message) => setPaymentError(message)}
                 />
 
                 <Button

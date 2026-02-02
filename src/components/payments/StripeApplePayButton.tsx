@@ -18,7 +18,9 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
   const [canUseApplePay, setCanUseApplePay] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(
+    null,
+  );
   const { t } = useTranslation();
 
   const stripePromise = useMemo(() => {
@@ -34,8 +36,11 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
 
     const checkApplePay = async () => {
       console.log("=== Apple Pay Debug Start ===");
-      console.log("1. Checking Stripe key:", !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-      
+      console.log(
+        "1. Checking Stripe key:",
+        !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+      );
+
       const stripe = await stripePromise;
       if (!stripe) {
         console.log("2. ❌ Stripe failed to load");
@@ -65,11 +70,14 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
 
       const result = await pr.canMakePayment();
       console.log("5. canMakePayment result:", result);
-      
+
       if (mounted) {
         const applePayAvailable = !!result?.applePay;
-        console.log("6. Apple Pay available:", applePayAvailable ? "✅ YES" : "❌ NO");
-        
+        console.log(
+          "6. Apple Pay available:",
+          applePayAvailable ? "✅ YES" : "❌ NO",
+        );
+
         if (!applePayAvailable) {
           console.log("   Reasons Apple Pay may not show:");
           console.log("   - Not using Safari browser");
@@ -77,9 +85,9 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
           console.log("   - Not on HTTPS (required for production)");
           console.log("   - Domain not verified with Apple");
         }
-        
+
         console.log("=== Apple Pay Debug End ===");
-        
+
         setCanUseApplePay(applePayAvailable);
         if (applePayAvailable) {
           setPaymentRequest(pr);

@@ -4,12 +4,16 @@ const cors = require("cors");
 const fetch = global.fetch || require("node-fetch");
 const Stripe = require("stripe");
 const emailRouter = require("./src/routes/email");
+const moyasarRouter = require("./src/routes/moyasar");
 
 const app = express();
 const PORT = process.env.PORT || 4242;
 
 app.use(cors());
 app.use(express.json());
+
+// Moyasar routes
+app.use("/moyasar", moyasarRouter);
 
 const PAYPAL_API_BASE =
   process.env.PAYPAL_ENV === "live"

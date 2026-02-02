@@ -6,6 +6,8 @@
     "uploading": "Uploading...",
     "error": "Something went wrong",
     "retry": "Try again",
+    "tryAgain": "Try Again",
+    "pleaseWait": "Please wait...",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "save": "Save",
@@ -198,7 +200,14 @@
     "applePay": "Pay with Apple Pay",
     "googlePay": "Pay with Google Pay",
     "walletPaymentUnavailable": "Apple Pay / Google Pay not available on this device",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "scriptLoadError": "Failed to load payment system",
+    "loadingPayment": "Loading payment options...",
+    "moyasarNotConfigured": "Payment system is not configured. Please contact support.",
+    "paymentNotCompleted": "Payment was not completed",
+    "paymentFailed": "Payment failed",
+    "initError": "Failed to initialize payment",
+    "securedBy": "Secured by"
   },
   "bookings": {
     "upcoming": "Upcoming",
@@ -440,6 +449,14 @@
     "providerBenefit3": "Get paid securely"
   },
   "admin": {
+    "title": "Admin",
+    "nav": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "verifications": "Verifications",
+      "payouts": "Payouts",
+      "subscriptions": "Subscriptions"
+    },
     "usersManagement": "Users Management",
     "usersDescription": "View and manage all users in the platform",
     "searchUsers": "Search by name or email...",

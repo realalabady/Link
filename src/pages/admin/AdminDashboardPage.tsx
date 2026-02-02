@@ -64,7 +64,8 @@ const AdminDashboardPage: React.FC = () => {
   const { data: verifications = [] } = usePendingVerifications();
   const { data: payouts = [] } = usePayouts();
   const { data: payments = [] } = usePayments();
-  const { data: categories = [], isLoading: loadingCategories } = useAllCategories();
+  const { data: categories = [], isLoading: loadingCategories } =
+    useAllCategories();
   const { data: banner } = useBanner();
   const updateBanner = useUpdateBanner();
   const createCategory = useCreateCategory();
@@ -78,8 +79,11 @@ const AdminDashboardPage: React.FC = () => {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteCategoryDialog, setDeleteCategoryDialog] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
-  const [isUploadingCategoryImage, setIsUploadingCategoryImage] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null,
+  );
+  const [isUploadingCategoryImage, setIsUploadingCategoryImage] =
+    useState(false);
   const categoryImageInputRef = useRef<HTMLInputElement>(null);
   const [categoryForm, setCategoryForm] = useState({
     nameEn: "",
@@ -135,7 +139,9 @@ const AdminDashboardPage: React.FC = () => {
     setCategoryDialogOpen(true);
   };
 
-  const handleCategoryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCategoryImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -729,7 +735,7 @@ const AdminDashboardPage: React.FC = () => {
           <p className="mb-4 text-sm text-muted-foreground">
             {t("admin.categoriesCount", { count: categories.length })}
           </p>
-          
+
           {loadingCategories ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -755,21 +761,33 @@ const AdminDashboardPage: React.FC = () => {
                         />
                       ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <CategoryIcon icon={category.icon} size={20} className="text-primary" />
+                          <CategoryIcon
+                            icon={category.icon}
+                            size={20}
+                            className="text-primary"
+                          />
                         </div>
                       )}
                       <div>
                         <p className="font-medium">
-                          {i18n.language === "ar" ? category.nameAr : category.nameEn}
+                          {i18n.language === "ar"
+                            ? category.nameAr
+                            : category.nameEn}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {i18n.language === "ar" ? category.nameEn : category.nameAr}
+                          {i18n.language === "ar"
+                            ? category.nameEn
+                            : category.nameAr}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={category.isActive ? "default" : "secondary"}>
-                        {category.isActive ? t("admin.active") : t("admin.inactive")}
+                      <Badge
+                        variant={category.isActive ? "default" : "secondary"}
+                      >
+                        {category.isActive
+                          ? t("admin.active")
+                          : t("admin.inactive")}
                       </Badge>
                       <Button
                         variant="ghost"
@@ -798,14 +816,19 @@ const AdminDashboardPage: React.FC = () => {
       </Card>
 
       {/* Category Add/Edit Dialog */}
-      <Dialog open={categoryDialogOpen} onOpenChange={(open) => {
-        if (!open) resetCategoryForm();
-        setCategoryDialogOpen(open);
-      }}>
+      <Dialog
+        open={categoryDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) resetCategoryForm();
+          setCategoryDialogOpen(open);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingCategory ? t("admin.editCategory") : t("admin.addCategory")}
+              {editingCategory
+                ? t("admin.editCategory")
+                : t("admin.addCategory")}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -822,7 +845,9 @@ const AdminDashboardPage: React.FC = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => setCategoryForm((prev) => ({ ...prev, imageUrl: "" }))}
+                      onClick={() =>
+                        setCategoryForm((prev) => ({ ...prev, imageUrl: "" }))
+                      }
                       className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground"
                     >
                       <X className="h-3 w-3" />
@@ -830,7 +855,11 @@ const AdminDashboardPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed">
-                    <CategoryIcon icon={categoryForm.icon} size={32} className="text-muted-foreground" />
+                    <CategoryIcon
+                      icon={categoryForm.icon}
+                      size={32}
+                      className="text-muted-foreground"
+                    />
                   </div>
                 )}
                 <div className="flex-1">
@@ -874,7 +903,12 @@ const AdminDashboardPage: React.FC = () => {
               <Input
                 id="cat-name-en"
                 value={categoryForm.nameEn}
-                onChange={(e) => setCategoryForm((prev) => ({ ...prev, nameEn: e.target.value }))}
+                onChange={(e) =>
+                  setCategoryForm((prev) => ({
+                    ...prev,
+                    nameEn: e.target.value,
+                  }))
+                }
                 placeholder="e.g. Makeup"
                 className="mt-1"
               />
@@ -886,7 +920,12 @@ const AdminDashboardPage: React.FC = () => {
               <Input
                 id="cat-name-ar"
                 value={categoryForm.nameAr}
-                onChange={(e) => setCategoryForm((prev) => ({ ...prev, nameAr: e.target.value }))}
+                onChange={(e) =>
+                  setCategoryForm((prev) => ({
+                    ...prev,
+                    nameAr: e.target.value,
+                  }))
+                }
                 placeholder="مثال: المكياج"
                 dir="rtl"
                 className="mt-1"
@@ -899,7 +938,9 @@ const AdminDashboardPage: React.FC = () => {
               <Input
                 id="cat-icon"
                 value={categoryForm.icon}
-                onChange={(e) => setCategoryForm((prev) => ({ ...prev, icon: e.target.value }))}
+                onChange={(e) =>
+                  setCategoryForm((prev) => ({ ...prev, icon: e.target.value }))
+                }
                 placeholder="e.g. Palette, Scissors, Heart"
                 className="mt-1"
               />
@@ -914,12 +955,17 @@ const AdminDashboardPage: React.FC = () => {
               <Switch
                 id="cat-active"
                 checked={categoryForm.isActive}
-                onCheckedChange={(checked) => setCategoryForm((prev) => ({ ...prev, isActive: checked }))}
+                onCheckedChange={(checked) =>
+                  setCategoryForm((prev) => ({ ...prev, isActive: checked }))
+                }
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setCategoryDialogOpen(false)}
+            >
               {t("common.cancel")}
             </Button>
             <Button
@@ -936,7 +982,10 @@ const AdminDashboardPage: React.FC = () => {
       </Dialog>
 
       {/* Delete Category Confirmation */}
-      <Dialog open={deleteCategoryDialog} onOpenChange={setDeleteCategoryDialog}>
+      <Dialog
+        open={deleteCategoryDialog}
+        onOpenChange={setDeleteCategoryDialog}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("admin.deleteCategoryTitle")}</DialogTitle>
@@ -951,7 +1000,10 @@ const AdminDashboardPage: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteCategoryDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteCategoryDialog(false)}
+            >
               {t("common.cancel")}
             </Button>
             <Button

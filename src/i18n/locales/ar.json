@@ -6,6 +6,8 @@
     "uploading": "جاري الرفع...",
     "error": "حدث خطأ ما",
     "retry": "حاولي مرة أخرى",
+    "tryAgain": "حاولي مرة أخرى",
+    "pleaseWait": "الرجاء الانتظار...",
     "cancel": "إلغاء",
     "confirm": "تأكيد",
     "save": "حفظ",
@@ -197,7 +199,14 @@
     "applePay": "الدفع عبر آبل باي",
     "googlePay": "الدفع عبر جوجل باي",
     "walletPaymentUnavailable": "آبل باي / جوجل باي غير متاح على هذا الجهاز",
-    "processing": "جارٍ المعالجة..."
+    "processing": "جارٍ المعالجة...",
+    "scriptLoadError": "فشل في تحميل نظام الدفع",
+    "loadingPayment": "جارٍ تحميل خيارات الدفع...",
+    "moyasarNotConfigured": "نظام الدفع غير مُهيأ. يرجى التواصل مع الدعم.",
+    "paymentNotCompleted": "لم يكتمل الدفع",
+    "paymentFailed": "فشل الدفع",
+    "initError": "فشل في تهيئة نظام الدفع",
+    "securedBy": "مؤمن بواسطة"
   },
   "bookings": {
     "upcoming": "القادمة",
@@ -438,6 +447,14 @@
     "providerBenefit3": "احصلي على مدفوعاتك بأمان"
   },
   "admin": {
+    "title": "الإدارة",
+    "nav": {
+      "dashboard": "لوحة التحكم",
+      "users": "المستخدمات",
+      "verifications": "التحققات",
+      "payouts": "المدفوعات",
+      "subscriptions": "الاشتراكات"
+    },
     "usersManagement": "إدارة المستخدمات",
     "usersDescription": "عرض وإدارة جميع المستخدمات في المنصة",
     "searchUsers": "البحث بالاسم أو البريد الإلكتروني...",

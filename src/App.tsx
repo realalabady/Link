@@ -38,6 +38,7 @@ import ProviderViewPage from "@/pages/client/ProviderProfilePage";
 import BookingPage from "@/pages/client/BookingPage";
 import BookingDetailsPage from "@/pages/client/BookingDetailsPage";
 import BecomeProviderPage from "@/pages/client/BecomeProviderPage";
+import PaymentCallbackPage from "@/pages/client/PaymentCallbackPage";
 
 // Provider pages
 import ProviderDashboardPage from "@/pages/provider/ProviderDashboardPage";
@@ -138,6 +139,7 @@ const AppRoutes = () => {
         <Route path="profile" element={<ClientProfilePage />} />
         <Route path="provider/:id" element={<ProviderViewPage />} />
         <Route path="book/:serviceId" element={<BookingPage />} />
+        <Route path="payment-callback" element={<PaymentCallbackPage />} />
         <Route path="become-provider" element={<BecomeProviderPage />} />
       </Route>
 

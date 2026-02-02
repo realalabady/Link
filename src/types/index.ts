@@ -31,7 +31,7 @@ export type PaymentStatus =
 export type PayType = "DEPOSIT" | "FULL";
 
 // Payment gateway
-export type PaymentGateway = "PAYPAL" | "STRIPE";
+export type PaymentGateway = "PAYPAL" | "STRIPE" | "MOYASAR";
 
 // Payout status
 export type PayoutStatus = "REQUESTED" | "APPROVED" | "PAID" | "REJECTED";

@@ -436,7 +436,7 @@ export const forceReseedCategories = async (): Promise<void> => {
   // First, get existing categories to preserve their imageUrl
   const categoriesRef = collection(db, COLLECTIONS.CATEGORIES);
   const existingSnapshot = await getDocs(categoriesRef);
-  
+
   // Create a map of existing category imageUrls
   const existingImages: Record<string, string> = {};
   existingSnapshot.docs.forEach((docSnap) => {
@@ -445,7 +445,7 @@ export const forceReseedCategories = async (): Promise<void> => {
       existingImages[docSnap.id] = data.imageUrl;
     }
     // Deactivate categories not in DEFAULT_CATEGORIES
-    if (!DEFAULT_CATEGORIES.some(c => c.id === docSnap.id)) {
+    if (!DEFAULT_CATEGORIES.some((c) => c.id === docSnap.id)) {
       batch.update(docSnap.ref, { isActive: false });
     }
   });
@@ -462,7 +462,9 @@ export const forceReseedCategories = async (): Promise<void> => {
         icon: category.icon || "",
         parentId: category.parentId || null,
         // Preserve existing imageUrl if it exists
-        ...(existingImages[category.id] && { imageUrl: existingImages[category.id] }),
+        ...(existingImages[category.id] && {
+          imageUrl: existingImages[category.id],
+        }),
       },
       { merge: true },
     );
