@@ -43,7 +43,8 @@ const ProviderDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const subscriptionStatus = useSubscriptionStatus();
-  const { isLocked, isTrial, trialDaysRemaining, isExpired, profile } = subscriptionStatus;
+  const { isLocked, isTrial, trialDaysRemaining, isExpired, profile } =
+    subscriptionStatus;
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
 
@@ -206,7 +207,9 @@ const ProviderDashboardPage: React.FC = () => {
                   {t("subscription.trialActive")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {t("subscription.trialDaysRemaining", { days: trialDaysRemaining })}
+                  {t("subscription.trialDaysRemaining", {
+                    days: trialDaysRemaining,
+                  })}
                 </p>
               </div>
               <Button

@@ -113,8 +113,9 @@ const AdminUsersPage: React.FC = () => {
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesRole = roleFilter === "ALL" || 
-        user.roles?.includes(roleFilter as any) || 
+      const matchesRole =
+        roleFilter === "ALL" ||
+        user.roles?.includes(roleFilter as any) ||
         user.role === roleFilter;
       const matchesStatus =
         statusFilter === "ALL" || user.status === statusFilter;
@@ -155,8 +156,32 @@ const AdminUsersPage: React.FC = () => {
     }
   };
 
-  const getRoleBadge = (role: UserRole | null) => {
-    switch (role) {
+  const getRoleBadge = (role: UserRole | null, roles?: UserRole[]) => {
+    // Check roles array first (new format), then fall back to single role (legacy)
+    const effectiveRole = role || (roles && roles.length > 0 ? roles[0] : null);
+    const allRoles = roles && roles.length > 0 ? roles : (role ? [role] : []);
+    
+    // If user has multiple roles, show all of them
+    if (allRoles.length > 1) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {allRoles.map((r) => (
+            <Badge
+              key={r}
+              variant={r === "ADMIN" ? "default" : r === "PROVIDER" ? "secondary" : "outline"}
+              className="gap-1"
+            >
+              {r === "ADMIN" && <Shield className="h-3 w-3" />}
+              {r === "PROVIDER" && <ShieldCheck className="h-3 w-3" />}
+              {r === "CLIENT" && <User className="h-3 w-3" />}
+              {t(`roles.${r.toLowerCase()}`)}
+            </Badge>
+          ))}
+        </div>
+      );
+    }
+    
+    switch (effectiveRole) {
       case "ADMIN":
         return (
           <Badge variant="default" className="gap-1">
@@ -318,7 +343,7 @@ const AdminUsersPage: React.FC = () => {
                       {user.email}
                     </p>
                     <div className="mt-1 flex items-center gap-2">
-                      {getRoleBadge(user.role)}
+                      {getRoleBadge(user.role, user.roles)}
                       {getStatusBadge(user.status)}
                     </div>
                   </div>
@@ -360,7 +385,8 @@ const AdminUsersPage: React.FC = () => {
                         {t("admin.activateUser")}
                       </DropdownMenuItem>
                     )}
-                    {(user.roles?.includes("PROVIDER") || user.role === "PROVIDER") && (
+                    {(user.roles?.includes("PROVIDER") ||
+                      user.role === "PROVIDER") && (
                       <DropdownMenuItem
                         onClick={(event) => {
                           event.stopPropagation();
@@ -426,7 +452,7 @@ const AdminUsersPage: React.FC = () => {
                     {t("admin.role")}
                   </p>
                   <div className="mt-1">
-                    {getRoleBadge(detailsUser?.role || null)}
+                    {getRoleBadge(detailsUser?.role || null, detailsUser?.roles)}
                   </div>
                 </div>
                 <div>

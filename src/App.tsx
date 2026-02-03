@@ -50,6 +50,7 @@ import ProviderProfilePage from "@/pages/provider/ProviderProfilePage";
 import ProviderBookingDetailsPage from "@/pages/provider/ProviderBookingDetailsPage";
 import ProviderWalletPage from "@/pages/provider/ProviderWalletPage";
 import SubscriptionPaymentPage from "@/pages/provider/SubscriptionPaymentPage";
+import ProviderReviewsPage from "@/pages/provider/ProviderReviewsPage";
 
 // Admin pages
 import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
@@ -163,6 +164,7 @@ const AppRoutes = () => {
         <Route path="chats" element={<ProviderChatsPage />} />
         <Route path="chats/:chatId" element={<ProviderChatRoomPage />} />
         <Route path="profile" element={<ProviderProfilePage />} />
+        <Route path="reviews" element={<ProviderReviewsPage />} />
         <Route path="subscription" element={<SubscriptionPaymentPage />} />
       </Route>
 

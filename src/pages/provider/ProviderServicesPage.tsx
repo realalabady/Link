@@ -75,7 +75,8 @@ const ProviderServicesPage: React.FC = () => {
   const navigate = useNavigate();
   const { isLocked } = useSubscriptionStatus();
   const isArabic = i18n.language === "ar";
-  const [isSendingVerification, setIsSendingVerification] = React.useState(false);
+  const [isSendingVerification, setIsSendingVerification] =
+    React.useState(false);
 
   // State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -268,21 +269,27 @@ const ProviderServicesPage: React.FC = () => {
     if (!formData.title.trim() || formData.title.trim().length < 3) {
       errors.title = t("services.errors.titleRequired");
     }
-    if (!formData.description.trim() || formData.description.trim().length < 10) {
+    if (
+      !formData.description.trim() ||
+      formData.description.trim().length < 10
+    ) {
       errors.description = t("services.errors.descriptionRequired");
     }
     if (!formData.categoryId) {
       errors.categoryId = t("services.errors.categoryRequired");
     }
-    if (formData.categoryId === "__custom__" && !formData.customCategory.trim()) {
+    if (
+      formData.categoryId === "__custom__" &&
+      !formData.customCategory.trim()
+    ) {
       errors.customCategory = t("services.errors.customCategoryRequired");
     }
-    
+
     const parsedPrice = parseFloat(formData.price);
     if (!formData.price || isNaN(parsedPrice) || parsedPrice < 1) {
       errors.price = t("services.errors.priceRequired");
     }
-    
+
     const parsedDuration = parseInt(formData.durationMin);
     if (!formData.durationMin || isNaN(parsedDuration) || parsedDuration < 15) {
       errors.durationMin = t("services.errors.durationRequired");
@@ -297,15 +304,14 @@ const ProviderServicesPage: React.FC = () => {
       return;
     }
 
-    const serviceSchema = z
-      .object({
-        title: z.string().min(3),
-        description: z.string().min(10),
-        categoryId: z.string().min(1),
-        price: z.number().min(1),
-        durationMin: z.number().min(15),
-        locationType: z.enum(["AT_PROVIDER", "AT_CLIENT", "BOTH"]),
-      });
+    const serviceSchema = z.object({
+      title: z.string().min(3),
+      description: z.string().min(10),
+      categoryId: z.string().min(1),
+      price: z.number().min(1),
+      durationMin: z.number().min(15),
+      locationType: z.enum(["AT_PROVIDER", "AT_CLIENT", "BOTH"]),
+    });
 
     const isCustom = formData.categoryId === "__custom__";
     const customCategoryName = formData.customCategory.trim();
@@ -629,38 +635,50 @@ const ProviderServicesPage: React.FC = () => {
           <div className="mt-6 space-y-4">
             {/* Title */}
             <div>
-              <Label htmlFor="title">{t("services.title")} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="title">
+                {t("services.title")}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => {
                   setFormData({ ...formData, title: e.target.value });
-                  if (formErrors.title) setFormErrors({ ...formErrors, title: "" });
+                  if (formErrors.title)
+                    setFormErrors({ ...formErrors, title: "" });
                 }}
                 placeholder={t("services.titlePlaceholder")}
                 className={`mt-1 ${formErrors.title ? "border-destructive" : ""}`}
               />
               {formErrors.title && (
-                <p className="mt-1 text-xs text-destructive">{formErrors.title}</p>
+                <p className="mt-1 text-xs text-destructive">
+                  {formErrors.title}
+                </p>
               )}
             </div>
 
             {/* Description */}
             <div>
-              <Label htmlFor="description">{t("services.description")} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="description">
+                {t("services.description")}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => {
                   setFormData({ ...formData, description: e.target.value });
-                  if (formErrors.description) setFormErrors({ ...formErrors, description: "" });
+                  if (formErrors.description)
+                    setFormErrors({ ...formErrors, description: "" });
                 }}
                 placeholder={t("services.descriptionPlaceholder")}
                 className={`mt-1 ${formErrors.description ? "border-destructive" : ""}`}
                 rows={3}
               />
               {formErrors.description && (
-                <p className="mt-1 text-xs text-destructive">{formErrors.description}</p>
+                <p className="mt-1 text-xs text-destructive">
+                  {formErrors.description}
+                </p>
               )}
             </div>
 
@@ -730,15 +748,21 @@ const ProviderServicesPage: React.FC = () => {
 
             {/* Category */}
             <div>
-              <Label>{t("services.category")} <span className="text-destructive">*</span></Label>
+              <Label>
+                {t("services.category")}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
               <Select
                 value={formData.categoryId}
                 onValueChange={(value) => {
                   setFormData({ ...formData, categoryId: value });
-                  if (formErrors.categoryId) setFormErrors({ ...formErrors, categoryId: "" });
+                  if (formErrors.categoryId)
+                    setFormErrors({ ...formErrors, categoryId: "" });
                 }}
               >
-                <SelectTrigger className={`mt-1 ${formErrors.categoryId ? "border-destructive" : ""}`}>
+                <SelectTrigger
+                  className={`mt-1 ${formErrors.categoryId ? "border-destructive" : ""}`}
+                >
                   <SelectValue placeholder={t("services.selectCategory")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -760,14 +784,17 @@ const ProviderServicesPage: React.FC = () => {
                 </SelectContent>
               </Select>
               {formErrors.categoryId && (
-                <p className="mt-1 text-xs text-destructive">{formErrors.categoryId}</p>
+                <p className="mt-1 text-xs text-destructive">
+                  {formErrors.categoryId}
+                </p>
               )}
             </div>
 
             {formData.categoryId === "__custom__" && (
               <div>
                 <Label htmlFor="customCategory">
-                  {t("services.customCategory")} <span className="text-destructive">*</span>
+                  {t("services.customCategory")}{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="customCategory"
@@ -777,52 +804,67 @@ const ProviderServicesPage: React.FC = () => {
                       ...formData,
                       customCategory: e.target.value,
                     });
-                    if (formErrors.customCategory) setFormErrors({ ...formErrors, customCategory: "" });
+                    if (formErrors.customCategory)
+                      setFormErrors({ ...formErrors, customCategory: "" });
                   }}
                   placeholder={t("services.customCategoryPlaceholder")}
                   className={`mt-1 ${formErrors.customCategory ? "border-destructive" : ""}`}
                 />
                 {formErrors.customCategory && (
-                  <p className="mt-1 text-xs text-destructive">{formErrors.customCategory}</p>
+                  <p className="mt-1 text-xs text-destructive">
+                    {formErrors.customCategory}
+                  </p>
                 )}
               </div>
             )}
 
             {/* Price */}
             <div>
-              <Label htmlFor="price">{t("services.price")} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="price">
+                {t("services.price")}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="price"
                 type="number"
                 value={formData.price}
                 onChange={(e) => {
                   setFormData({ ...formData, price: e.target.value });
-                  if (formErrors.price) setFormErrors({ ...formErrors, price: "" });
+                  if (formErrors.price)
+                    setFormErrors({ ...formErrors, price: "" });
                 }}
                 placeholder="0"
                 className={`mt-1 ${formErrors.price ? "border-destructive" : ""}`}
               />
               {formErrors.price && (
-                <p className="mt-1 text-xs text-destructive">{formErrors.price}</p>
+                <p className="mt-1 text-xs text-destructive">
+                  {formErrors.price}
+                </p>
               )}
             </div>
 
             {/* Duration */}
             <div>
-              <Label htmlFor="duration">{t("services.duration")} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="duration">
+                {t("services.duration")}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="duration"
                 type="number"
                 value={formData.durationMin}
                 onChange={(e) => {
                   setFormData({ ...formData, durationMin: e.target.value });
-                  if (formErrors.durationMin) setFormErrors({ ...formErrors, durationMin: "" });
+                  if (formErrors.durationMin)
+                    setFormErrors({ ...formErrors, durationMin: "" });
                 }}
                 placeholder="60"
                 className={`mt-1 ${formErrors.durationMin ? "border-destructive" : ""}`}
               />
               {formErrors.durationMin && (
-                <p className="mt-1 text-xs text-destructive">{formErrors.durationMin}</p>
+                <p className="mt-1 text-xs text-destructive">
+                  {formErrors.durationMin}
+                </p>
               )}
               <p className="mt-1 text-xs text-muted-foreground">
                 {t("services.durationHint")}

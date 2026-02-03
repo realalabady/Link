@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionSettings } from "@/hooks/queries/useSubscriptionSettings";
 
@@ -34,29 +35,33 @@ const SubscriptionPaymentPage: React.FC = () => {
   >("bank_transfer");
 
   // Fetch subscription settings from database
-  const { data: settings, isLoading: settingsLoading } = useSubscriptionSettings();
+  const { data: settings, isLoading: settingsLoading } =
+    useSubscriptionSettings();
 
   // Build plans from settings
   const plans = useMemo(() => {
     if (!settings?.plans) return [];
-    
-    const monthlyPlan = settings.plans.find(p => p.months === 1);
+
+    const monthlyPlan = settings.plans.find((p) => p.months === 1);
     const monthlyPrice = monthlyPlan?.price || settings.monthlyPrice || 10;
-    
+
     return settings.plans
-      .filter(plan => plan.isActive)
-      .map(plan => {
+      .filter((plan) => plan.isActive)
+      .map((plan) => {
         // Calculate savings based on what full price would be
         const fullPrice = monthlyPrice * plan.months;
         const savings = fullPrice - plan.price;
-        
+
         return {
           id: plan.id,
-          name: plan.months === 1 
-            ? (t("subscription.monthlyPlan") || "Monthly")
-            : plan.months === 3 
-              ? (t("subscription.quarterlyPlan") || "Quarterly (3 Months)")
-              : (t("subscription.yearlyPlan") || "Yearly"),
+          name:
+            plan.months === 1
+              ? t("subscription.monthlyPlan") || "Monthly"
+              : plan.months === 6
+                ? t("subscription.halfYearlyPlan") || "Half Year (6 Months)"
+                : plan.months === 12
+                  ? t("subscription.yearlyPlan") || "Yearly"
+                  : `${plan.months} ${t("subscription.months") || "months"}`,
           months: plan.months,
           price: plan.price,
           savings: savings > 0 ? savings : 0,
@@ -135,62 +140,63 @@ const SubscriptionPaymentPage: React.FC = () => {
               <Card className="p-6 text-center">
                 <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground">
-                  {t("subscription.noPlansAvailable") || "No subscription plans available at this time."}
+                  {t("subscription.noPlansAvailable") ||
+                    "No subscription plans available at this time."}
                 </p>
               </Card>
             ) : (
-            <div className="grid gap-4 md:grid-cols-3">
-              {plans.map((plan) => (
-                <motion.div
-                  key={plan.id}
-                  whileHover={{ y: -4 }}
-                  className="relative"
-                >
-                  {plan.recommended && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground">
-                        {t("subscription.recommended") || "Recommended"}
-                      </Badge>
-                    </div>
-                  )}
-                  <Card
-                    className={`cursor-pointer transition-all ${
-                      selectedMethod === plan.id
-                        ? "border-primary ring-2 ring-primary/50"
-                        : "border-border"
-                    }`}
-                    onClick={() =>
-                      setSelectedMethod(plan.id as "bank_transfer" | "card")
-                    }
+              <div className="grid gap-4 md:grid-cols-3">
+                {plans.map((plan) => (
+                  <motion.div
+                    key={plan.id}
+                    whileHover={{ y: -4 }}
+                    className="relative"
                   >
-                    <CardHeader>
-                      <CardTitle className="text-base">{plan.name}</CardTitle>
-                      {plan.savings > 0 && (
-                        <p className="text-xs text-green-600 dark:text-green-400">
-                          Save {plan.savings.toFixed(0)} SAR
-                        </p>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="mb-4">
-                        <div className="text-3xl font-bold text-foreground">
-                          {plan.price.toFixed(0)}
-                          <span className="text-sm font-normal text-muted-foreground">
-                            {" "}
-                            SAR
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {plan.months === 1
-                            ? t("subscription.perMonth") || "per month"
-                            : `${plan.months} ${t("subscription.months") || "months"}`}
-                        </p>
+                    {plan.recommended && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-primary text-primary-foreground">
+                          {t("subscription.recommended") || "Recommended"}
+                        </Badge>
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
+                    )}
+                    <Card
+                      className={`cursor-pointer transition-all ${
+                        selectedMethod === plan.id
+                          ? "border-primary ring-2 ring-primary/50"
+                          : "border-border"
+                      }`}
+                      onClick={() =>
+                        setSelectedMethod(plan.id as "bank_transfer" | "card")
+                      }
+                    >
+                      <CardHeader>
+                        <CardTitle className="text-base">{plan.name}</CardTitle>
+                        {plan.savings > 0 && (
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            Save {plan.savings.toFixed(0)} SAR
+                          </p>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="mb-4">
+                          <div className="text-3xl font-bold text-foreground">
+                            {plan.price.toFixed(0)}
+                            <span className="text-sm font-normal text-muted-foreground">
+                              {" "}
+                              SAR
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {plan.months === 1
+                              ? t("subscription.perMonth") || "per month"
+                              : `${plan.months} ${t("subscription.months") || "months"}`}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
             )}
           </div>
 
@@ -339,10 +345,9 @@ const SubscriptionPaymentPage: React.FC = () => {
             </Button>
             <Button
               onClick={() => {
-                // In a real app, this would process the payment
-                // For now, we'll just show a message
-                alert(
-                  "Please contact the admin using the information above to complete your subscription payment.",
+                toast.info(
+                  t("subscription.contactAdminMessage") ||
+                    "Please contact the admin using the information above to complete your subscription payment."
                 );
               }}
               className="flex-1 gap-2"

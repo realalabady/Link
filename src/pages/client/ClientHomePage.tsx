@@ -26,7 +26,11 @@ import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
 import { useBanner } from "@/hooks/queries/useBanner";
-import { useGeolocation, calculateDistanceKm, formatDistance } from "@/hooks/useGeolocation";
+import {
+  useGeolocation,
+  calculateDistanceKm,
+  formatDistance,
+} from "@/hooks/useGeolocation";
 import logo from "@/assets/logo.jpeg";
 
 const ClientHomePage: React.FC = () => {
@@ -35,7 +39,11 @@ const ClientHomePage: React.FC = () => {
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
 
-  const { location, loading: locationLoading, requestLocation } = useGeolocation();
+  const {
+    location,
+    loading: locationLoading,
+    requestLocation,
+  } = useGeolocation();
 
   const { data: categories = [], isLoading: loadingCategories } =
     useCategories();
@@ -47,13 +55,16 @@ const ClientHomePage: React.FC = () => {
   const { data: banner } = useBanner();
 
   // Calculate distance for a provider
-  const getProviderDistance = (provider: { latitude?: number; longitude?: number }) => {
+  const getProviderDistance = (provider: {
+    latitude?: number;
+    longitude?: number;
+  }) => {
     if (!location || !provider.latitude || !provider.longitude) return null;
     return calculateDistanceKm(
       location.lat,
       location.lng,
       provider.latitude,
-      provider.longitude
+      provider.longitude,
     );
   };
 
@@ -392,48 +403,50 @@ const ClientHomePage: React.FC = () => {
                 {sortedProviders.map((provider) => {
                   const distance = getProviderDistance(provider);
                   return (
-                  <button
-                    key={provider.uid}
-                    onClick={() => navigate(`/client/provider/${provider.uid}`)}
-                    className="flex items-start gap-4 rounded-2xl bg-card p-4 text-start transition-all hover:bg-accent card-glow"
-                  >
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xl">
-                      👩‍💼
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-foreground truncate">
-                          {provider.displayName || t("provider.provider")}
-                        </h3>
-                        {provider.isVerified && (
-                          <Badge variant="secondary" className="shrink-0">
-                            ✓ {t("provider.verified")}
-                          </Badge>
-                        )}
+                    <button
+                      key={provider.uid}
+                      onClick={() =>
+                        navigate(`/client/provider/${provider.uid}`)
+                      }
+                      className="flex items-start gap-4 rounded-2xl bg-card p-4 text-start transition-all hover:bg-accent card-glow"
+                    >
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xl">
+                        👩‍💼
                       </div>
-                      <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span>{provider.ratingAvg.toFixed(1)}</span>
-                        <span>
-                          ({provider.ratingCount} {t("provider.reviews")})
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          <span className="truncate">
-                            {provider.city}, {provider.area}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-foreground truncate">
+                            {provider.displayName || t("provider.provider")}
+                          </h3>
+                          {provider.isVerified && (
+                            <Badge variant="secondary" className="shrink-0">
+                              ✓ {t("provider.verified")}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span>{provider.ratingAvg.toFixed(1)}</span>
+                          <span>
+                            ({provider.ratingCount} {t("provider.reviews")})
                           </span>
                         </div>
-                        {distance !== null && (
-                          <Badge variant="outline" className="shrink-0 gap-1">
-                            <Navigation className="h-3 w-3" />
-                            {formatDistance(distance)}
-                          </Badge>
-                        )}
+                        <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            <span className="truncate">
+                              {provider.city}, {provider.area}
+                            </span>
+                          </div>
+                          {distance !== null && (
+                            <Badge variant="outline" className="shrink-0 gap-1">
+                              <Navigation className="h-3 w-3" />
+                              {formatDistance(distance)}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
                   );
                 })}
               </div>

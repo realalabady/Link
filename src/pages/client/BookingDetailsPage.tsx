@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
@@ -11,6 +11,8 @@ import {
   Phone,
   User,
   XCircle,
+  Star,
+  Edit3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +38,9 @@ import {
 import { useService } from "@/hooks/queries/useServices";
 import { useProviderProfile } from "@/hooks/queries/useProviders";
 import { useCreateChat } from "@/hooks/queries/useChats";
+import { useReviewByBooking } from "@/hooks/queries/useReviews";
+import { ReviewDialog } from "@/components/ReviewDialog";
+import { StarRating } from "@/components/StarRating";
 import { BookingStatus } from "@/types";
 
 const getStatusBadgeVariant = (status: BookingStatus) => {
@@ -64,6 +69,7 @@ const BookingDetailsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const isArabic = i18n.language === "ar";
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
   const { data: booking, isLoading: loadingBooking } = useBooking(
     bookingId || "",
@@ -74,9 +80,16 @@ const BookingDetailsPage: React.FC = () => {
   const { data: provider, isLoading: loadingProvider } = useProviderProfile(
     booking?.providerId || "",
   );
+  const { data: existingReview, isLoading: loadingReview } = useReviewByBooking(
+    bookingId || "",
+  );
 
   const createChatMutation = useCreateChat();
   const updateStatusMutation = useUpdateBookingStatus();
+
+  // Check if booking is completed and can be reviewed
+  const isCompleted = booking?.status === "COMPLETED";
+  const hasReview = !!existingReview;
 
   const handleBack = () => {
     navigate("/client/bookings");
@@ -295,12 +308,81 @@ const BookingDetailsPage: React.FC = () => {
           </Card>
         </motion.div>
 
+        {/* Review Section - Only for completed bookings */}
+        {isCompleted && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className={hasReview ? "border-primary/30 bg-primary/5" : ""}>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-500" />
+                  {t("review.yourReview")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingReview ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ) : hasReview && existingReview ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <StarRating
+                        rating={existingReview.rating}
+                        size="md"
+                        readOnly
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setReviewDialogOpen(true)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <Edit3 className="h-4 w-4 mr-1" />
+                        {t("review.editReview")}
+                      </Button>
+                    </div>
+                    {existingReview.comment && (
+                      <p className="text-sm text-muted-foreground">
+                        "{existingReview.comment}"
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(existingReview.createdAt).toLocaleDateString(
+                        isArabic ? "ar-SA" : "en-US",
+                        { year: "numeric", month: "long", day: "numeric" }
+                      )}
+                      {existingReview.updatedAt && (
+                        <span> ({t("review.edited")})</span>
+                      )}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-4">
+                      {t("review.shareExperience")}
+                    </p>
+                    <Button onClick={() => setReviewDialogOpen(true)}>
+                      <Star className="h-4 w-4 mr-2" />
+                      {t("review.leaveReview")}
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Cancel Booking */}
         {canCancel && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
           >
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -333,6 +415,21 @@ const BookingDetailsPage: React.FC = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Review Dialog */}
+      {booking && user && (
+        <ReviewDialog
+          open={reviewDialogOpen}
+          onOpenChange={setReviewDialogOpen}
+          bookingId={booking.id}
+          clientId={user.uid}
+          clientName={user.displayName || user.name || user.email?.split("@")[0]}
+          providerId={booking.providerId}
+          serviceId={booking.serviceId}
+          serviceName={service?.title}
+          existingReview={existingReview}
+        />
+      )}
     </div>
   );
 };

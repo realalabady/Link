@@ -28,20 +28,8 @@ const getClientDisplayName = async (clientId: string): Promise<string> => {
     const userRef = doc(db, "users", clientId);
     const userSnap = await getDoc(userRef);
 
-    console.log(
-      "Client lookup - exists:",
-      userSnap.exists(),
-      "clientId:",
-      clientId,
-    );
-
     if (userSnap.exists()) {
       const data = userSnap.data();
-      console.log("Client data:", {
-        displayName: data.displayName,
-        name: data.name,
-        email: data.email,
-      });
       if (data.displayName) return data.displayName;
       if (data.name) return data.name;
       if (data.email) return data.email.split("@")[0];
@@ -53,7 +41,6 @@ const getClientDisplayName = async (clientId: string): Promise<string> => {
 
     if (providerSnap.exists()) {
       const data = providerSnap.data();
-      console.log("Found in providers:", data.displayName);
       if (data.displayName) return data.displayName;
     }
   } catch (error) {

@@ -249,9 +249,7 @@ const BookingPage: React.FC = () => {
                   {service.durationMin} {t("search.min")}
                 </span>
               </div>
-              <p className="font-semibold text-primary">
-                {service.price} SAR
-              </p>
+              <p className="font-semibold text-primary">{service.price} SAR</p>
             </div>
           </div>
 

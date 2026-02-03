@@ -35,26 +35,11 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
     let mounted = true;
 
     const checkApplePay = async () => {
-      console.log("=== Apple Pay Debug Start ===");
-      console.log(
-        "1. Checking Stripe key:",
-        !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
-      );
-
       const stripe = await stripePromise;
       if (!stripe) {
-        console.log("2. ❌ Stripe failed to load");
         setIsChecking(false);
         return;
       }
-      console.log("2. ✅ Stripe loaded successfully");
-
-      console.log("3. Browser info:", {
-        userAgent: navigator.userAgent,
-        isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
-        isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
-        isMac: /Macintosh/.test(navigator.userAgent),
-      });
 
       const pr = stripe.paymentRequest({
         country: "US",
@@ -66,28 +51,11 @@ const StripeApplePayButton: React.FC<StripeApplePayButtonProps> = ({
         requestPayerName: true,
         requestPayerEmail: true,
       });
-      console.log("4. ✅ Payment Request created");
 
       const result = await pr.canMakePayment();
-      console.log("5. canMakePayment result:", result);
 
       if (mounted) {
         const applePayAvailable = !!result?.applePay;
-        console.log(
-          "6. Apple Pay available:",
-          applePayAvailable ? "✅ YES" : "❌ NO",
-        );
-
-        if (!applePayAvailable) {
-          console.log("   Reasons Apple Pay may not show:");
-          console.log("   - Not using Safari browser");
-          console.log("   - Apple Pay not set up on device");
-          console.log("   - Not on HTTPS (required for production)");
-          console.log("   - Domain not verified with Apple");
-        }
-
-        console.log("=== Apple Pay Debug End ===");
-
         setCanUseApplePay(applePayAvailable);
         if (applePayAvailable) {
           setPaymentRequest(pr);

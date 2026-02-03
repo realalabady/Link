@@ -657,9 +657,7 @@ export const getProviderProfile = async (
             updatedAt: serverTimestamp(),
           });
         } catch (saveError) {
-          console.log(
-            "Could not save provider profile (permission issue), returning in-memory profile",
-          );
+          // Permission issue - return in-memory profile
         }
 
         // Return the profile regardless of save success
@@ -697,6 +695,39 @@ export const getProviderProfile = async (
   }
 };
 
+// Get providers by a list of UIDs
+export const getProvidersByIds = async (
+  uids: string[],
+): Promise<ProviderProfile[]> => {
+  if (uids.length === 0) return [];
+
+  try {
+    const providers: ProviderProfile[] = [];
+    
+    // Firestore 'in' query supports max 30 items, so we batch
+    const batchSize = 30;
+    for (let i = 0; i < uids.length; i += batchSize) {
+      const batch = uids.slice(i, i + batchSize);
+      const providersRef = collection(db, COLLECTIONS.PROVIDERS);
+      const q = query(providersRef, where("uid", "in", batch));
+      const snapshot = await getDocs(q);
+      
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data() as FirestoreProviderProfile;
+        providers.push({
+          ...data,
+          updatedAt: timestampToDate(data.updatedAt),
+        });
+      });
+    }
+    
+    return providers;
+  } catch (error) {
+    console.warn("Error fetching providers by IDs:", error);
+    return [];
+  }
+};
+
 // Get active providers (ordered by rating)
 // Note: Email verification is checked via Firebase Auth, not a Firestore field
 export const getVerifiedProviders = async (
@@ -704,7 +735,7 @@ export const getVerifiedProviders = async (
 ): Promise<ProviderProfile[]> => {
   try {
     const providersRef = collection(db, COLLECTIONS.PROVIDERS);
-    
+
     // First try with accountStatus filter
     let q = query(
       providersRef,
@@ -713,14 +744,10 @@ export const getVerifiedProviders = async (
       limit(limitCount),
     );
     let snapshot = await getDocs(q);
-    
+
     // If no results, try without the accountStatus filter (for backwards compatibility)
     if (snapshot.empty) {
-      q = query(
-        providersRef,
-        orderBy("ratingAvg", "desc"),
-        limit(limitCount),
-      );
+      q = query(providersRef, orderBy("ratingAvg", "desc"), limit(limitCount));
       snapshot = await getDocs(q);
     }
 
@@ -753,23 +780,23 @@ export const createProviderProfile = async (
   >,
 ): Promise<void> => {
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
-  
+
   // Fetch subscription settings to determine trial period
   const subscriptionSettings = await getSubscriptionSettings();
   const trialDays = subscriptionSettings.trialDays || 0;
-  
+
   // Calculate trial end date if trial is enabled
   let subscriptionStatus: "TRIAL" | "EXPIRED" = "EXPIRED";
   let subscriptionEndDate: Date | null = null;
   let subscriptionStartDate: Date | null = null;
-  
+
   if (trialDays > 0) {
     subscriptionStatus = "TRIAL";
     subscriptionStartDate = new Date();
     subscriptionEndDate = new Date();
     subscriptionEndDate.setDate(subscriptionEndDate.getDate() + trialDays);
   }
-  
+
   await setDoc(providerRef, {
     uid,
     ...profile,
@@ -875,18 +902,20 @@ export const updateSubscriptionStatus = async (
 };
 
 // Check and expire trial if it has ended
-export const checkAndExpireTrial = async (providerId: string): Promise<boolean> => {
+export const checkAndExpireTrial = async (
+  providerId: string,
+): Promise<boolean> => {
   const profile = await getProviderProfile(providerId);
   if (!profile) return false;
-  
+
   // Only check TRIAL status providers
   if (profile.subscriptionStatus !== "TRIAL") return false;
-  
+
   // Check if trial has expired
   if (profile.subscriptionEndDate) {
     const now = new Date();
     const endDate = new Date(profile.subscriptionEndDate);
-    
+
     if (now > endDate) {
       // Trial has expired, update status
       const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
@@ -898,7 +927,7 @@ export const checkAndExpireTrial = async (providerId: string): Promise<boolean> 
       return true; // Trial was expired
     }
   }
-  
+
   return false; // Trial still active
 };
 
@@ -913,15 +942,15 @@ export const grantTrialToProvider = async (
     const settings = await getSubscriptionSettings();
     days = settings.trialDays || 14; // Default to 14 days if not set
   }
-  
+
   if (days <= 0) {
     throw new Error("Trial days must be greater than 0");
   }
-  
+
   const now = new Date();
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + days);
-  
+
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
   await updateDoc(providerRef, {
     subscriptionStatus: "TRIAL",
@@ -1290,16 +1319,16 @@ export const updateBookingStatus = async (
   status: BookingStatus,
 ): Promise<void> => {
   const bookingRef = doc(db, COLLECTIONS.BOOKINGS, id);
-  
+
   // Get the booking to find the providerId for badge check
   const bookingSnap = await getDoc(bookingRef);
   const bookingData = bookingSnap.data();
-  
+
   await updateDoc(bookingRef, {
     status,
     updatedAt: serverTimestamp(),
   });
-  
+
   // If status changed to COMPLETED, check if provider should get Trusted badge
   if (status === "COMPLETED" && bookingData?.providerId) {
     await checkAndGrantTrustedBadge(bookingData.providerId);
@@ -1307,30 +1336,32 @@ export const updateBookingStatus = async (
 };
 
 // Check if provider has 10+ completed bookings and grant Trusted Provider badge
-export const checkAndGrantTrustedBadge = async (providerId: string): Promise<boolean> => {
+export const checkAndGrantTrustedBadge = async (
+  providerId: string,
+): Promise<boolean> => {
   try {
     // First check if provider already has the badge
     const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
     const providerSnap = await getDoc(providerRef);
-    
+
     if (!providerSnap.exists()) return false;
-    
+
     const providerData = providerSnap.data();
     if (providerData.isVerified) {
       // Already has the badge
       return true;
     }
-    
+
     // Count completed bookings
     const bookingsRef = collection(db, COLLECTIONS.BOOKINGS);
     const q = query(
       bookingsRef,
       where("providerId", "==", providerId),
-      where("status", "==", "COMPLETED")
+      where("status", "==", "COMPLETED"),
     );
     const snapshot = await getDocs(q);
     const completedCount = snapshot.size;
-    
+
     // If 10 or more completed bookings, grant the badge
     if (completedCount >= 10) {
       await updateDoc(providerRef, {
@@ -1339,7 +1370,7 @@ export const checkAndGrantTrustedBadge = async (providerId: string): Promise<boo
       });
       return true;
     }
-    
+
     return false;
   } catch (error) {
     return false;
@@ -1375,38 +1406,174 @@ export const updatePayment = async (
 // REVIEWS
 // ============================================
 
-export interface FirestoreReview extends Omit<Review, "createdAt"> {
+export interface FirestoreReview extends Omit<Review, "createdAt" | "updatedAt"> {
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export const getReviews = async (providerId: string): Promise<Review[]> => {
   const reviewsRef = collection(db, COLLECTIONS.REVIEWS);
+  // Simple query - sorting will be done client-side to avoid composite index requirement
   const q = query(
     reviewsRef,
     where("providerId", "==", providerId),
-    orderBy("createdAt", "desc"),
   );
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => {
+  const reviews = snapshot.docs.map((doc) => {
     const data = doc.data() as FirestoreReview;
     return {
       ...data,
       id: doc.id,
       createdAt: timestampToDate(data.createdAt),
+      updatedAt: data.updatedAt ? timestampToDate(data.updatedAt) : undefined,
     };
+  });
+  
+  // Sort by createdAt descending (client-side)
+  return reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+};
+
+// Get a review by booking ID (to check if review exists)
+export const getReviewByBooking = async (bookingId: string): Promise<Review | null> => {
+  const reviewsRef = collection(db, COLLECTIONS.REVIEWS);
+  const q = query(reviewsRef, where("bookingId", "==", bookingId), limit(1));
+  const snapshot = await getDocs(q);
+  
+  if (snapshot.empty) return null;
+  
+  const doc = snapshot.docs[0];
+  const data = doc.data() as FirestoreReview;
+  return {
+    ...data,
+    id: doc.id,
+    createdAt: timestampToDate(data.createdAt),
+    updatedAt: data.updatedAt ? timestampToDate(data.updatedAt) : undefined,
+  };
+};
+
+// Get a review by ID
+export const getReviewById = async (reviewId: string): Promise<Review | null> => {
+  const reviewRef = doc(db, COLLECTIONS.REVIEWS, reviewId);
+  const snapshot = await getDoc(reviewRef);
+  
+  if (!snapshot.exists()) return null;
+  
+  const data = snapshot.data() as FirestoreReview;
+  return {
+    ...data,
+    id: snapshot.id,
+    createdAt: timestampToDate(data.createdAt),
+    updatedAt: data.updatedAt ? timestampToDate(data.updatedAt) : undefined,
+  };
+};
+
+// Helper function to recalculate and update provider rating
+const updateProviderRating = async (providerId: string): Promise<void> => {
+  // Simple query without orderBy to avoid index requirement
+  const reviewsRef = collection(db, COLLECTIONS.REVIEWS);
+  const q = query(reviewsRef, where("providerId", "==", providerId));
+  const snapshot = await getDocs(q);
+  
+  if (snapshot.empty) {
+    // No reviews, reset rating
+    const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
+    await updateDoc(providerRef, {
+      ratingAvg: 0,
+      ratingCount: 0,
+      updatedAt: serverTimestamp(),
+    });
+    return;
+  }
+  
+  let totalRating = 0;
+  snapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    totalRating += data.rating || 0;
+  });
+  const ratingAvg = totalRating / snapshot.docs.length;
+  
+  const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
+  await updateDoc(providerRef, {
+    ratingAvg: Math.round(ratingAvg * 10) / 10, // Round to 1 decimal
+    ratingCount: snapshot.docs.length,
+    updatedAt: serverTimestamp(),
   });
 };
 
+// Create a new review and update provider rating
 export const createReview = async (
   review: Omit<Review, "id" | "createdAt">,
 ): Promise<string> => {
+  // Check if review already exists for this booking
+  const existingReview = await getReviewByBooking(review.bookingId);
+  if (existingReview) {
+    // Review exists - return the existing ID instead of throwing
+    // This handles the case where review was created but rating update failed
+    try {
+      await updateProviderRating(review.providerId);
+    } catch (e) {
+      console.error("Failed to update provider rating:", e);
+    }
+    return existingReview.id;
+  }
+  
   const reviewsRef = collection(db, COLLECTIONS.REVIEWS);
   const docRef = await addDoc(reviewsRef, {
     ...review,
     createdAt: serverTimestamp(),
   });
+  
+  // Update provider's rating (don't fail the whole operation if this fails)
+  try {
+    await updateProviderRating(review.providerId);
+  } catch (e) {
+    console.error("Failed to update provider rating:", e);
+  }
+  
   return docRef.id;
+};
+
+// Update an existing review
+export const updateReview = async (
+  reviewId: string,
+  updates: { rating?: number; comment?: string },
+): Promise<void> => {
+  const reviewRef = doc(db, COLLECTIONS.REVIEWS, reviewId);
+  const reviewSnap = await getDoc(reviewRef);
+  
+  if (!reviewSnap.exists()) {
+    throw new Error("Review not found");
+  }
+  
+  await updateDoc(reviewRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  });
+  
+  // Update provider's rating if rating changed
+  if (updates.rating !== undefined) {
+    const reviewData = reviewSnap.data() as FirestoreReview;
+    await updateProviderRating(reviewData.providerId);
+  }
+};
+
+// Delete a review and update provider rating
+export const deleteReview = async (reviewId: string): Promise<void> => {
+  const reviewRef = doc(db, COLLECTIONS.REVIEWS, reviewId);
+  const reviewSnap = await getDoc(reviewRef);
+  
+  if (!reviewSnap.exists()) {
+    throw new Error("Review not found");
+  }
+  
+  const reviewData = reviewSnap.data() as FirestoreReview;
+  const providerId = reviewData.providerId;
+  
+  await deleteDoc(reviewRef);
+  
+  // Update provider's rating after deletion
+  await updateProviderRating(providerId);
 };
 
 // ============================================
@@ -1487,32 +1654,48 @@ const DEFAULT_SUBSCRIPTION_SETTINGS: SubscriptionSettings = {
   trialDays: 0,
   plans: [
     { id: "monthly", months: 1, price: 10, discountPercent: 0, isActive: true },
-    { id: "quarterly", months: 3, price: 27, discountPercent: 10, isActive: true },
-    { id: "yearly", months: 12, price: 96, discountPercent: 20, isActive: true },
+    {
+      id: "half-yearly",
+      months: 6,
+      price: 50,
+      discountPercent: 15,
+      isActive: true,
+    },
+    {
+      id: "yearly",
+      months: 12,
+      price: 96,
+      discountPercent: 20,
+      isActive: true,
+    },
   ],
 };
 
-export const getSubscriptionSettings = async (): Promise<SubscriptionSettings> => {
-  try {
-    const settingsRef = doc(db, COLLECTIONS.SETTINGS, "subscription");
-    const snapshot = await getDoc(settingsRef);
-    
-    if (snapshot.exists()) {
-      const data = snapshot.data();
-      return {
-        monthlyPrice: data.monthlyPrice ?? DEFAULT_SUBSCRIPTION_SETTINGS.monthlyPrice,
-        trialDays: data.trialDays ?? DEFAULT_SUBSCRIPTION_SETTINGS.trialDays,
-        plans: data.plans ?? DEFAULT_SUBSCRIPTION_SETTINGS.plans,
-        updatedAt: data.updatedAt ? timestampToDate(data.updatedAt) : undefined,
-      };
+export const getSubscriptionSettings =
+  async (): Promise<SubscriptionSettings> => {
+    try {
+      const settingsRef = doc(db, COLLECTIONS.SETTINGS, "subscription");
+      const snapshot = await getDoc(settingsRef);
+
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        return {
+          monthlyPrice:
+            data.monthlyPrice ?? DEFAULT_SUBSCRIPTION_SETTINGS.monthlyPrice,
+          trialDays: data.trialDays ?? DEFAULT_SUBSCRIPTION_SETTINGS.trialDays,
+          plans: data.plans ?? DEFAULT_SUBSCRIPTION_SETTINGS.plans,
+          updatedAt: data.updatedAt
+            ? timestampToDate(data.updatedAt)
+            : undefined,
+        };
+      }
+
+      return DEFAULT_SUBSCRIPTION_SETTINGS;
+    } catch (error) {
+      console.warn("Error fetching subscription settings:", error);
+      return DEFAULT_SUBSCRIPTION_SETTINGS;
     }
-    
-    return DEFAULT_SUBSCRIPTION_SETTINGS;
-  } catch (error) {
-    console.warn("Error fetching subscription settings:", error);
-    return DEFAULT_SUBSCRIPTION_SETTINGS;
-  }
-};
+  };
 
 export const updateSubscriptionSettings = async (
   settings: Partial<SubscriptionSettings>,

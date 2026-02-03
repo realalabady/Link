@@ -99,8 +99,8 @@ const AdminSubscriptionsPage: React.FC = () => {
 
   // Get all providers - check both roles array and legacy role field
   const providers = useMemo(() => {
-    return users.filter((user) => 
-      user.roles?.includes("PROVIDER") || user.role === "PROVIDER"
+    return users.filter(
+      (user) => user.roles?.includes("PROVIDER") || user.role === "PROVIDER",
     );
   }, [users]);
 
@@ -332,7 +332,10 @@ const AdminSubscriptionsPage: React.FC = () => {
     }
   };
 
-  const handleGrantTrial = async (provider: ProviderProfile, trialDays: number) => {
+  const handleGrantTrial = async (
+    provider: ProviderProfile,
+    trialDays: number,
+  ) => {
     try {
       setIsUpdating(true);
       await grantTrialToProvider(provider.uid, trialDays);
@@ -884,7 +887,8 @@ const AdminSubscriptionsPage: React.FC = () => {
       <Dialog
         open={trialDialog.open}
         onOpenChange={(open) => {
-          if (!open) setTrialDialog({ open: false, provider: null, trialDays: "14" });
+          if (!open)
+            setTrialDialog({ open: false, provider: null, trialDays: "14" });
         }}
       >
         <DialogContent>
@@ -928,7 +932,10 @@ const AdminSubscriptionsPage: React.FC = () => {
             </Button>
             <Button
               onClick={() => {
-                if (trialDialog.provider && parseInt(trialDialog.trialDays) > 0) {
+                if (
+                  trialDialog.provider &&
+                  parseInt(trialDialog.trialDays) > 0
+                ) {
                   handleGrantTrial(
                     trialDialog.provider,
                     parseInt(trialDialog.trialDays),

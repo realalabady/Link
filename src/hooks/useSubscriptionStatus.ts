@@ -21,7 +21,11 @@ interface SubscriptionStatus {
  */
 export const useSubscriptionStatus = (): SubscriptionStatus => {
   const { user } = useAuth();
-  const { data: profile, isLoading, refetch } = useProviderProfile(user?.uid || "");
+  const {
+    data: profile,
+    isLoading,
+    refetch,
+  } = useProviderProfile(user?.uid || "");
   const [status, setStatus] = useState<SubscriptionStatus>({
     isLocked: false,
     isExpired: false,
@@ -83,11 +87,11 @@ export const useSubscriptionStatus = (): SubscriptionStatus => {
       } else {
         endDate = new Date(rawDate);
       }
-      
+
       daysUntilExpiry = Math.ceil(
         (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
-      
+
       // If in trial, calculate trial days remaining
       if (isTrial) {
         trialDaysRemaining = Math.max(0, daysUntilExpiry);

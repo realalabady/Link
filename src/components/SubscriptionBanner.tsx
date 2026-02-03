@@ -15,10 +15,15 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isDismissed, setIsDismissed] = React.useState(false);
-  const { isLocked, isExpired, isTrial, daysUntilExpiry } = useSubscriptionStatus();
+  const { isLocked, isExpired, isTrial, daysUntilExpiry } =
+    useSubscriptionStatus();
 
   // Don't show banner if dismissed, in trial, or subscription is fine (>7 days left)
-  if (isDismissed || isTrial || (!isLocked && !isExpired && daysUntilExpiry > 7)) {
+  if (
+    isDismissed ||
+    isTrial ||
+    (!isLocked && !isExpired && daysUntilExpiry > 7)
+  ) {
     return null;
   }
 

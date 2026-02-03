@@ -17,6 +17,7 @@ import {
   Bell,
   KeyRound,
   Moon,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,10 +43,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateUserProfile } from "@/lib/firestore";
 import { useProviderBookings } from "@/hooks/queries/useBookings";
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { sendEmailVerification } from "firebase/auth";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -435,10 +443,10 @@ const ProviderProfilePage: React.FC = () => {
     setIsSendingVerification(true);
     try {
       await sendEmailVerification(firebaseUser);
-      // Show success message
-      alert(t("auth.verificationEmailSent"));
+      toast.success(t("auth.verificationEmailSent"));
     } catch (error) {
       console.error("Error sending verification email:", error);
+      toast.error(t("common.error"));
     } finally {
       setIsSendingVerification(false);
     }
@@ -684,6 +692,33 @@ const ProviderProfilePage: React.FC = () => {
                 <p className="mt-2 text-xs text-muted-foreground">
                   {t("profile.completePercent", { percent: completionPercent })}
                 </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Reviews Card */}
+          <motion.div variants={fadeInUp} className="mb-6">
+            <Card
+              className="cursor-pointer hover:bg-accent/50 transition-colors"
+              onClick={() => navigate("/provider/reviews")}
+            >
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                      <Star className="h-5 w-5 text-yellow-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {t("providerReviews.title")}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {providerProfile?.ratingAvg?.toFixed(1) || "0.0"} ★ · {providerProfile?.ratingCount || 0} {t("provider.reviews")}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground rtl:rotate-180" />
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -1032,7 +1067,9 @@ const ProviderProfilePage: React.FC = () => {
                     <span>{t("profile.emailVerification")}</span>
                   </div>
                   {isEmailVerified ? (
-                    <Badge className="bg-green-500">{t("profile.verified")}</Badge>
+                    <Badge className="bg-green-500">
+                      {t("profile.verified")}
+                    </Badge>
                   ) : (
                     <Button
                       size="sm"
@@ -1054,7 +1091,9 @@ const ProviderProfilePage: React.FC = () => {
                     <span>{t("profile.trustedProviderBadge")}</span>
                   </div>
                   {isTrustedProvider ? (
-                    <Badge className="bg-green-500">{t("profile.trusted")}</Badge>
+                    <Badge className="bg-green-500">
+                      {t("profile.trusted")}
+                    </Badge>
                   ) : (
                     <span className="text-sm text-muted-foreground">
                       {progressToTrusted}/10 {t("profile.bookingsCompleted")}

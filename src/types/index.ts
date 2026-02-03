@@ -255,11 +255,14 @@ export interface Review {
   id: string;
   bookingId: string;
   clientId: string;
+  clientName?: string; // For display purposes
   providerId: string;
   serviceId?: string;
+  serviceName?: string; // For display purposes
   rating: number; // 1-5
   comment?: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 // Report

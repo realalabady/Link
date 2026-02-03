@@ -87,10 +87,34 @@ const AdminDashboardPage: React.FC = () => {
     monthlyPrice: 99,
     trialDays: 0,
     plans: [
-      { id: "monthly", months: 1, price: 10, discountPercent: 0, isActive: true },
-      { id: "quarterly", months: 3, price: 27, discountPercent: 10, isActive: true },
-      { id: "yearly", months: 12, price: 96, discountPercent: 20, isActive: true },
-    ] as Array<{ id: string; months: number; price: number; discountPercent: number; isActive: boolean }>,
+      {
+        id: "monthly",
+        months: 1,
+        price: 10,
+        discountPercent: 0,
+        isActive: true,
+      },
+      {
+        id: "half-yearly",
+        months: 6,
+        price: 50,
+        discountPercent: 15,
+        isActive: true,
+      },
+      {
+        id: "yearly",
+        months: 12,
+        price: 96,
+        discountPercent: 20,
+        isActive: true,
+      },
+    ] as Array<{
+      id: string;
+      months: number;
+      price: number;
+      discountPercent: number;
+      isActive: boolean;
+    }>,
   });
 
   // Category management state
@@ -125,9 +149,27 @@ const AdminDashboardPage: React.FC = () => {
         monthlyPrice: subscriptionSettings.monthlyPrice ?? 99,
         trialDays: subscriptionSettings.trialDays ?? 0,
         plans: subscriptionSettings.plans || [
-          { id: "monthly", months: 1, price: 10, discountPercent: 0, isActive: true },
-          { id: "quarterly", months: 3, price: 27, discountPercent: 10, isActive: true },
-          { id: "yearly", months: 12, price: 96, discountPercent: 20, isActive: true },
+          {
+            id: "monthly",
+            months: 1,
+            price: 10,
+            discountPercent: 0,
+            isActive: true,
+          },
+          {
+            id: "half-yearly",
+            months: 6,
+            price: 50,
+            discountPercent: 15,
+            isActive: true,
+          },
+          {
+            id: "yearly",
+            months: 12,
+            price: 96,
+            discountPercent: 20,
+            isActive: true,
+          },
         ],
       });
     }
@@ -267,18 +309,6 @@ const AdminDashboardPage: React.FC = () => {
       toast.error(t("common.error"));
     }
   };
-
-  // Debug logging
-  React.useEffect(() => {
-    console.log("Admin Dashboard Data:", {
-      usersCount: users.length,
-      paymentsCount: payments.length,
-      verificationsCount: verifications.length,
-      payoutsCount: payouts.length,
-    });
-    console.log("Payments data:", payments);
-    console.log("Users data:", users);
-  }, [users, payments, verifications, payouts]);
 
   const { data: activeBookingsCount = 0 } = useQuery({
     queryKey: ["admin", "bookings", "active"],
@@ -452,13 +482,6 @@ const AdminDashboardPage: React.FC = () => {
       total: totals.get(key) || 0,
     }));
 
-    console.log("Payments totals map:", totals);
-    console.log(
-      "Payments range keys:",
-      range.map((r) => r.key),
-    );
-    console.log("Payments over time result:", result);
-
     return result;
   }, [payments, locale, paymentsRange]);
 
@@ -590,11 +613,6 @@ const AdminDashboardPage: React.FC = () => {
     },
   ];
 
-  React.useEffect(() => {
-    console.log("Payments series:", paymentsSeries);
-    console.log("Payments chart options:", paymentsChartOptions);
-  }, [paymentsSeries, paymentsChartOptions]);
-
   const usersChartOptions: ApexOptions = useMemo(
     () => ({
       chart: {
@@ -676,43 +694,43 @@ const AdminDashboardPage: React.FC = () => {
   const stats = [
     {
       icon: <Users className="h-6 w-6" />,
-      label: "Total Users",
+      label: t("admin.totalUsers"),
       value: users.length.toString(),
       color: "bg-blue-500",
     },
     {
       icon: <CheckCircle className="h-6 w-6" />,
-      label: "Pending Verifications",
+      label: t("admin.pendingVerifications"),
       value: pendingVerifications.toString(),
       color: "bg-amber-500",
     },
     {
       icon: <Activity className="h-6 w-6" />,
-      label: "Active Bookings",
+      label: t("admin.activeBookings"),
       value: activeBookingsCount.toString(),
       color: "bg-primary",
     },
     {
       icon: <Gift className="h-6 w-6" />,
-      label: "Active Subscriptions",
+      label: t("admin.activeSubscriptions"),
       value: subscriptionStats.active.toString(),
       color: "bg-purple-500",
     },
     {
       icon: <CreditCard className="h-6 w-6" />,
-      label: "MRR (Gross Revenue)",
+      label: t("admin.mrr"),
       value: `${subscriptionStats.mrr.toFixed(0)} SAR`,
       color: "bg-blue-600",
     },
     {
       icon: <CreditCard className="h-6 w-6" />,
-      label: "Your Profit (Received)",
+      label: t("admin.yourProfit"),
       value: `${subscriptionStats.yourProfit.toFixed(0)} SAR`,
       color: "bg-green-600",
     },
     {
       icon: <CreditCard className="h-6 w-6" />,
-      label: "Payouts Owed",
+      label: t("admin.payoutsOwed"),
       value: `${subscriptionStats.payoutsOwed.toFixed(0)} SAR`,
       color: "bg-orange-600",
     },
@@ -1323,34 +1341,41 @@ const AdminDashboardPage: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               {t("admin.subscriptionPlansHint")}
             </p>
-            
+
             <div className="grid gap-4 sm:grid-cols-3">
               {subscriptionForm.plans.map((plan, index) => (
                 <Card key={plan.id} className="p-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">
-                        {plan.months === 1 
-                          ? t("subscription.monthlyPlan") 
-                          : plan.months === 3 
-                            ? t("subscription.quarterlyPlan")
-                            : t("subscription.yearlyPlan")}
+                        {plan.months === 1
+                          ? t("subscription.monthlyPlan")
+                          : plan.months === 6
+                            ? t("subscription.halfYearlyPlan")
+                            : plan.months === 12
+                              ? t("subscription.yearlyPlan")
+                              : `${plan.months} ${t("subscription.months")}`}
                       </span>
                       <Switch
                         checked={plan.isActive}
                         onCheckedChange={(checked) => {
                           const newPlans = [...subscriptionForm.plans];
                           newPlans[index] = { ...plan, isActive: checked };
-                          setSubscriptionForm((prev) => ({ ...prev, plans: newPlans }));
+                          setSubscriptionForm((prev) => ({
+                            ...prev,
+                            plans: newPlans,
+                          }));
                         }}
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {plan.months} {t("subscription.months")}
                     </p>
-                    
+
                     <div className="space-y-2">
-                      <Label className="text-xs">{t("admin.planPrice")} (SAR)</Label>
+                      <Label className="text-xs">
+                        {t("admin.planPrice")} (SAR)
+                      </Label>
                       <Input
                         type="number"
                         min="0"
@@ -1358,16 +1383,24 @@ const AdminDashboardPage: React.FC = () => {
                         value={plan.price}
                         onChange={(e) => {
                           const newPlans = [...subscriptionForm.plans];
-                          newPlans[index] = { ...plan, price: parseFloat(e.target.value) || 0 };
-                          setSubscriptionForm((prev) => ({ ...prev, plans: newPlans }));
+                          newPlans[index] = {
+                            ...plan,
+                            price: parseFloat(e.target.value) || 0,
+                          };
+                          setSubscriptionForm((prev) => ({
+                            ...prev,
+                            plans: newPlans,
+                          }));
                         }}
                         disabled={!plan.isActive}
                         className="h-8"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <Label className="text-xs">{t("admin.discountPercent")} (%)</Label>
+                      <Label className="text-xs">
+                        {t("admin.discountPercent")} (%)
+                      </Label>
                       <Input
                         type="number"
                         min="0"
@@ -1376,17 +1409,24 @@ const AdminDashboardPage: React.FC = () => {
                         value={plan.discountPercent}
                         onChange={(e) => {
                           const newPlans = [...subscriptionForm.plans];
-                          newPlans[index] = { ...plan, discountPercent: parseFloat(e.target.value) || 0 };
-                          setSubscriptionForm((prev) => ({ ...prev, plans: newPlans }));
+                          newPlans[index] = {
+                            ...plan,
+                            discountPercent: parseFloat(e.target.value) || 0,
+                          };
+                          setSubscriptionForm((prev) => ({
+                            ...prev,
+                            plans: newPlans,
+                          }));
                         }}
                         disabled={!plan.isActive}
                         className="h-8"
                       />
                     </div>
-                    
+
                     {plan.months > 1 && (
                       <p className="text-xs text-muted-foreground">
-                        {t("admin.effectiveMonthlyRate")}: {(plan.price / plan.months).toFixed(2)} SAR
+                        {t("admin.effectiveMonthlyRate")}:{" "}
+                        {(plan.price / plan.months).toFixed(2)} SAR
                       </p>
                     )}
                   </div>

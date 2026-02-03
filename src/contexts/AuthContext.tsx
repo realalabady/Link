@@ -141,7 +141,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Attempt to send email verification
       try {
         await sendEmailVerification(fbUser);
-        console.log("Verification email sent to:", email);
 
         // Also send verification email via Resend (our branded email)
         try {

@@ -29,9 +29,13 @@ import { Slider } from "@/components/ui/slider";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
-import { useVerifiedProviders } from "@/hooks/queries/useProviders";
+import { useProvidersByIds } from "@/hooks/queries/useProviders";
 import { useAuth } from "@/contexts/AuthContext";
-import { useGeolocation, calculateDistanceKm, formatDistance } from "@/hooks/useGeolocation";
+import {
+  useGeolocation,
+  calculateDistanceKm,
+  formatDistance,
+} from "@/hooks/useGeolocation";
 import { Service, ProviderProfile } from "@/types";
 
 const ClientSearchPage: React.FC = () => {
@@ -40,7 +44,12 @@ const ClientSearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const isArabic = i18n.language === "ar";
   const { user } = useAuth();
-  const { location, requestLocation, hasPermission, loading: locationLoading } = useGeolocation();
+  const {
+    location,
+    requestLocation,
+    hasPermission,
+    loading: locationLoading,
+  } = useGeolocation();
 
   // Auto-request location on mount if permission was previously granted or not yet asked
   useEffect(() => {
@@ -54,6 +63,7 @@ const ClientSearchPage: React.FC = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [maxDistance, setMaxDistance] = useState<number | null>(null); // null = no limit
+  const [minRating, setMinRating] = useState<number | null>(null); // null = no minimum
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"nearest" | "rating">("nearest");
 
@@ -106,8 +116,19 @@ const ClientSearchPage: React.FC = () => {
   const { data: services = [], isLoading: loadingServices } = useServices({
     isActive: true,
   });
+
+  // Get unique provider IDs from services
+  const providerIds = useMemo(() => {
+    const ids = new Set<string>();
+    services.forEach((s) => {
+      if (s.providerId) ids.add(s.providerId);
+    });
+    return Array.from(ids);
+  }, [services]);
+
+  // Fetch providers by IDs from services
   const { data: providers = [], isLoading: loadingProviders } =
-    useVerifiedProviders();
+    useProvidersByIds(providerIds);
 
   // Create provider lookup map
   const providerMap = useMemo(() => {
@@ -130,7 +151,7 @@ const ClientSearchPage: React.FC = () => {
       location.lat,
       location.lng,
       provider.latitude,
-      provider.longitude
+      provider.longitude,
     );
   };
 
@@ -182,8 +203,7 @@ const ClientSearchPage: React.FC = () => {
         selectedCategories.includes(service.categoryId);
 
       const matchesPrice =
-        service.price >= priceRange[0] &&
-        service.price <= priceRange[1];
+        service.price >= priceRange[0] && service.price <= priceRange[1];
 
       // Distance filter
       let matchesDistance = true;
@@ -194,7 +214,7 @@ const ClientSearchPage: React.FC = () => {
             location.lat,
             location.lng,
             provider.latitude,
-            provider.longitude
+            provider.longitude,
           );
           matchesDistance = distance <= maxDistance;
         } else {
@@ -203,7 +223,17 @@ const ClientSearchPage: React.FC = () => {
         }
       }
 
-      return matchesSearch && matchesCategory && matchesPrice && matchesDistance;
+      // Rating filter
+      let matchesRating = true;
+      if (minRating !== null) {
+        const provider = providerMap[service.providerId];
+        const providerRating = provider?.ratingAvg || 0;
+        matchesRating = providerRating >= minRating;
+      }
+
+      return (
+        matchesSearch && matchesCategory && matchesPrice && matchesDistance && matchesRating
+      );
     });
 
     if (sortBy === "rating") {
@@ -270,6 +300,7 @@ const ClientSearchPage: React.FC = () => {
     selectedCategories,
     priceRange,
     maxDistance,
+    minRating,
     sortBy,
     providerMap,
     user,
@@ -416,7 +447,9 @@ const ClientSearchPage: React.FC = () => {
                             key={km}
                             variant={maxDistance === km ? "default" : "outline"}
                             size="sm"
-                            onClick={() => setMaxDistance(maxDistance === km ? null : km)}
+                            onClick={() =>
+                              setMaxDistance(maxDistance === km ? null : km)
+                            }
                             className="rounded-lg"
                           >
                             {km} {t("search.km")}
@@ -447,6 +480,46 @@ const ClientSearchPage: React.FC = () => {
                       </div>
                     </button>
                   )}
+
+                  {/* Minimum Rating Filter */}
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <label className="text-sm font-medium">
+                        {t("search.minRating")}
+                      </label>
+                      {minRating !== null && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 text-xs text-muted-foreground"
+                          onClick={() => setMinRating(null)}
+                        >
+                          {t("search.anyRating")}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[3, 3.5, 4, 4.5].map((rating) => (
+                        <Button
+                          key={rating}
+                          variant={minRating === rating ? "default" : "outline"}
+                          size="sm"
+                          onClick={() =>
+                            setMinRating(minRating === rating ? null : rating)
+                          }
+                          className="rounded-lg gap-1"
+                        >
+                          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                          {rating}+
+                        </Button>
+                      ))}
+                    </div>
+                    {minRating !== null && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {t("search.showingRatedAbove", { rating: minRating })}
+                      </p>
+                    )}
+                  </div>
 
                   <Button
                     className="w-full"
@@ -557,8 +630,8 @@ const ClientSearchPage: React.FC = () => {
                   {t("search.locationEnabled")}
                 </Badge>
               ) : (
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className="cursor-pointer gap-1 text-muted-foreground hover:text-primary"
                   onClick={requestLocation}
                 >
@@ -587,6 +660,7 @@ const ClientSearchPage: React.FC = () => {
                 {filteredServices.map((service) => {
                   const provider = providerMap[service.providerId];
                   const distance = getProviderDistance(provider);
+
                   return (
                     <motion.button
                       key={service.id}
@@ -623,12 +697,12 @@ const ClientSearchPage: React.FC = () => {
 
                           <div className="flex flex-wrap items-center gap-2 text-xs">
                             {/* Provider Rating */}
-                            {provider && (
-                              <Badge variant="secondary" className="gap-1">
-                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                                {provider.ratingAvg.toFixed(1)}
-                              </Badge>
-                            )}
+                            <Badge variant="secondary" className="gap-1">
+                              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                              {provider && provider.ratingCount > 0
+                                ? `${provider.ratingAvg.toFixed(1)} (${provider.ratingCount})`
+                                : t("search.newProvider")}
+                            </Badge>
 
                             {/* Duration */}
                             <Badge variant="outline" className="gap-1">
@@ -636,35 +710,21 @@ const ClientSearchPage: React.FC = () => {
                               {service.durationMin} {t("search.min")}
                             </Badge>
 
-                            {/* Distance */}
+                            {/* Distance / Location */}
                             {distance !== null ? (
-                              <Badge variant="outline" className="gap-1 text-primary">
+                              <Badge
+                                variant="outline"
+                                className="gap-1 text-primary"
+                              >
                                 <Navigation className="h-3 w-3" />
                                 {formatDistance(distance)}
                               </Badge>
-                            ) : location && provider?.latitude && provider?.longitude ? (
-                              // Both locations available but still null - shouldn't happen
-                              <Badge variant="outline" className="gap-1 text-orange-500">
-                                <Navigation className="h-3 w-3" />
-                                ???
+                            ) : provider?.area || provider?.city ? (
+                              <Badge variant="outline" className="gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {provider.area || provider.city}
                               </Badge>
-                            ) : !location ? (
-                              // User location not available - show area instead
-                              provider && (
-                                <Badge variant="outline" className="gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {provider.area || provider.city}
-                                </Badge>
-                              )
-                            ) : (
-                              // Provider has no location set - show their area
-                              provider && (
-                                <Badge variant="outline" className="gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {provider.area || provider.city}
-                                </Badge>
-                              )
-                            )}
+                            ) : null}
                           </div>
 
                           {/* Price */}

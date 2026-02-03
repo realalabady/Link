@@ -20,7 +20,11 @@ import { useProviderProfile, useProviderServices } from "@/hooks/queries";
 import { useReviews } from "@/hooks/queries/useReviews";
 import { useCreateChat } from "@/hooks/queries/useChats";
 import { useAuth } from "@/contexts/AuthContext";
-import { useGeolocation, calculateDistanceKm, formatDistance } from "@/hooks/useGeolocation";
+import {
+  useGeolocation,
+  calculateDistanceKm,
+  formatDistance,
+} from "@/hooks/useGeolocation";
 import { Service } from "@/types";
 
 const ProviderProfilePage: React.FC = () => {
@@ -59,7 +63,7 @@ const ProviderProfilePage: React.FC = () => {
       location.lat,
       location.lng,
       provider.latitude,
-      provider.longitude
+      provider.longitude,
     );
   }, [location, provider?.latitude, provider?.longitude]);
 
@@ -176,7 +180,10 @@ const ProviderProfilePage: React.FC = () => {
                 {distanceToProvider !== null && (
                   <div className="mt-2 flex items-center gap-1 text-sm font-medium text-primary">
                     <Navigation className="h-4 w-4" />
-                    <span>{formatDistance(distanceToProvider)} {t("profile.awayFromYou")}</span>
+                    <span>
+                      {formatDistance(distanceToProvider)}{" "}
+                      {t("profile.awayFromYou")}
+                    </span>
                   </div>
                 )}
 
@@ -275,18 +282,17 @@ const ProviderProfilePage: React.FC = () => {
                 <div className="space-y-4">
                   {reviews.map((review) => (
                     <div key={review.id} className="rounded-2xl bg-card p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`h-4 w-4 ${
-                                star <= review.rating
-                                  ? "fill-yellow-500 text-yellow-500"
-                                  : "text-muted"
-                              }`}
-                            />
-                          ))}
+                      {/* Client name and service */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {review.clientName || t("providerReviews.anonymousClient")}
+                          </p>
+                          {review.serviceName && (
+                            <p className="text-xs text-muted-foreground">
+                              {review.serviceName}
+                            </p>
+                          )}
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {new Date(review.createdAt).toLocaleDateString(
@@ -294,9 +300,22 @@ const ProviderProfilePage: React.FC = () => {
                           )}
                         </span>
                       </div>
+                      {/* Stars */}
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= review.rating
+                                ? "fill-yellow-500 text-yellow-500"
+                                : "text-muted"
+                            }`}
+                          />
+                        ))}
+                      </div>
                       {review.comment && (
                         <p className="mt-2 text-sm text-foreground">
-                          {review.comment}
+                          "{review.comment}"
                         </p>
                       )}
                     </div>

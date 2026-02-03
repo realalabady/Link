@@ -1,6 +1,13 @@
 // React Query hooks for Reviews
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getReviews, createReview } from "@/lib/firestore";
+import {
+  getReviews,
+  getReviewByBooking,
+  getReviewById,
+  createReview,
+  updateReview,
+  deleteReview,
+} from "@/lib/firestore";
 import { Review } from "@/types";
 import { providerKeys } from "./useProviders";
 
@@ -10,6 +17,8 @@ export const reviewKeys = {
   byProvider: (providerId: string) =>
     ["reviews", "provider", providerId] as const,
   byService: (serviceId: string) => ["reviews", "service", serviceId] as const,
+  byBooking: (bookingId: string) => ["reviews", "booking", bookingId] as const,
+  detail: (reviewId: string) => ["reviews", "detail", reviewId] as const,
 };
 
 // Fetch reviews with optional filters
@@ -34,6 +43,24 @@ export const useProviderReviews = (providerId: string) => {
   });
 };
 
+// Fetch review by booking ID (to check if review exists)
+export const useReviewByBooking = (bookingId: string) => {
+  return useQuery<Review | null, Error>({
+    queryKey: reviewKeys.byBooking(bookingId),
+    queryFn: () => getReviewByBooking(bookingId),
+    enabled: !!bookingId,
+  });
+};
+
+// Fetch review by ID
+export const useReviewById = (reviewId: string) => {
+  return useQuery<Review | null, Error>({
+    queryKey: reviewKeys.detail(reviewId),
+    queryFn: () => getReviewById(reviewId),
+    enabled: !!reviewId,
+  });
+};
+
 // Create a new review
 export const useCreateReview = () => {
   const queryClient = useQueryClient();
@@ -46,9 +73,97 @@ export const useCreateReview = () => {
       queryClient.invalidateQueries({
         queryKey: reviewKeys.byProvider(variables.providerId),
       });
+      // Invalidate booking review check
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.byBooking(variables.bookingId),
+      });
       // Also invalidate provider profile to update rating
       queryClient.invalidateQueries({
         queryKey: providerKeys.detail(variables.providerId),
+      });
+      // Invalidate all providers list to update ratings in search
+      queryClient.invalidateQueries({
+        queryKey: providerKeys.all,
+      });
+    },
+  });
+};
+
+// Update an existing review
+export const useUpdateReview = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      reviewId,
+      updates,
+      providerId,
+      bookingId,
+    }: {
+      reviewId: string;
+      updates: { rating?: number; comment?: string };
+      providerId: string;
+      bookingId: string;
+    }) => updateReview(reviewId, updates),
+    onSuccess: (_, variables) => {
+      // Invalidate review detail
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.detail(variables.reviewId),
+      });
+      // Invalidate provider reviews list
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.byProvider(variables.providerId),
+      });
+      // Invalidate booking review
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.byBooking(variables.bookingId),
+      });
+      // Invalidate provider profile to update rating
+      queryClient.invalidateQueries({
+        queryKey: providerKeys.detail(variables.providerId),
+      });
+      // Invalidate all providers list
+      queryClient.invalidateQueries({
+        queryKey: providerKeys.all,
+      });
+    },
+  });
+};
+
+// Delete a review
+export const useDeleteReview = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      reviewId,
+      providerId,
+      bookingId,
+    }: {
+      reviewId: string;
+      providerId: string;
+      bookingId: string;
+    }) => deleteReview(reviewId),
+    onSuccess: (_, variables) => {
+      // Invalidate review detail
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.detail(variables.reviewId),
+      });
+      // Invalidate provider reviews list
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.byProvider(variables.providerId),
+      });
+      // Invalidate booking review check
+      queryClient.invalidateQueries({
+        queryKey: reviewKeys.byBooking(variables.bookingId),
+      });
+      // Invalidate provider profile to update rating
+      queryClient.invalidateQueries({
+        queryKey: providerKeys.detail(variables.providerId),
+      });
+      // Invalidate all providers list
+      queryClient.invalidateQueries({
+        queryKey: providerKeys.all,
       });
     },
   });
