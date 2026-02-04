@@ -11,6 +11,7 @@ const HelpCenterPage: React.FC = () => {
     "booking",
     "payments",
     "account",
+    "deleteAccount",
     "safety",
     "messaging",
   ] as const;

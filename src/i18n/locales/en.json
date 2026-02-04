@@ -62,6 +62,9 @@
     "confirmPassword": "Confirm password",
     "passwordRequirements": "Password must be at least 8 characters and include uppercase, lowercase, number, and symbol.",
     "passwordsDoNotMatch": "Passwords do not match",
+    "iAccept": "I accept the",
+    "privacyPolicy": "Privacy Policy",
+    "acceptPrivacyRequired": "You must accept the Privacy Policy to create an account.",
     "forgotPassword": "Forgot password?",
     "resetPassword": "Reset password",
     "resetPasswordDescription": "Enter your email to receive a reset link.",
@@ -291,6 +294,15 @@
     "helpCenter": "Help Center",
     "logoutTitle": "Log out?",
     "logoutDescription": "Are you sure you want to log out of your account?",
+    "deleteAccount": "Delete Account",
+    "deleteAccountTitle": "Delete Account?",
+    "deleteAccountDescription": "This will permanently delete your account and all associated data including your profile, bookings history, and reviews.",
+    "deleteAccountWarning": "⚠️ This action cannot be undone. There is no going back!",
+    "recentLoginRequired": "For security reasons, please log out and log back in before deleting your account.",
+    "confirmPassword": "Confirm your password",
+    "enterPasswordToConfirm": "Enter your password to confirm",
+    "enterPassword": "Please enter your password",
+    "wrongPassword": "Incorrect password. Please try again.",
     "addPhone": "Add phone number",
     "addLocation": "Add location",
     "completion": "Profile completion",
@@ -353,8 +365,18 @@
           "Use Reset Password if you can’t log in.",
           "You can change language from Profile settings."
         ]
-      },
-      "safety": {
+      },      "deleteAccount": {
+        "title": "How to delete my account",
+        "items": [
+          "Go to your Profile page and scroll to the bottom.",
+          "Click on 'Delete Account' button.",
+          "Enter your password to confirm your identity.",
+          "Click 'Delete Account' to permanently delete your account.",
+          "All your data will be permanently deleted including your profile, bookings history, reviews, and messages.",
+          "This action cannot be undone.",
+          "You can also delete your account by reaching out to our Help Center at support@link-22.com."
+        ]
+      },      "safety": {
         "title": "Safety & disputes",
         "items": [
           "Use in-app chat to keep records of agreements.",

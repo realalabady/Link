@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthErrorMessage } from "@/lib/authErrors";
@@ -31,6 +32,7 @@ const SignupPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -42,6 +44,11 @@ const SignupPage: React.FC = () => {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    if (!acceptedPrivacy) {
+      setError(t("auth.acceptPrivacyRequired"));
+      return;
+    }
 
     if (!isStrongPassword(password)) {
       setError(t("auth.passwordRequirements"));
@@ -212,7 +219,27 @@ const SignupPage: React.FC = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            {/* Privacy Policy Checkbox */}
+            <div className="flex items-start space-x-3 rtl:space-x-reverse">
+              <Checkbox
+                id="privacy"
+                checked={acceptedPrivacy}
+                onCheckedChange={(checked) => setAcceptedPrivacy(checked === true)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="privacy" className="text-sm leading-relaxed cursor-pointer">
+                {t("auth.iAccept")}{" "}
+                <Link
+                  to="/privacy"
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  {t("auth.privacyPolicy")}
+                </Link>
+              </Label>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading || !acceptedPrivacy}>
               {isLoading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
               ) : (

@@ -239,6 +239,37 @@ export const userDocumentExists = async (uid: string): Promise<boolean> => {
   return userSnap.exists();
 };
 
+// Delete user account and all related data
+export const deleteUserAccount = async (uid: string): Promise<void> => {
+  const batch = writeBatch(db);
+
+  // Delete user document
+  const userRef = doc(db, COLLECTIONS.USERS, uid);
+  batch.delete(userRef);
+
+  // Delete provider profile if exists
+  const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
+  const providerSnap = await getDoc(providerRef);
+  if (providerSnap.exists()) {
+    batch.delete(providerRef);
+  }
+
+  // Delete user's services
+  const servicesQuery = query(
+    collection(db, COLLECTIONS.SERVICES),
+    where("providerId", "==", uid)
+  );
+  const servicesSnap = await getDocs(servicesQuery);
+  servicesSnap.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+
+  // Note: We don't delete bookings/reviews to preserve history for other users
+  // The UI should handle showing "Deleted User" for these records
+
+  await batch.commit();
+};
+
 // ============================================
 // CATEGORIES
 // ============================================

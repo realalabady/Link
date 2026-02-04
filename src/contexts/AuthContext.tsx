@@ -11,6 +11,9 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   sendEmailVerification,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   User as FirebaseUser,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -22,6 +25,7 @@ import {
   addRoleToUser,
   userDocumentExists,
   createProviderProfile,
+  deleteUserAccount,
 } from "@/lib/firestore";
 import { User, UserRole } from "@/types";
 
@@ -33,6 +37,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   setUserRole: (role: UserRole) => Promise<void>;
   switchRole: (role: UserRole) => Promise<void>;
   becomeProvider: (providerData: {
@@ -192,6 +197,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const deleteAccount = async (password: string) => {
+    if (!firebaseUser || !firebaseUser.email) {
+      throw new Error("No authenticated user");
+    }
+
+    setIsLoading(true);
+    try {
+      // Re-authenticate user first (required for sensitive operations)
+      const credential = EmailAuthProvider.credential(
+        firebaseUser.email,
+        password
+      );
+      await reauthenticateWithCredential(firebaseUser, credential);
+
+      // Delete user data from Firestore first
+      await deleteUserAccount(firebaseUser.uid);
+
+      // Then delete the Firebase Auth user
+      await deleteUser(firebaseUser);
+
+      // Clear local state
+      setUser(null);
+      setFirebaseUser(null);
+    } catch (error) {
+      console.error("Delete account error:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const setUserRole = async (role: UserRole) => {
     if (user && firebaseUser) {
       try {
@@ -289,6 +325,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         signup,
         logout,
+        deleteAccount,
         setUserRole,
         switchRole,
         becomeProvider,

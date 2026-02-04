@@ -18,6 +18,7 @@ import {
   KeyRound,
   Moon,
   Star,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -413,12 +414,15 @@ const SAUDI_REGIONS = [
 
 const ProviderProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user, firebaseUser, logout, refreshUser } = useAuth();
+  const { user, firebaseUser, logout, deleteAccount, refreshUser } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const isArabic = i18n.language === "ar";
 
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -577,6 +581,31 @@ const ProviderProfilePage: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     navigate("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword.trim()) {
+      toast.error(t("profile.enterPassword"));
+      return;
+    }
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(deletePassword);
+      setDeleteAccountDialogOpen(false);
+      setDeletePassword("");
+      navigate("/");
+    } catch (error: any) {
+      console.error("Failed to delete account:", error);
+      // Handle wrong password error
+      const errorCode = error?.code || error?.message || "";
+      if (errorCode.includes("wrong-password") || errorCode.includes("invalid-credential") || errorCode.includes("INVALID_LOGIN_CREDENTIALS")) {
+        toast.error(t("profile.wrongPassword"));
+      } else {
+        toast.error(t("common.error"));
+      }
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   const handleRequestPayout = async () => {
@@ -1145,6 +1174,18 @@ const ProviderProfilePage: React.FC = () => {
               {t("common.logout")}
             </Button>
           </motion.div>
+
+          {/* Delete Account Button */}
+          <motion.div variants={fadeInUp}>
+            <Button
+              variant="outline"
+              className="w-full text-destructive border-destructive/50 hover:bg-destructive/10"
+              onClick={() => setDeleteAccountDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t("profile.deleteAccount")}
+            </Button>
+          </motion.div>
         </motion.div>
       </main>
 
@@ -1166,6 +1207,54 @@ const ProviderProfilePage: React.FC = () => {
             </Button>
             <Button variant="destructive" onClick={handleLogout}>
               {t("common.logout")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={deleteAccountDialogOpen} onOpenChange={(open) => {
+        setDeleteAccountDialogOpen(open);
+        if (!open) setDeletePassword("");
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">{t("profile.deleteAccountTitle")}</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2">
+                <p>{t("profile.deleteAccountDescription")}</p>
+                <p className="font-semibold text-destructive">{t("profile.deleteAccountWarning")}</p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="delete-password-provider">{t("profile.confirmPassword")}</Label>
+            <Input
+              id="delete-password-provider"
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder={t("profile.enterPasswordToConfirm")}
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteAccountDialogOpen(false);
+                setDeletePassword("");
+              }}
+              disabled={isDeletingAccount}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAccount}
+              disabled={isDeletingAccount || !deletePassword.trim()}
+            >
+              {isDeletingAccount ? t("common.loading") : t("profile.deleteAccount")}
             </Button>
           </DialogFooter>
         </DialogContent>
