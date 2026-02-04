@@ -162,7 +162,8 @@ const ProviderReviewsPage: React.FC = () => {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="font-medium text-foreground">
-                              {review.clientName || t("providerReviews.anonymousClient")}
+                              {review.clientName ||
+                                t("providerReviews.anonymousClient")}
                             </p>
                             {review.serviceName && (
                               <p className="text-xs text-muted-foreground">
@@ -170,10 +171,7 @@ const ProviderReviewsPage: React.FC = () => {
                               </p>
                             )}
                           </div>
-                          <Badge
-                            variant="secondary"
-                            className="shrink-0 gap-1"
-                          >
+                          <Badge variant="secondary" className="shrink-0 gap-1">
                             <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
                             {review.rating}
                           </Badge>
@@ -206,7 +204,7 @@ const ProviderReviewsPage: React.FC = () => {
                               year: "numeric",
                               month: "long",
                               day: "numeric",
-                            }
+                            },
                           )}
                           {review.updatedAt && (
                             <span className="ms-1">({t("review.edited")})</span>

@@ -286,7 +286,8 @@ const ProviderProfilePage: React.FC = () => {
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <p className="font-medium text-foreground">
-                            {review.clientName || t("providerReviews.anonymousClient")}
+                            {review.clientName ||
+                              t("providerReviews.anonymousClient")}
                           </p>
                           {review.serviceName && (
                             <p className="text-xs text-muted-foreground">

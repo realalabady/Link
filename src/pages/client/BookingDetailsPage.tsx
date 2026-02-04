@@ -354,7 +354,7 @@ const BookingDetailsPage: React.FC = () => {
                     <p className="text-xs text-muted-foreground">
                       {new Date(existingReview.createdAt).toLocaleDateString(
                         isArabic ? "ar-SA" : "en-US",
-                        { year: "numeric", month: "long", day: "numeric" }
+                        { year: "numeric", month: "long", day: "numeric" },
                       )}
                       {existingReview.updatedAt && (
                         <span> ({t("review.edited")})</span>
@@ -423,7 +423,9 @@ const BookingDetailsPage: React.FC = () => {
           onOpenChange={setReviewDialogOpen}
           bookingId={booking.id}
           clientId={user.uid}
-          clientName={user.displayName || user.name || user.email?.split("@")[0]}
+          clientName={
+            user.displayName || user.name || user.email?.split("@")[0]
+          }
           providerId={booking.providerId}
           serviceId={booking.serviceId}
           serviceName={service?.title}

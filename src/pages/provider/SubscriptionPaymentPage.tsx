@@ -347,7 +347,7 @@ const SubscriptionPaymentPage: React.FC = () => {
               onClick={() => {
                 toast.info(
                   t("subscription.contactAdminMessage") ||
-                    "Please contact the admin using the information above to complete your subscription payment."
+                    "Please contact the admin using the information above to complete your subscription payment.",
                 );
               }}
               className="flex-1 gap-2"

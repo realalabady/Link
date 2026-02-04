@@ -713,7 +713,9 @@ const ProviderProfilePage: React.FC = () => {
                         {t("providerReviews.title")}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {providerProfile?.ratingAvg?.toFixed(1) || "0.0"} ★ · {providerProfile?.ratingCount || 0} {t("provider.reviews")}
+                        {providerProfile?.ratingAvg?.toFixed(1) || "0.0"} ★ ·{" "}
+                        {providerProfile?.ratingCount || 0}{" "}
+                        {t("provider.reviews")}
                       </p>
                     </div>
                   </div>

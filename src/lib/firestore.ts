@@ -703,7 +703,7 @@ export const getProvidersByIds = async (
 
   try {
     const providers: ProviderProfile[] = [];
-    
+
     // Firestore 'in' query supports max 30 items, so we batch
     const batchSize = 30;
     for (let i = 0; i < uids.length; i += batchSize) {
@@ -711,7 +711,7 @@ export const getProvidersByIds = async (
       const providersRef = collection(db, COLLECTIONS.PROVIDERS);
       const q = query(providersRef, where("uid", "in", batch));
       const snapshot = await getDocs(q);
-      
+
       snapshot.docs.forEach((doc) => {
         const data = doc.data() as FirestoreProviderProfile;
         providers.push({
@@ -720,7 +720,7 @@ export const getProvidersByIds = async (
         });
       });
     }
-    
+
     return providers;
   } catch (error) {
     console.warn("Error fetching providers by IDs:", error);
@@ -1406,7 +1406,10 @@ export const updatePayment = async (
 // REVIEWS
 // ============================================
 
-export interface FirestoreReview extends Omit<Review, "createdAt" | "updatedAt"> {
+export interface FirestoreReview extends Omit<
+  Review,
+  "createdAt" | "updatedAt"
+> {
   createdAt: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -1414,10 +1417,7 @@ export interface FirestoreReview extends Omit<Review, "createdAt" | "updatedAt">
 export const getReviews = async (providerId: string): Promise<Review[]> => {
   const reviewsRef = collection(db, COLLECTIONS.REVIEWS);
   // Simple query - sorting will be done client-side to avoid composite index requirement
-  const q = query(
-    reviewsRef,
-    where("providerId", "==", providerId),
-  );
+  const q = query(reviewsRef, where("providerId", "==", providerId));
   const snapshot = await getDocs(q);
 
   const reviews = snapshot.docs.map((doc) => {
@@ -1429,19 +1429,21 @@ export const getReviews = async (providerId: string): Promise<Review[]> => {
       updatedAt: data.updatedAt ? timestampToDate(data.updatedAt) : undefined,
     };
   });
-  
+
   // Sort by createdAt descending (client-side)
   return reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 };
 
 // Get a review by booking ID (to check if review exists)
-export const getReviewByBooking = async (bookingId: string): Promise<Review | null> => {
+export const getReviewByBooking = async (
+  bookingId: string,
+): Promise<Review | null> => {
   const reviewsRef = collection(db, COLLECTIONS.REVIEWS);
   const q = query(reviewsRef, where("bookingId", "==", bookingId), limit(1));
   const snapshot = await getDocs(q);
-  
+
   if (snapshot.empty) return null;
-  
+
   const doc = snapshot.docs[0];
   const data = doc.data() as FirestoreReview;
   return {
@@ -1453,12 +1455,14 @@ export const getReviewByBooking = async (bookingId: string): Promise<Review | nu
 };
 
 // Get a review by ID
-export const getReviewById = async (reviewId: string): Promise<Review | null> => {
+export const getReviewById = async (
+  reviewId: string,
+): Promise<Review | null> => {
   const reviewRef = doc(db, COLLECTIONS.REVIEWS, reviewId);
   const snapshot = await getDoc(reviewRef);
-  
+
   if (!snapshot.exists()) return null;
-  
+
   const data = snapshot.data() as FirestoreReview;
   return {
     ...data,
@@ -1474,7 +1478,7 @@ const updateProviderRating = async (providerId: string): Promise<void> => {
   const reviewsRef = collection(db, COLLECTIONS.REVIEWS);
   const q = query(reviewsRef, where("providerId", "==", providerId));
   const snapshot = await getDocs(q);
-  
+
   if (snapshot.empty) {
     // No reviews, reset rating
     const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
@@ -1485,14 +1489,14 @@ const updateProviderRating = async (providerId: string): Promise<void> => {
     });
     return;
   }
-  
+
   let totalRating = 0;
   snapshot.docs.forEach((doc) => {
     const data = doc.data();
     totalRating += data.rating || 0;
   });
   const ratingAvg = totalRating / snapshot.docs.length;
-  
+
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, providerId);
   await updateDoc(providerRef, {
     ratingAvg: Math.round(ratingAvg * 10) / 10, // Round to 1 decimal
@@ -1517,20 +1521,20 @@ export const createReview = async (
     }
     return existingReview.id;
   }
-  
+
   const reviewsRef = collection(db, COLLECTIONS.REVIEWS);
   const docRef = await addDoc(reviewsRef, {
     ...review,
     createdAt: serverTimestamp(),
   });
-  
+
   // Update provider's rating (don't fail the whole operation if this fails)
   try {
     await updateProviderRating(review.providerId);
   } catch (e) {
     console.error("Failed to update provider rating:", e);
   }
-  
+
   return docRef.id;
 };
 
@@ -1541,16 +1545,16 @@ export const updateReview = async (
 ): Promise<void> => {
   const reviewRef = doc(db, COLLECTIONS.REVIEWS, reviewId);
   const reviewSnap = await getDoc(reviewRef);
-  
+
   if (!reviewSnap.exists()) {
     throw new Error("Review not found");
   }
-  
+
   await updateDoc(reviewRef, {
     ...updates,
     updatedAt: serverTimestamp(),
   });
-  
+
   // Update provider's rating if rating changed
   if (updates.rating !== undefined) {
     const reviewData = reviewSnap.data() as FirestoreReview;
@@ -1562,16 +1566,16 @@ export const updateReview = async (
 export const deleteReview = async (reviewId: string): Promise<void> => {
   const reviewRef = doc(db, COLLECTIONS.REVIEWS, reviewId);
   const reviewSnap = await getDoc(reviewRef);
-  
+
   if (!reviewSnap.exists()) {
     throw new Error("Review not found");
   }
-  
+
   const reviewData = reviewSnap.data() as FirestoreReview;
   const providerId = reviewData.providerId;
-  
+
   await deleteDoc(reviewRef);
-  
+
   // Update provider's rating after deletion
   await updateProviderRating(providerId);
 };

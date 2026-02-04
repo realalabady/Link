@@ -20,6 +20,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Pages
 import LandingPage from "@/pages/LandingPage";
+import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import SignupPage from "@/pages/auth/SignupPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
@@ -111,6 +112,7 @@ const AppRoutes = () => {
       <Route path="/auth/signup" element={<SignupPage />} />
       <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/help" element={<HelpCenterPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
 
       {/* Onboarding */}
       <Route

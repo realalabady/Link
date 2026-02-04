@@ -13,7 +13,8 @@ import { ProviderProfile } from "@/types";
 export const providerKeys = {
   all: ["providers"] as const,
   verified: (limit?: number) => ["providers", "verified", limit] as const,
-  byIds: (uids: string[]) => ["providers", "byIds", uids.sort().join(",")] as const,
+  byIds: (uids: string[]) =>
+    ["providers", "byIds", uids.sort().join(",")] as const,
   detail: (uid: string) => ["providers", uid] as const,
 };
 

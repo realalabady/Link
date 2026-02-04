@@ -159,8 +159,8 @@ const AdminUsersPage: React.FC = () => {
   const getRoleBadge = (role: UserRole | null, roles?: UserRole[]) => {
     // Check roles array first (new format), then fall back to single role (legacy)
     const effectiveRole = role || (roles && roles.length > 0 ? roles[0] : null);
-    const allRoles = roles && roles.length > 0 ? roles : (role ? [role] : []);
-    
+    const allRoles = roles && roles.length > 0 ? roles : role ? [role] : [];
+
     // If user has multiple roles, show all of them
     if (allRoles.length > 1) {
       return (
@@ -168,7 +168,13 @@ const AdminUsersPage: React.FC = () => {
           {allRoles.map((r) => (
             <Badge
               key={r}
-              variant={r === "ADMIN" ? "default" : r === "PROVIDER" ? "secondary" : "outline"}
+              variant={
+                r === "ADMIN"
+                  ? "default"
+                  : r === "PROVIDER"
+                    ? "secondary"
+                    : "outline"
+              }
               className="gap-1"
             >
               {r === "ADMIN" && <Shield className="h-3 w-3" />}
@@ -180,7 +186,7 @@ const AdminUsersPage: React.FC = () => {
         </div>
       );
     }
-    
+
     switch (effectiveRole) {
       case "ADMIN":
         return (
@@ -452,7 +458,10 @@ const AdminUsersPage: React.FC = () => {
                     {t("admin.role")}
                   </p>
                   <div className="mt-1">
-                    {getRoleBadge(detailsUser?.role || null, detailsUser?.roles)}
+                    {getRoleBadge(
+                      detailsUser?.role || null,
+                      detailsUser?.roles,
+                    )}
                   </div>
                 </div>
                 <div>

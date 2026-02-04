@@ -225,7 +225,9 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
                 {isSubmitting && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                {isEditing ? t("review.updateReview") : t("review.submitReview")}
+                {isEditing
+                  ? t("review.updateReview")
+                  : t("review.submitReview")}
               </Button>
             </div>
           </DialogFooter>
@@ -236,7 +238,9 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("review.deleteConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("review.deleteConfirmTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {t("review.deleteConfirmDescription")}
             </AlertDialogDescription>

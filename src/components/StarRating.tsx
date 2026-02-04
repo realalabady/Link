@@ -67,7 +67,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
               className={cn(
                 "relative transition-transform",
                 !readOnly && "hover:scale-110 cursor-pointer",
-                readOnly && "cursor-default"
+                readOnly && "cursor-default",
               )}
               aria-label={`Rate ${index + 1} out of ${maxRating}`}
             >
@@ -77,7 +77,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
                   "transition-colors duration-150",
                   isFilled
                     ? "fill-yellow-400 text-yellow-400"
-                    : "fill-transparent text-gray-300 dark:text-gray-600"
+                    : "fill-transparent text-gray-300 dark:text-gray-600",
                 )}
               />
               {/* Half star overlay for read-only fractional ratings */}
@@ -86,7 +86,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
                   <Star
                     className={cn(
                       sizeClasses[size],
-                      "fill-yellow-400 text-yellow-400"
+                      "fill-yellow-400 text-yellow-400",
                     )}
                   />
                 </div>
@@ -125,14 +125,11 @@ export const RatingDisplay: React.FC<RatingDisplayProps> = ({
       <Star
         className={cn(
           size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4",
-          "fill-yellow-400 text-yellow-400"
+          "fill-yellow-400 text-yellow-400",
         )}
       />
       <span
-        className={cn(
-          "font-medium",
-          size === "sm" ? "text-xs" : "text-sm"
-        )}
+        className={cn("font-medium", size === "sm" ? "text-xs" : "text-sm")}
       >
         {rating > 0 ? rating.toFixed(1) : "—"}
       </span>
@@ -140,7 +137,7 @@ export const RatingDisplay: React.FC<RatingDisplayProps> = ({
         <span
           className={cn(
             "text-muted-foreground",
-            size === "sm" ? "text-xs" : "text-sm"
+            size === "sm" ? "text-xs" : "text-sm",
           )}
         >
           ({count})

@@ -232,7 +232,11 @@ const ClientSearchPage: React.FC = () => {
       }
 
       return (
-        matchesSearch && matchesCategory && matchesPrice && matchesDistance && matchesRating
+        matchesSearch &&
+        matchesCategory &&
+        matchesPrice &&
+        matchesDistance &&
+        matchesRating
       );
     });
 
