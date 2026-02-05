@@ -12,6 +12,7 @@ const HelpCenterPage: React.FC = () => {
     "payments",
     "account",
     "deleteAccount",
+    "privacy",
     "safety",
     "messaging",
   ] as const;
@@ -57,7 +58,10 @@ const HelpCenterPage: React.FC = () => {
                 <CardContent>
                   <ul className="list-disc space-y-2 ps-5 text-sm text-muted-foreground">
                     {items.map((item, index) => (
-                      <li key={`${sectionKey}-${index}`}>{item}</li>
+                      <li 
+                        key={`${sectionKey}-${index}`}
+                        dangerouslySetInnerHTML={{ __html: item }}
+                      />
                     ))}
                   </ul>
                 </CardContent>

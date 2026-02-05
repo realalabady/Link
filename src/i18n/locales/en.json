@@ -376,6 +376,13 @@
           "This action cannot be undone.",
           "You can also delete your account by reaching out to our Help Center at support@link-22.com."
         ]
+      },
+      "privacy": {
+        "title": "Privacy Policy",
+        "items": [
+          "Read our full Privacy Policy to understand how we collect, use, and protect your data.",
+          "<a href='/privacy' class='text-primary hover:underline'>View Privacy Policy</a>"
+        ]
       },      "safety": {
         "title": "Safety & disputes",
         "items": [
