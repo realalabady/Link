@@ -853,8 +853,14 @@ export const updateProviderProfile = async (
   updates: Partial<ProviderProfile>,
 ): Promise<void> => {
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
+  
+  // Filter out undefined values as Firestore doesn't accept them
+  const cleanedUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([_, value]) => value !== undefined)
+  );
+  
   await updateDoc(providerRef, {
-    ...updates,
+    ...cleanedUpdates,
     updatedAt: serverTimestamp(),
   });
 };
