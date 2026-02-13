@@ -62,6 +62,7 @@ import {
   useProviderProfile,
   useUpdateProviderProfile,
 } from "@/hooks/queries/useProviders";
+import { SAUDI_REGIONS } from "@/lib/saudiLocations";
 
 // Mock data for wallet - would come from Firestore
 const mockWallet = {
@@ -94,321 +95,6 @@ const mockTransactions = [
     description: "Payout to bank account",
     date: new Date(Date.now() - 1000 * 60 * 60 * 48),
     status: "completed",
-  },
-];
-
-const SAUDI_REGIONS = [
-  {
-    value: "Riyadh",
-    label: { en: "Riyadh", ar: "الرياض" },
-    cities: [
-      {
-        value: "Riyadh",
-        label: { en: "Riyadh", ar: "الرياض" },
-        districts: [
-          { value: "Al Olaya", label: { en: "Al Olaya", ar: "العليا" } },
-          { value: "Al Malqa", label: { en: "Al Malqa", ar: "الملقا" } },
-          { value: "Al Nakheel", label: { en: "Al Nakheel", ar: "النخيل" } },
-        ],
-      },
-      {
-        value: "Al Kharj",
-        label: { en: "Al Kharj", ar: "الخرج" },
-        districts: [
-          { value: "Al Yarmouk", label: { en: "Al Yarmouk", ar: "اليرموك" } },
-          { value: "Al Andalus", label: { en: "Al Andalus", ar: "الأندلس" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Makkah",
-    label: { en: "Makkah", ar: "مكة المكرمة" },
-    cities: [
-      {
-        value: "Jeddah",
-        label: { en: "Jeddah", ar: "جدة" },
-        districts: [
-          { value: "Al Hamra", label: { en: "Al Hamra", ar: "الحمراء" } },
-          { value: "Al Rawdah", label: { en: "Al Rawdah", ar: "الروضة" } },
-        ],
-      },
-      {
-        value: "Makkah",
-        label: { en: "Makkah", ar: "مكة" },
-        districts: [
-          { value: "Ajyad", label: { en: "Ajyad", ar: "أجياد" } },
-          {
-            value: "Al Aziziyah",
-            label: { en: "Al Aziziyah", ar: "العزيزية" },
-          },
-        ],
-      },
-      {
-        value: "Taif",
-        label: { en: "Taif", ar: "الطائف" },
-        districts: [
-          { value: "Shubra", label: { en: "Shubra", ar: "الشفا" } },
-          { value: "Al Hawiyah", label: { en: "Al Hawiyah", ar: "الحوية" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Madinah",
-    label: { en: "Madinah", ar: "المدينة المنورة" },
-    cities: [
-      {
-        value: "Madinah",
-        label: { en: "Madinah", ar: "المدينة" },
-        districts: [
-          { value: "Quba", label: { en: "Quba", ar: "قباء" } },
-          { value: "Al Aqiq", label: { en: "Al Aqiq", ar: "العقيق" } },
-        ],
-      },
-      {
-        value: "Yanbu",
-        label: { en: "Yanbu", ar: "ينبع" },
-        districts: [
-          { value: "Al Murjan", label: { en: "Al Murjan", ar: "المرجان" } },
-          { value: "Al Balad", label: { en: "Al Balad", ar: "البلد" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Eastern Province",
-    label: { en: "Eastern Province", ar: "المنطقة الشرقية" },
-    cities: [
-      {
-        value: "Dammam",
-        label: { en: "Dammam", ar: "الدمام" },
-        districts: [
-          {
-            value: "Al Faisaliyah",
-            label: { en: "Al Faisaliyah", ar: "الفيصلية" },
-          },
-          { value: "Al Shati", label: { en: "Al Shati", ar: "الشاطئ" } },
-        ],
-      },
-      {
-        value: "Khobar",
-        label: { en: "Khobar", ar: "الخبر" },
-        districts: [
-          { value: "Al Ulaya", label: { en: "Al Ulaya", ar: "العليا" } },
-          { value: "Al Rakah", label: { en: "Al Rakah", ar: "الراكة" } },
-        ],
-      },
-      {
-        value: "Dhahran",
-        label: { en: "Dhahran", ar: "الظهران" },
-        districts: [
-          { value: "Al Dana", label: { en: "Al Dana", ar: "الدانة" } },
-          { value: "KFUPM", label: { en: "KFUPM", ar: "جامعة الملك فهد" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Qassim",
-    label: { en: "Qassim", ar: "القصيم" },
-    cities: [
-      {
-        value: "Buraydah",
-        label: { en: "Buraydah", ar: "بريدة" },
-        districts: [
-          { value: "Al Rawdah", label: { en: "Al Rawdah", ar: "الروضة" } },
-          { value: "Al Iskan", label: { en: "Al Iskan", ar: "الإسكان" } },
-        ],
-      },
-      {
-        value: "Unaizah",
-        label: { en: "Unaizah", ar: "عنيزة" },
-        districts: [
-          {
-            value: "Al Salhiyah",
-            label: { en: "Al Salhiyah", ar: "الصالحية" },
-          },
-          {
-            value: "Al Khalidiyah",
-            label: { en: "Al Khalidiyah", ar: "الخالدية" },
-          },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Asir",
-    label: { en: "Asir", ar: "عسير" },
-    cities: [
-      {
-        value: "Abha",
-        label: { en: "Abha", ar: "أبها" },
-        districts: [
-          { value: "Al Nasb", label: { en: "Al Nasb", ar: "النصب" } },
-          {
-            value: "Al Khaldiyah",
-            label: { en: "Al Khaldiyah", ar: "الخالدية" },
-          },
-        ],
-      },
-      {
-        value: "Khamis Mushait",
-        label: { en: "Khamis Mushait", ar: "خميس مشيط" },
-        districts: [
-          { value: "Al Dabab", label: { en: "Al Dabab", ar: "الضباب" } },
-          {
-            value: "Al Thalatha",
-            label: { en: "Al Thalatha", ar: "الثلاثاء" },
-          },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Tabuk",
-    label: { en: "Tabuk", ar: "تبوك" },
-    cities: [
-      {
-        value: "Tabuk",
-        label: { en: "Tabuk", ar: "تبوك" },
-        districts: [
-          { value: "Al Wurud", label: { en: "Al Wurud", ar: "الورود" } },
-          {
-            value: "Al Sulaymaniyah",
-            label: { en: "Al Sulaymaniyah", ar: "السليمانية" },
-          },
-        ],
-      },
-      {
-        value: "Duba",
-        label: { en: "Duba", ar: "ضباء" },
-        districts: [
-          { value: "Al Shati", label: { en: "Al Shati", ar: "الشاطئ" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Hail",
-    label: { en: "Hail", ar: "حائل" },
-    cities: [
-      {
-        value: "Hail",
-        label: { en: "Hail", ar: "حائل" },
-        districts: [
-          { value: "Al Nafl", label: { en: "Al Nafl", ar: "النفل" } },
-          { value: "Al Mahattah", label: { en: "Al Mahattah", ar: "المحطة" } },
-        ],
-      },
-      {
-        value: "Baqaa",
-        label: { en: "Baqaa", ar: "بقعاء" },
-        districts: [
-          { value: "Al Batin", label: { en: "Al Batin", ar: "الباطن" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Northern Borders",
-    label: { en: "Northern Borders", ar: "الحدود الشمالية" },
-    cities: [
-      {
-        value: "Arar",
-        label: { en: "Arar", ar: "عرعر" },
-        districts: [
-          { value: "Al Matar", label: { en: "Al Matar", ar: "المطار" } },
-          { value: "Al Rabi", label: { en: "Al Rabi", ar: "الربيع" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Jazan",
-    label: { en: "Jazan", ar: "جازان" },
-    cities: [
-      {
-        value: "Jazan",
-        label: { en: "Jazan", ar: "جازان" },
-        districts: [
-          { value: "Al Rawdah", label: { en: "Al Rawdah", ar: "الروضة" } },
-          { value: "Al Safa", label: { en: "Al Safa", ar: "الصفا" } },
-        ],
-      },
-      {
-        value: "Sabya",
-        label: { en: "Sabya", ar: "صبيا" },
-        districts: [
-          { value: "Al Safa", label: { en: "Al Safa", ar: "الصفا" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Najran",
-    label: { en: "Najran", ar: "نجران" },
-    cities: [
-      {
-        value: "Najran",
-        label: { en: "Najran", ar: "نجران" },
-        districts: [
-          {
-            value: "Al Khalidiyah",
-            label: { en: "Al Khalidiyah", ar: "الخالدية" },
-          },
-          {
-            value: "Al Faysaliyah",
-            label: { en: "Al Faysaliyah", ar: "الفيصلية" },
-          },
-        ],
-      },
-      {
-        value: "Sharurah",
-        label: { en: "Sharurah", ar: "شرورة" },
-        districts: [
-          { value: "Al Mahd", label: { en: "Al Mahd", ar: "المهد" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Al Bahah",
-    label: { en: "Al Bahah", ar: "الباحة" },
-    cities: [
-      {
-        value: "Al Bahah",
-        label: { en: "Al Bahah", ar: "الباحة" },
-        districts: [
-          { value: "Al Zaher", label: { en: "Al Zaher", ar: "الزاهر" } },
-          { value: "Al Atawlah", label: { en: "Al Atawlah", ar: "الأطاولة" } },
-        ],
-      },
-    ],
-  },
-  {
-    value: "Al Jawf",
-    label: { en: "Al Jawf", ar: "الجوف" },
-    cities: [
-      {
-        value: "Sakaka",
-        label: { en: "Sakaka", ar: "سكاكا" },
-        districts: [
-          {
-            value: "Al Suwaiflah",
-            label: { en: "Al Suwaiflah", ar: "السويفلة" },
-          },
-          { value: "Al Badiah", label: { en: "Al Badiah", ar: "البادية" } },
-        ],
-      },
-      {
-        value: "Dumat Al Jandal",
-        label: { en: "Dumat Al Jandal", ar: "دومة الجندل" },
-        districts: [
-          { value: "Al Qasr", label: { en: "Al Qasr", ar: "القصر" } },
-        ],
-      },
-    ],
   },
 ];
 
@@ -598,7 +284,11 @@ const ProviderProfilePage: React.FC = () => {
       console.error("Failed to delete account:", error);
       // Handle wrong password error
       const errorCode = error?.code || error?.message || "";
-      if (errorCode.includes("wrong-password") || errorCode.includes("invalid-credential") || errorCode.includes("INVALID_LOGIN_CREDENTIALS")) {
+      if (
+        errorCode.includes("wrong-password") ||
+        errorCode.includes("invalid-credential") ||
+        errorCode.includes("INVALID_LOGIN_CREDENTIALS")
+      ) {
         toast.error(t("profile.wrongPassword"));
       } else {
         toast.error(t("common.error"));
@@ -1213,22 +903,31 @@ const ProviderProfilePage: React.FC = () => {
       </Dialog>
 
       {/* Delete Account Confirmation Dialog */}
-      <Dialog open={deleteAccountDialogOpen} onOpenChange={(open) => {
-        setDeleteAccountDialogOpen(open);
-        if (!open) setDeletePassword("");
-      }}>
+      <Dialog
+        open={deleteAccountDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteAccountDialogOpen(open);
+          if (!open) setDeletePassword("");
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-destructive">{t("profile.deleteAccountTitle")}</DialogTitle>
+            <DialogTitle className="text-destructive">
+              {t("profile.deleteAccountTitle")}
+            </DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-2">
                 <p>{t("profile.deleteAccountDescription")}</p>
-                <p className="font-semibold text-destructive">{t("profile.deleteAccountWarning")}</p>
+                <p className="font-semibold text-destructive">
+                  {t("profile.deleteAccountWarning")}
+                </p>
               </div>
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="delete-password-provider">{t("profile.confirmPassword")}</Label>
+            <Label htmlFor="delete-password-provider">
+              {t("profile.confirmPassword")}
+            </Label>
             <Input
               id="delete-password-provider"
               type="password"
@@ -1249,12 +948,14 @@ const ProviderProfilePage: React.FC = () => {
             >
               {t("common.cancel")}
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDeleteAccount}
               disabled={isDeletingAccount || !deletePassword.trim()}
             >
-              {isDeletingAccount ? t("common.loading") : t("profile.deleteAccount")}
+              {isDeletingAccount
+                ? t("common.loading")
+                : t("profile.deleteAccount")}
             </Button>
           </DialogFooter>
         </DialogContent>

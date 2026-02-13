@@ -58,7 +58,7 @@ const HelpCenterPage: React.FC = () => {
                 <CardContent>
                   <ul className="list-disc space-y-2 ps-5 text-sm text-muted-foreground">
                     {items.map((item, index) => (
-                      <li 
+                      <li
                         key={`${sectionKey}-${index}`}
                         dangerouslySetInnerHTML={{ __html: item }}
                       />

@@ -10,6 +10,7 @@ import {
   EyeOff,
   ArrowRight,
   ArrowLeft,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ const SignupPage: React.FC = () => {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +52,19 @@ const SignupPage: React.FC = () => {
       return;
     }
 
+    // Validate phone number (Saudi format)
+    const phoneRegex = /^(05|5)\d{8}$/;
+    const cleanPhone = phone.replace(/\s/g, "");
+    if (!phoneRegex.test(cleanPhone)) {
+      setError(t("auth.invalidPhone"));
+      return;
+    }
+
+    // Normalize phone number to start with 05
+    const normalizedPhone = cleanPhone.startsWith("5")
+      ? "0" + cleanPhone
+      : cleanPhone;
+
     if (!isStrongPassword(password)) {
       setError(t("auth.passwordRequirements"));
       return;
@@ -63,7 +78,7 @@ const SignupPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await signup(email, password, name);
+      await signup(email, password, name, normalizedPhone);
       navigate("/onboarding");
     } catch (err) {
       if ((err as any)?.code === "auth/email-not-verified") {
@@ -170,6 +185,23 @@ const SignupPage: React.FC = () => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="phone">{t("auth.phone")}</Label>
+              <div className="relative">
+                <Phone className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="05XXXXXXXX"
+                  className="ps-10"
+                  dir="ltr"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="password">{t("auth.password")}</Label>
               <div className="relative">
                 <Lock className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
@@ -224,10 +256,15 @@ const SignupPage: React.FC = () => {
               <Checkbox
                 id="privacy"
                 checked={acceptedPrivacy}
-                onCheckedChange={(checked) => setAcceptedPrivacy(checked === true)}
+                onCheckedChange={(checked) =>
+                  setAcceptedPrivacy(checked === true)
+                }
                 className="mt-0.5"
               />
-              <Label htmlFor="privacy" className="text-sm leading-relaxed cursor-pointer">
+              <Label
+                htmlFor="privacy"
+                className="text-sm leading-relaxed cursor-pointer"
+              >
                 {t("auth.iAccept")}{" "}
                 <Link
                   to="/privacy"
@@ -239,7 +276,11 @@ const SignupPage: React.FC = () => {
               </Label>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || !acceptedPrivacy}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || !acceptedPrivacy}
+            >
               {isLoading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
               ) : (

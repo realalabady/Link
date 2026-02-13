@@ -56,7 +56,7 @@ export const ProviderBottomNav: React.FC = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
-      <div className="flex items-center justify-around py-2">
+      <div className="flex items-center justify-around py-1.5">
         {providerNavItems.map((item) => {
           const isActive =
             location.pathname === item.path ||
@@ -68,14 +68,16 @@ export const ProviderBottomNav: React.FC = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 text-xs transition-colors",
+                "flex flex-col items-center gap-0.5 px-1 py-1 text-[9px] transition-colors min-w-0",
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {item.icon}
-              <span>{t(item.labelKey)}</span>
+              <span className="h-4 w-4 flex items-center justify-center [&>svg]:h-4 [&>svg]:w-4">
+                {item.icon}
+              </span>
+              <span className="truncate max-w-[48px]">{t(item.labelKey)}</span>
             </NavLink>
           );
         })}

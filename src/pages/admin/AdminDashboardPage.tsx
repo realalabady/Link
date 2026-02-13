@@ -750,24 +750,26 @@ const AdminDashboardPage: React.FC = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      <h1 className="mb-8 text-3xl font-bold text-foreground">
-        Admin Dashboard
+      <h1 className="mb-6 text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
+        {t("admin.title")}
       </h1>
 
       {/* Stats grid */}
-      <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-4">
         {stats.map((stat, index) => (
           <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 {stat.label}
               </CardTitle>
-              <div className={`rounded-lg ${stat.color} p-2 text-white`}>
+              <div
+                className={`rounded-lg ${stat.color} p-1.5 sm:p-2 text-white`}
+              >
                 {stat.icon}
               </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-card-foreground">
+            <CardContent className="px-3 sm:px-6">
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-card-foreground">
                 {stat.value}
               </p>
             </CardContent>
@@ -776,18 +778,27 @@ const AdminDashboardPage: React.FC = () => {
       </div>
 
       {/* Categories management - always show for admins */}
-      <Card className="mb-8">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+      <Card className="mb-6">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <FolderOpen className="h-5 w-5" />
             {t("admin.categoriesManagement")}
           </CardTitle>
           <div className="flex gap-2">
-            <Button onClick={handleSeedCategories} variant="outline" size="sm">
+            <Button
+              onClick={handleSeedCategories}
+              variant="outline"
+              size="sm"
+              className="text-xs sm:text-sm"
+            >
               {t("admin.reseedCategories")}
             </Button>
-            <Button onClick={openAddCategory} size="sm">
-              <Plus className="mr-1 h-4 w-4" />
+            <Button
+              onClick={openAddCategory}
+              size="sm"
+              className="text-xs sm:text-sm"
+            >
+              <Plus className="h-4 w-4 me-1" />
               {t("admin.addCategory")}
             </Button>
           </div>

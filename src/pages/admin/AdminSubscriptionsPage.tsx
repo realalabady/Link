@@ -206,14 +206,17 @@ const AdminSubscriptionsPage: React.FC = () => {
 
       toast({
         title: t("common.success"),
-        description: `Account ${action === "lock" ? "locked" : "unlocked"} successfully`,
+        description:
+          action === "lock"
+            ? t("admin.accountLocked")
+            : t("admin.accountUnlocked"),
       });
       setLockDialog({ open: false, provider: null, action: null });
     } catch (error) {
       console.error("Failed to update account status:", error);
       toast({
         title: t("common.error"),
-        description: "Failed to update account status",
+        description: t("admin.accountUpdateFailed"),
         variant: "destructive",
       });
     }
@@ -270,7 +273,7 @@ const AdminSubscriptionsPage: React.FC = () => {
 
       toast({
         title: t("common.success"),
-        description: "Payment verified successfully",
+        description: t("admin.paymentVerified"),
       });
       setPaymentDialog({
         open: false,
@@ -284,7 +287,7 @@ const AdminSubscriptionsPage: React.FC = () => {
       console.error("Failed to verify payment:", error);
       toast({
         title: t("common.error"),
-        description: "Failed to verify payment",
+        description: t("admin.paymentVerifyFailed"),
         variant: "destructive",
       });
     } finally {
@@ -317,14 +320,14 @@ const AdminSubscriptionsPage: React.FC = () => {
 
       toast({
         title: t("common.success"),
-        description: `Subscription status updated to ${newStatus}`,
+        description: t("admin.statusUpdated", { status: newStatus }),
       });
       setStatusDialog({ open: false, provider: null });
     } catch (error) {
       console.error("Failed to update subscription status:", error);
       toast({
         title: t("common.error"),
-        description: "Failed to update subscription status",
+        description: t("admin.statusUpdateFailed"),
         variant: "destructive",
       });
     } finally {
@@ -365,7 +368,7 @@ const AdminSubscriptionsPage: React.FC = () => {
       console.error("Failed to grant trial:", error);
       toast({
         title: t("common.error"),
-        description: "Failed to grant trial",
+        description: t("admin.trialGrantFailed"),
         variant: "destructive",
       });
     } finally {
@@ -392,12 +395,12 @@ const AdminSubscriptionsPage: React.FC = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      <h1 className="mb-8 text-3xl font-bold text-foreground">
+      <h1 className="mb-6 text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
         {t("admin.subscriptions")}
       </h1>
 
       {/* Metrics Cards */}
-      <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -450,12 +453,14 @@ const AdminSubscriptionsPage: React.FC = () => {
       {/* Filters */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground ${isArabic ? "right-3" : "left-3"}`}
+          />
           <Input
             placeholder={t("admin.searchProviders")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className={isArabic ? "pr-10" : "pl-10"}
           />
         </div>
         <Select
@@ -464,7 +469,7 @@ const AdminSubscriptionsPage: React.FC = () => {
             setStatusFilter(value as "ALL" | "ACTIVE" | "EXPIRED" | "LOCKED")
           }
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder={t("admin.filter")} />
           </SelectTrigger>
           <SelectContent>
@@ -538,11 +543,12 @@ const AdminSubscriptionsPage: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {profile?.subscriptionStatus === "ACTIVE" && (
                       <Button
                         size="sm"
                         variant="outline"
+                        className="text-xs sm:text-sm"
                         onClick={() =>
                           setPaymentDialog({
                             open: true,
@@ -554,14 +560,22 @@ const AdminSubscriptionsPage: React.FC = () => {
                           })
                         }
                       >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Mark Paid
+                        <CheckCircle
+                          className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isArabic ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"}`}
+                        />
+                        <span className="hidden xs:inline">
+                          {t("admin.markPaidButton")}
+                        </span>
+                        <span className="xs:hidden">
+                          {t("admin.markPaidButton")}
+                        </span>
                       </Button>
                     )}
 
                     <Button
                       size="sm"
                       variant="outline"
+                      className="text-xs sm:text-sm"
                       onClick={() =>
                         setStatusDialog({
                           open: true,
@@ -569,8 +583,10 @@ const AdminSubscriptionsPage: React.FC = () => {
                         })
                       }
                     >
-                      <Edit2 className="mr-2 h-4 w-4" />
-                      Edit Status
+                      <Edit2
+                        className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isArabic ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"}`}
+                      />
+                      {t("admin.editStatus")}
                     </Button>
 
                     {/* Grant Trial button - show for non-TRIAL and non-ACTIVE providers */}
@@ -579,6 +595,7 @@ const AdminSubscriptionsPage: React.FC = () => {
                         <Button
                           size="sm"
                           variant="secondary"
+                          className="text-xs sm:text-sm"
                           onClick={() =>
                             setTrialDialog({
                               open: true,
@@ -587,7 +604,9 @@ const AdminSubscriptionsPage: React.FC = () => {
                             })
                           }
                         >
-                          <Gift className="mr-2 h-4 w-4" />
+                          <Gift
+                            className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isArabic ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"}`}
+                          />
                           {t("admin.grantTrial")}
                         </Button>
                       )}
@@ -596,6 +615,7 @@ const AdminSubscriptionsPage: React.FC = () => {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="text-xs sm:text-sm"
                         onClick={() =>
                           setLockDialog({
                             open: true,
@@ -604,13 +624,16 @@ const AdminSubscriptionsPage: React.FC = () => {
                           })
                         }
                       >
-                        <Unlock className="mr-2 h-4 w-4" />
+                        <Unlock
+                          className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isArabic ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"}`}
+                        />
                         {t("admin.unlockAccount")}
                       </Button>
                     ) : (
                       <Button
                         size="sm"
                         variant="destructive"
+                        className="text-xs sm:text-sm"
                         onClick={() =>
                           setLockDialog({
                             open: true,
@@ -619,7 +642,9 @@ const AdminSubscriptionsPage: React.FC = () => {
                           })
                         }
                       >
-                        <Lock className="mr-2 h-4 w-4" />
+                        <Lock
+                          className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isArabic ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"}`}
+                        />
                         {t("admin.lockAccount")}
                       </Button>
                     )}
@@ -693,14 +718,14 @@ const AdminSubscriptionsPage: React.FC = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Update Subscription Status</DialogTitle>
+            <DialogTitle>{t("admin.updateSubscriptionStatus")}</DialogTitle>
             <DialogDescription>
               {statusDialog.provider?.displayName || statusDialog.provider?.uid}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">
-              {["ACTIVE", "EXPIRED", "CANCELLED"].map((status) => (
+              {(["ACTIVE", "EXPIRED", "CANCELLED"] as const).map((status) => (
                 <Button
                   key={status}
                   variant={
@@ -710,16 +735,15 @@ const AdminSubscriptionsPage: React.FC = () => {
                   }
                   onClick={() => {
                     if (statusDialog.provider) {
-                      handleUpdateStatus(
-                        statusDialog.provider,
-                        status as "ACTIVE" | "EXPIRED" | "CANCELLED",
-                      );
+                      handleUpdateStatus(statusDialog.provider, status);
                     }
                   }}
                   disabled={isUpdating}
                   className="text-xs sm:text-sm"
                 >
-                  {status}
+                  {t(
+                    `admin.status${status.charAt(0) + status.slice(1).toLowerCase()}`,
+                  )}
                 </Button>
               ))}
             </div>
@@ -745,7 +769,7 @@ const AdminSubscriptionsPage: React.FC = () => {
       >
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Verify Subscription Payment</DialogTitle>
+            <DialogTitle>{t("admin.verifySubscriptionPayment")}</DialogTitle>
             <DialogDescription>
               {paymentDialog.provider?.displayName ||
                 paymentDialog.provider?.uid}
@@ -753,18 +777,18 @@ const AdminSubscriptionsPage: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-sm">Current Plan</Label>
+              <Label className="text-sm">{t("admin.currentPlan")}</Label>
               <p className="mt-1 text-sm font-medium">
                 {paymentDialog.provider?.subscriptionPrice === 27
-                  ? "Quarterly (3 months) - 27 SAR"
+                  ? t("admin.planQuarterly")
                   : paymentDialog.provider?.subscriptionPrice === 96
-                    ? "Yearly (12 months) - 96 SAR"
-                    : "Monthly - 10 SAR"}
+                    ? t("admin.planYearly")
+                    : t("admin.planMonthly")}
               </p>
             </div>
 
             <div>
-              <Label htmlFor="paymentDate">Payment Date</Label>
+              <Label htmlFor="paymentDate">{t("admin.paymentDate")}</Label>
               <Input
                 id="paymentDate"
                 type="date"
@@ -780,7 +804,7 @@ const AdminSubscriptionsPage: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="paymentAmount">Amount Received (SAR)</Label>
+              <Label htmlFor="paymentAmount">{t("admin.amountReceived")}</Label>
               <Input
                 id="paymentAmount"
                 type="number"
@@ -797,7 +821,7 @@ const AdminSubscriptionsPage: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Label htmlFor="paymentMethod">{t("admin.paymentMethod")}</Label>
               <Select
                 value={paymentDialog.paymentMethod}
                 onValueChange={(value) =>
@@ -811,20 +835,22 @@ const AdminSubscriptionsPage: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
-                  <SelectItem value="CARD">Card Payment</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
+                  <SelectItem value="BANK_TRANSFER">
+                    {t("admin.bankTransfer")}
+                  </SelectItem>
+                  <SelectItem value="CARD">{t("admin.cardPayment")}</SelectItem>
+                  <SelectItem value="OTHER">
+                    {t("admin.otherPayment")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="notes">
-                Admin Notes (e.g., Transaction Reference)
-              </Label>
+              <Label htmlFor="notes">{t("admin.adminNotes")}</Label>
               <Textarea
                 id="notes"
-                placeholder="e.g., Bank transfer received, ref: TXN123456"
+                placeholder={t("admin.notesPlaceholder")}
                 value={paymentDialog.notes}
                 onChange={(e) =>
                   setPaymentDialog({
@@ -870,14 +896,14 @@ const AdminSubscriptionsPage: React.FC = () => {
                 } else {
                   toast({
                     title: t("common.error"),
-                    description: "Please fill in all required fields",
+                    description: t("admin.fillRequiredFields"),
                     variant: "destructive",
                   });
                 }
               }}
               disabled={isUpdating}
             >
-              Verify Payment
+              {t("admin.verifyPayment")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -944,7 +970,7 @@ const AdminSubscriptionsPage: React.FC = () => {
               }}
               disabled={isUpdating}
             >
-              <Gift className="mr-2 h-4 w-4" />
+              <Gift className={`h-4 w-4 ${isArabic ? "ml-2" : "mr-2"}`} />
               {t("admin.grantTrial")}
             </Button>
           </DialogFooter>

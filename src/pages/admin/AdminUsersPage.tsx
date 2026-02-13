@@ -259,7 +259,7 @@ const AdminUsersPage: React.FC = () => {
         {/* Filters */}
         <motion.div
           variants={fadeInUp}
-          className="mb-6 flex flex-col gap-4 md:flex-row md:items-center"
+          className="mb-6 flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center"
         >
           <div className="relative flex-1">
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -271,36 +271,42 @@ const AdminUsersPage: React.FC = () => {
             />
           </div>
 
-          <Select
-            value={roleFilter}
-            onValueChange={(value) => setRoleFilter(value as UserRole | "ALL")}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder={t("admin.role")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">{t("admin.allRoles")}</SelectItem>
-              <SelectItem value="CLIENT">{t("roles.client")}</SelectItem>
-              <SelectItem value="PROVIDER">{t("roles.provider")}</SelectItem>
-              <SelectItem value="ADMIN">{t("roles.admin")}</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 sm:gap-3">
+            <Select
+              value={roleFilter}
+              onValueChange={(value) =>
+                setRoleFilter(value as UserRole | "ALL")
+              }
+            >
+              <SelectTrigger className="flex-1 md:w-40">
+                <SelectValue placeholder={t("admin.role")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">{t("admin.allRoles")}</SelectItem>
+                <SelectItem value="CLIENT">{t("roles.client")}</SelectItem>
+                <SelectItem value="PROVIDER">{t("roles.provider")}</SelectItem>
+                <SelectItem value="ADMIN">{t("roles.admin")}</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={statusFilter}
-            onValueChange={(value) =>
-              setStatusFilter(value as UserStatus | "ALL")
-            }
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder={t("admin.status")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">{t("admin.allStatuses")}</SelectItem>
-              <SelectItem value="ACTIVE">{t("admin.active")}</SelectItem>
-              <SelectItem value="SUSPENDED">{t("admin.suspended")}</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as UserStatus | "ALL")
+              }
+            >
+              <SelectTrigger className="flex-1 md:w-40">
+                <SelectValue placeholder={t("admin.status")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">{t("admin.allStatuses")}</SelectItem>
+                <SelectItem value="ACTIVE">{t("admin.active")}</SelectItem>
+                <SelectItem value="SUSPENDED">
+                  {t("admin.suspended")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </motion.div>
 
         {/* Users List */}

@@ -76,6 +76,7 @@ export const createUserDocument = async (
   uid: string,
   email: string,
   name: string,
+  phone?: string,
 ): Promise<User> => {
   const userRef = doc(db, COLLECTIONS.USERS, uid);
 
@@ -90,7 +91,7 @@ export const createUserDocument = async (
     roles: ["CLIENT"], // New users start as CLIENT
     activeRole: "CLIENT", // Default active role
     status: "ACTIVE",
-    phone: "",
+    phone: phone || "",
     region: "",
     city: "",
     district: "",
@@ -108,12 +109,20 @@ export const createUserDocument = async (
     roles: ["CLIENT"],
     activeRole: "CLIENT",
     status: "ACTIVE",
-    phone: "",
+    phone: phone || "",
     region: "",
     city: "",
     district: "",
     createdAt: new Date(),
   };
+};
+
+// Check if phone number already exists
+export const checkPhoneExists = async (phone: string): Promise<boolean> => {
+  const usersRef = collection(db, COLLECTIONS.USERS);
+  const q = query(usersRef, where("phone", "==", phone), limit(1));
+  const querySnapshot = await getDocs(q);
+  return !querySnapshot.empty;
 };
 
 // Get user document from Firestore
@@ -257,7 +266,7 @@ export const deleteUserAccount = async (uid: string): Promise<void> => {
   // Delete user's services
   const servicesQuery = query(
     collection(db, COLLECTIONS.SERVICES),
-    where("providerId", "==", uid)
+    where("providerId", "==", uid),
   );
   const servicesSnap = await getDocs(servicesQuery);
   servicesSnap.docs.forEach((doc) => {
@@ -853,12 +862,12 @@ export const updateProviderProfile = async (
   updates: Partial<ProviderProfile>,
 ): Promise<void> => {
   const providerRef = doc(db, COLLECTIONS.PROVIDERS, uid);
-  
+
   // Filter out undefined values as Firestore doesn't accept them
   const cleanedUpdates = Object.fromEntries(
-    Object.entries(updates).filter(([_, value]) => value !== undefined)
+    Object.entries(updates).filter(([_, value]) => value !== undefined),
   );
-  
+
   await updateDoc(providerRef, {
     ...cleanedUpdates,
     updatedAt: serverTimestamp(),

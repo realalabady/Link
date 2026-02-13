@@ -26,6 +26,7 @@ import {
   userDocumentExists,
   createProviderProfile,
   deleteUserAccount,
+  checkPhoneExists,
 } from "@/lib/firestore";
 import { User, UserRole } from "@/types";
 
@@ -35,7 +36,12 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+    name: string,
+    phone: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
   setUserRole: (role: UserRole) => Promise<void>;
@@ -133,15 +139,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signup = async (email: string, password: string, name: string) => {
+  const signup = async (
+    email: string,
+    password: string,
+    name: string,
+    phone: string,
+  ) => {
     setIsLoading(true);
+    let fbUser: FirebaseUser | null = null;
     try {
+      // First create the Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password,
       );
-      const fbUser = userCredential.user;
+      fbUser = userCredential.user;
+
+      // Now check if phone number already exists (after auth, so we have permissions)
+      const phoneExists = await checkPhoneExists(phone);
+      if (phoneExists) {
+        // Phone already exists - delete the just-created auth user and throw error
+        await fbUser.delete();
+        throw {
+          code: "auth/phone-already-in-use",
+          message: "Phone number already in use",
+        };
+      }
 
       // Attempt to send email verification
       try {
@@ -173,10 +197,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Create user document in Firestore
-      const newUser = await createUserDocument(fbUser.uid, email, name);
+      const newUser = await createUserDocument(fbUser.uid, email, name, phone);
       setUser(newUser);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Signup error:", error);
+      // If we created an auth user but something else failed, clean up
+      if (fbUser && error?.code !== "auth/phone-already-in-use") {
+        try {
+          await fbUser.delete();
+        } catch (deleteError) {
+          console.error(
+            "Failed to cleanup auth user after signup error:",
+            deleteError,
+          );
+        }
+      }
       throw error;
     } finally {
       setIsLoading(false);
@@ -207,7 +242,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Re-authenticate user first (required for sensitive operations)
       const credential = EmailAuthProvider.credential(
         firebaseUser.email,
-        password
+        password,
       );
       await reauthenticateWithCredential(firebaseUser, credential);
 

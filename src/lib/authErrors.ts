@@ -54,6 +54,13 @@ export const getAuthErrorMessage = (
         "Please verify your email before logging in."
       );
 
+    // Phone errors
+    case "auth/phone-already-in-use":
+      return (
+        t("auth.phoneAlreadyInUse") ||
+        "This phone number is already registered."
+      );
+
     // Network errors
     case "auth/network-request-failed":
       return (
