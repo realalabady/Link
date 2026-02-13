@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { sendEmailVerification } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
+import { getAuthErrorMessage } from "@/lib/authErrors";
 
 // Layouts
 import { ClientLayout } from "@/components/layout/ClientLayout";
@@ -208,12 +209,7 @@ const VerifyEmailBanner = () => {
       toast.success(t("auth.verifyEmailResent"));
     } catch (error) {
       console.error("Failed to resend verification email:", error);
-      // Show more specific error message
-      const errorMsg =
-        error instanceof Error
-          ? error.message
-          : "Failed to send verification email";
-      toast.error(`Error: ${errorMsg}`);
+      toast.error(getAuthErrorMessage(error, t));
     } finally {
       setIsSending(false);
     }
