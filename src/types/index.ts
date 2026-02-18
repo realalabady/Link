@@ -180,6 +180,9 @@ export interface Booking {
   addressText?: string;
   lat?: number;
   lng?: number;
+  locationType?: "AT_PROVIDER" | "AT_CLIENT";
+  clientName?: string; // For display purposes
+  serviceName?: string; // For display purposes
   createdAt: Date;
   updatedAt: Date;
 }
@@ -283,8 +286,21 @@ export interface TimeSlot {
   isAvailable: boolean;
 }
 
-// Homepage banner settings
+// Homepage banner settings (for clients)
 export interface BannerSettings {
+  isActive: boolean;
+  titleEn: string;
+  titleAr: string;
+  subtitleEn: string;
+  subtitleAr: string;
+  backgroundColor: string; // hex color
+  textColor: string; // hex color
+  linkUrl?: string; // optional link when banner is clicked
+  updatedAt: Date;
+}
+
+// Provider banner settings (for providers dashboard)
+export interface ProviderBannerSettings {
   isActive: boolean;
   titleEn: string;
   titleAr: string;

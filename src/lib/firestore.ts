@@ -29,6 +29,7 @@ import {
   Review,
   Payment,
   BannerSettings,
+  ProviderBannerSettings,
 } from "@/types";
 
 // Collection names
@@ -1673,6 +1674,63 @@ export const updateBannerSettings = async (
   settings: Partial<BannerSettings>,
 ): Promise<void> => {
   const bannerRef = doc(db, COLLECTIONS.SETTINGS, "banner");
+  await setDoc(
+    bannerRef,
+    {
+      ...settings,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+};
+
+// ============================================
+// PROVIDER BANNER SETTINGS
+// ============================================
+
+const DEFAULT_PROVIDER_BANNER: ProviderBannerSettings = {
+  isActive: false,
+  titleEn: "Welcome Provider!",
+  titleAr: "مرحباً بك أيتها المقدمة!",
+  subtitleEn: "Manage your services and grow your business",
+  subtitleAr: "أديري خدماتك ونمّي عملك",
+  backgroundColor: "#7c3aed",
+  textColor: "#ffffff",
+  linkUrl: "",
+  updatedAt: new Date(),
+};
+
+export const getProviderBannerSettings = async (): Promise<ProviderBannerSettings> => {
+  try {
+    const bannerRef = doc(db, COLLECTIONS.SETTINGS, "provider-banner");
+    const bannerSnap = await getDoc(bannerRef);
+
+    if (!bannerSnap.exists()) {
+      return DEFAULT_PROVIDER_BANNER;
+    }
+
+    const data = bannerSnap.data();
+    return {
+      isActive: data.isActive ?? false,
+      titleEn: data.titleEn ?? DEFAULT_PROVIDER_BANNER.titleEn,
+      titleAr: data.titleAr ?? DEFAULT_PROVIDER_BANNER.titleAr,
+      subtitleEn: data.subtitleEn ?? DEFAULT_PROVIDER_BANNER.subtitleEn,
+      subtitleAr: data.subtitleAr ?? DEFAULT_PROVIDER_BANNER.subtitleAr,
+      backgroundColor: data.backgroundColor ?? DEFAULT_PROVIDER_BANNER.backgroundColor,
+      textColor: data.textColor ?? DEFAULT_PROVIDER_BANNER.textColor,
+      linkUrl: data.linkUrl ?? "",
+      updatedAt: timestampToDate(data.updatedAt),
+    };
+  } catch (error) {
+    console.warn("Error fetching provider banner settings:", error);
+    return DEFAULT_PROVIDER_BANNER;
+  }
+};
+
+export const updateProviderBannerSettings = async (
+  settings: Partial<ProviderBannerSettings>,
+): Promise<void> => {
+  const bannerRef = doc(db, COLLECTIONS.SETTINGS, "provider-banner");
   await setDoc(
     bannerRef,
     {

@@ -41,7 +41,7 @@ import { useUsers } from "@/hooks/queries/useUsers";
 import { usePendingVerifications } from "@/hooks/queries/useVerifications";
 import { usePayouts } from "@/hooks/queries/usePayouts";
 import { usePayments } from "@/hooks/queries/usePayments";
-import { useBanner, useUpdateBanner } from "@/hooks/queries/useBanner";
+import { useBanner, useUpdateBanner, useProviderBanner, useUpdateProviderBanner } from "@/hooks/queries/useBanner";
 import {
   useSubscriptionSettings,
   useUpdateSubscriptionSettings,
@@ -59,7 +59,7 @@ import {
   getProviderProfile,
 } from "@/lib/firestore";
 import { toast } from "@/components/ui/sonner";
-import { BookingStatus, BannerSettings, Category } from "@/types";
+import { BookingStatus, BannerSettings, ProviderBannerSettings, Category } from "@/types";
 
 const AdminDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -73,14 +73,19 @@ const AdminDashboardPage: React.FC = () => {
     useAllCategories();
   const { data: banner } = useBanner();
   const updateBanner = useUpdateBanner();
+  const { data: providerBanner } = useProviderBanner();
+  const updateProviderBanner = useUpdateProviderBanner();
   const { data: subscriptionSettings } = useSubscriptionSettings();
   const updateSubscriptionSettings = useUpdateSubscriptionSettings();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
 
-  // Banner form state
+  // Banner form state (client)
   const [bannerForm, setBannerForm] = useState<Partial<BannerSettings>>({});
+
+  // Provider Banner form state
+  const [providerBannerForm, setProviderBannerForm] = useState<Partial<ProviderBannerSettings>>({});
 
   // Subscription settings form state
   const [subscriptionForm, setSubscriptionForm] = useState({
@@ -142,6 +147,13 @@ const AdminDashboardPage: React.FC = () => {
     }
   }, [banner]);
 
+  // Initialize provider banner form when data loads
+  React.useEffect(() => {
+    if (providerBanner && Object.keys(providerBannerForm).length === 0) {
+      setProviderBannerForm(providerBanner);
+    }
+  }, [providerBanner]);
+
   // Initialize subscription form when data loads
   React.useEffect(() => {
     if (subscriptionSettings) {
@@ -181,6 +193,16 @@ const AdminDashboardPage: React.FC = () => {
       toast.success(t("admin.bannerUpdated"));
     } catch (error) {
       console.error("Failed to update banner:", error);
+      toast.error(t("common.error"));
+    }
+  };
+
+  const handleProviderBannerUpdate = async () => {
+    try {
+      await updateProviderBanner.mutateAsync(providerBannerForm);
+      toast.success(t("admin.providerBannerUpdated"));
+    } catch (error) {
+      console.error("Failed to update provider banner:", error);
       toast.error(t("common.error"));
     }
   };
@@ -1092,13 +1114,18 @@ const AdminDashboardPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Banner Management */}
+      {/* Client Banner Management */}
       <Card className="mb-8 border-dashed">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5" />
-            {t("admin.bannerManagement")}
-          </CardTitle>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              {t("admin.clientBannerManagement")}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t("admin.clientBannerHint")}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="banner-active" className="text-sm">
               {bannerForm.isActive
@@ -1283,6 +1310,208 @@ const AdminDashboardPage: React.FC = () => {
             className="w-full sm:w-auto"
           >
             {updateBanner.isPending
+              ? t("common.saving")
+              : t("admin.updateBanner")}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Provider Banner Management */}
+      <Card className="mb-8 border-dashed">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              {t("admin.providerBannerManagement")}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t("admin.providerBannerHint")}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="provider-banner-active" className="text-sm">
+              {providerBannerForm.isActive
+                ? t("admin.bannerActive")
+                : t("admin.bannerInactive")}
+            </Label>
+            <Switch
+              id="provider-banner-active"
+              checked={providerBannerForm.isActive ?? false}
+              onCheckedChange={(checked) =>
+                setProviderBannerForm((prev) => ({ ...prev, isActive: checked }))
+              }
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Preview */}
+          {providerBannerForm.isActive && (
+            <div
+              className="mb-4 rounded-xl p-4"
+              style={{
+                backgroundColor: providerBannerForm.backgroundColor || "#7c3aed",
+                color: providerBannerForm.textColor || "#ffffff",
+              }}
+            >
+              <p className="font-bold">
+                {i18n.language === "ar"
+                  ? providerBannerForm.titleAr
+                  : providerBannerForm.titleEn}
+              </p>
+              <p className="text-sm opacity-80">
+                {i18n.language === "ar"
+                  ? providerBannerForm.subtitleAr
+                  : providerBannerForm.subtitleEn}
+              </p>
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="provider-banner-title-en">
+                {t("admin.bannerTitleEn")}
+              </Label>
+              <Input
+                id="provider-banner-title-en"
+                value={providerBannerForm.titleEn || ""}
+                onChange={(e) =>
+                  setProviderBannerForm((prev) => ({
+                    ...prev,
+                    titleEn: e.target.value,
+                  }))
+                }
+                placeholder="New Feature!"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="provider-banner-title-ar">
+                {t("admin.bannerTitleAr")}
+              </Label>
+              <Input
+                id="provider-banner-title-ar"
+                value={providerBannerForm.titleAr || ""}
+                onChange={(e) =>
+                  setProviderBannerForm((prev) => ({
+                    ...prev,
+                    titleAr: e.target.value,
+                  }))
+                }
+                placeholder="ميزة جديدة!"
+                dir="rtl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="provider-banner-subtitle-en">
+                {t("admin.bannerSubtitleEn")}
+              </Label>
+              <Input
+                id="provider-banner-subtitle-en"
+                value={providerBannerForm.subtitleEn || ""}
+                onChange={(e) =>
+                  setProviderBannerForm((prev) => ({
+                    ...prev,
+                    subtitleEn: e.target.value,
+                  }))
+                }
+                placeholder="Check out our latest updates"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="provider-banner-subtitle-ar">
+                {t("admin.bannerSubtitleAr")}
+              </Label>
+              <Input
+                id="provider-banner-subtitle-ar"
+                value={providerBannerForm.subtitleAr || ""}
+                onChange={(e) =>
+                  setProviderBannerForm((prev) => ({
+                    ...prev,
+                    subtitleAr: e.target.value,
+                  }))
+                }
+                placeholder="اطلعي على آخر التحديثات"
+                dir="rtl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="provider-banner-bg-color">
+                {t("admin.bannerBgColor")}
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="provider-banner-bg-color"
+                  type="color"
+                  value={providerBannerForm.backgroundColor || "#7c3aed"}
+                  onChange={(e) =>
+                    setProviderBannerForm((prev) => ({
+                      ...prev,
+                      backgroundColor: e.target.value,
+                    }))
+                  }
+                  className="h-10 w-14 p-1"
+                />
+                <Input
+                  value={providerBannerForm.backgroundColor || "#7c3aed"}
+                  onChange={(e) =>
+                    setProviderBannerForm((prev) => ({
+                      ...prev,
+                      backgroundColor: e.target.value,
+                    }))
+                  }
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="provider-banner-text-color">
+                {t("admin.bannerTextColor")}
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="provider-banner-text-color"
+                  type="color"
+                  value={providerBannerForm.textColor || "#ffffff"}
+                  onChange={(e) =>
+                    setProviderBannerForm((prev) => ({
+                      ...prev,
+                      textColor: e.target.value,
+                    }))
+                  }
+                  className="h-10 w-14 p-1"
+                />
+                <Input
+                  value={providerBannerForm.textColor || "#ffffff"}
+                  onChange={(e) =>
+                    setProviderBannerForm((prev) => ({
+                      ...prev,
+                      textColor: e.target.value,
+                    }))
+                  }
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="provider-banner-link">{t("admin.bannerLink")}</Label>
+              <Input
+                id="provider-banner-link"
+                value={providerBannerForm.linkUrl || ""}
+                onChange={(e) =>
+                  setProviderBannerForm((prev) => ({
+                    ...prev,
+                    linkUrl: e.target.value,
+                  }))
+                }
+                placeholder="/provider/services"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleProviderBannerUpdate}
+            disabled={updateProviderBanner.isPending}
+            className="w-full sm:w-auto"
+          >
+            {updateProviderBanner.isPending
               ? t("common.saving")
               : t("admin.updateBanner")}
           </Button>

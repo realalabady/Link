@@ -35,6 +35,7 @@ import {
   useProviderBookings,
   useUpdateBookingStatus,
 } from "@/hooks/queries/useBookings";
+import { useProviderBanner } from "@/hooks/queries/useBanner";
 import { toast } from "@/components/ui/sonner";
 import logo from "@/assets/logo.jpeg";
 import { Booking } from "@/types";
@@ -47,6 +48,9 @@ const ProviderDashboardPage: React.FC = () => {
     subscriptionStatus;
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
+
+  // Fetch provider banner
+  const { data: providerBanner } = useProviderBanner();
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [actionType, setActionType] = useState<"accept" | "reject" | null>(
@@ -191,6 +195,36 @@ const ProviderDashboardPage: React.FC = () => {
       </header>
 
       <main className="container py-6">
+        {/* Provider Promotional Banner */}
+        {providerBanner?.isActive && (
+          <motion.section
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <button
+              onClick={() =>
+                providerBanner.linkUrl && navigate(providerBanner.linkUrl)
+              }
+              className="w-full rounded-2xl p-6 text-start transition-all hover:opacity-90"
+              style={{
+                backgroundColor: providerBanner.backgroundColor,
+                color: providerBanner.textColor,
+              }}
+              disabled={!providerBanner.linkUrl}
+            >
+              <h2 className="text-xl font-bold">
+                {isArabic ? providerBanner.titleAr : providerBanner.titleEn}
+              </h2>
+              <p className="mt-1 opacity-80">
+                {isArabic
+                  ? providerBanner.subtitleAr
+                  : providerBanner.subtitleEn}
+              </p>
+            </button>
+          </motion.section>
+        )}
+
         {/* Trial Banner */}
         {isTrial && trialDaysRemaining > 0 && (
           <motion.div
@@ -357,7 +391,7 @@ const ProviderDashboardPage: React.FC = () => {
                               </div>
                               <div>
                                 <h3 className="font-semibold text-foreground">
-                                  {t("chat.client")}
+                                  {booking.clientName || t("chat.client")}
                                 </h3>
                                 <Badge variant="outline">
                                   {t("booking.status.pending")}
@@ -444,7 +478,7 @@ const ProviderDashboardPage: React.FC = () => {
                               </div>
                               <div>
                                 <h3 className="font-semibold text-foreground">
-                                  {t("chat.client")}
+                                  {booking.clientName || t("chat.client")}
                                 </h3>
                                 <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
                                   {t(`bookingStatus.${booking.status}`)}

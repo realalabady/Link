@@ -117,6 +117,9 @@ const BookingPage: React.FC = () => {
         status: "PENDING",
         priceTotal: service.price,
         depositAmount: 0,
+        locationType: selectedLocation,
+        clientName: user.displayName || user.email?.split("@")[0] || "",
+        serviceName: service.title,
         addressText:
           selectedLocation === "AT_PROVIDER"
             ? t("services.atProvider")
