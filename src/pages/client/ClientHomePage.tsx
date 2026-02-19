@@ -22,6 +22,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGuest } from "@/contexts/GuestContext";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
@@ -36,6 +37,7 @@ import logo from "@/assets/logo.jpeg";
 const ClientHomePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const { isGuest } = useGuest();
   const navigate = useNavigate();
   const isArabic = i18n.language === "ar";
 
@@ -163,14 +165,16 @@ const ClientHomePage: React.FC = () => {
           <div className="flex items-center gap-2">
             <RoleSwitcher />
             <LanguageSwitcher />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              title={t("auth.logout")}
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+            {!isGuest && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                title={t("auth.logout")}
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -453,8 +457,8 @@ const ClientHomePage: React.FC = () => {
             )}
           </motion.section>
 
-          {/* Become a Provider CTA - Only show if user is not already a provider */}
-          {!user?.roles?.includes("PROVIDER") && (
+          {/* Become a Provider CTA - Only show if user is not already a provider and not a guest */}
+          {!isGuest && !user?.roles?.includes("PROVIDER") && (
             <motion.section variants={fadeInUp} className="mt-8">
               <button
                 onClick={() => navigate("/client/become-provider")}

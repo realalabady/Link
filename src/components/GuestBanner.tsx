@@ -1,18 +1,21 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useGuest } from "@/contexts/GuestContext";
 import { Button } from "@/components/ui/button";
-import { UserPlus, X } from "lucide-react";
+import { UserPlus, X, ArrowLeftRight } from "lucide-react";
 
 export const GuestBanner: React.FC = () => {
   const { t } = useTranslation();
   const { isGuest, exitGuestMode } = useGuest();
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!isGuest) {
     return null;
   }
+
+  const isProviderView = location.pathname.startsWith("/provider");
 
   const handleSignUp = () => {
     exitGuestMode();
@@ -22,6 +25,14 @@ export const GuestBanner: React.FC = () => {
   const handleLogin = () => {
     exitGuestMode();
     navigate("/auth/login");
+  };
+
+  const handleSwitchView = () => {
+    if (isProviderView) {
+      navigate("/client");
+    } else {
+      navigate("/provider");
+    }
   };
 
   return (
@@ -39,6 +50,18 @@ export const GuestBanner: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* View Switcher */}
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={handleSwitchView}
+            className="gap-1"
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {isProviderView ? t("guest.viewAsClient") : t("guest.viewAsProvider")}
+            </span>
+          </Button>
           <Button size="sm" variant="default" onClick={handleSignUp}>
             {t("auth.signup")}
           </Button>
@@ -48,7 +71,10 @@ export const GuestBanner: React.FC = () => {
           <Button
             size="icon"
             variant="ghost"
-            onClick={exitGuestMode}
+            onClick={() => {
+              exitGuestMode();
+              navigate("/");
+            }}
             className="h-8 w-8"
           >
             <X className="h-4 w-4" />

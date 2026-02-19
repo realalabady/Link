@@ -899,6 +899,8 @@
     "loginRequiredDescription": "Please sign up or log in to {{action}}.",
     "bookServices": "book services",
     "messageProviders": "message providers",
-    "saveBookings": "save your bookings"
+    "saveBookings": "save your bookings",
+    "viewAsClient": "View as Client",
+    "viewAsProvider": "View as Provider"
   }
 }

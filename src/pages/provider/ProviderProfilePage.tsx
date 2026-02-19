@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGuest } from "@/contexts/GuestContext";
 import { updateUserProfile } from "@/lib/firestore";
 import { useProviderBookings } from "@/hooks/queries/useBookings";
 import {
@@ -101,6 +102,7 @@ const mockTransactions = [
 const ProviderProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, firebaseUser, logout, deleteAccount, refreshUser } = useAuth();
+  const { isGuest } = useGuest();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const isArabic = i18n.language === "ar";
@@ -853,29 +855,58 @@ const ProviderProfilePage: React.FC = () => {
             </Card>
           </motion.div>
 
-          {/* Logout Button */}
-          <motion.div variants={fadeInUp}>
-            <Button
-              variant="outline"
-              className="w-full text-destructive border-destructive/50 hover:bg-destructive/10"
-              onClick={() => setLogoutDialogOpen(true)}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              {t("common.logout")}
-            </Button>
-          </motion.div>
+          {/* Logout Button - Hidden for guests */}
+          {!isGuest && (
+            <motion.div variants={fadeInUp}>
+              <Button
+                variant="outline"
+                className="w-full text-destructive border-destructive/50 hover:bg-destructive/10"
+                onClick={() => setLogoutDialogOpen(true)}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                {t("common.logout")}
+              </Button>
+            </motion.div>
+          )}
 
-          {/* Delete Account Button */}
-          <motion.div variants={fadeInUp}>
-            <Button
-              variant="outline"
-              className="w-full text-destructive border-destructive/50 hover:bg-destructive/10"
-              onClick={() => setDeleteAccountDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {t("profile.deleteAccount")}
-            </Button>
-          </motion.div>
+          {/* Delete Account Button - Hidden for guests */}
+          {!isGuest && (
+            <motion.div variants={fadeInUp}>
+              <Button
+                variant="outline"
+                className="w-full text-destructive border-destructive/50 hover:bg-destructive/10"
+                onClick={() => setDeleteAccountDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t("profile.deleteAccount")}
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Guest CTA - Sign up or Login */}
+          {isGuest && (
+            <motion.div variants={fadeInUp} className="space-y-3">
+              <p className="text-center text-muted-foreground text-sm">
+                {t("guest.createAccountPrompt")}
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="default"
+                  className="flex-1"
+                  onClick={() => navigate("/signup")}
+                >
+                  {t("common.signup")}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => navigate("/login")}
+                >
+                  {t("common.login")}
+                </Button>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       </main>
 

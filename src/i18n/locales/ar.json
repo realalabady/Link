@@ -899,6 +899,8 @@
     "loginRequiredDescription": "يرجى التسجيل أو تسجيل الدخول لـ{{action}}.",
     "bookServices": "حجز الخدمات",
     "messageProviders": "مراسلة مقدمات الخدمات",
-    "saveBookings": "حفظ حجوزاتك"
+    "saveBookings": "حفظ حجوزاتك",
+    "viewAsClient": "عرض كعميلة",
+    "viewAsProvider": "عرض كمقدمة خدمات"
   }
 }

@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGuest } from "@/contexts/GuestContext";
 import { updateUserProfile } from "@/lib/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
@@ -45,6 +46,7 @@ import { SAUDI_REGIONS } from "@/lib/saudiLocations";
 const ClientProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout, deleteAccount, refreshUser } = useAuth();
+  const { isGuest } = useGuest();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const isArabic = i18n.language === "ar";
@@ -201,25 +203,27 @@ const ClientProfilePage: React.FC = () => {
           animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
         >
-          {/* Profile Completion */}
-          <motion.div variants={fadeInUp} className="mb-6">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-foreground">
-                    {t("profile.completion")}
+          {/* Profile Completion - Hide for guests */}
+          {!isGuest && (
+            <motion.div variants={fadeInUp} className="mb-6">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-foreground">
+                      {t("profile.completion")}
+                    </p>
+                    <span className="text-sm font-semibold text-primary">
+                      {completionPercent}%
+                    </span>
+                  </div>
+                  <Progress value={completionPercent} className="h-2" />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {t("profile.completePercent", { percent: completionPercent })}
                   </p>
-                  <span className="text-sm font-semibold text-primary">
-                    {completionPercent}%
-                  </span>
-                </div>
-                <Progress value={completionPercent} className="h-2" />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t("profile.completePercent", { percent: completionPercent })}
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Profile Card */}
           <motion.div variants={fadeInUp} className="mb-6">
@@ -229,7 +233,7 @@ const ClientProfilePage: React.FC = () => {
                   <CardTitle className="text-base">
                     {t("profile.personalInfo")}
                   </CardTitle>
-                  {!isEditing ? (
+                  {!isGuest && !isEditing ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -237,7 +241,7 @@ const ClientProfilePage: React.FC = () => {
                     >
                       {t("profile.editProfile")}
                     </Button>
-                  ) : (
+                  ) : !isGuest && isEditing ? (
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -254,7 +258,7 @@ const ClientProfilePage: React.FC = () => {
                         {isSaving ? t("common.loading") : t("profile.save")}
                       </Button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
@@ -415,41 +419,47 @@ const ClientProfilePage: React.FC = () => {
             </h3>
             <Card>
               <CardContent className="p-0">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between p-4 border-b text-start transition-colors hover:bg-accent"
-                  onClick={() => navigate("/auth/forgot-password")}
-                >
-                  <div className="flex items-center gap-3">
-                    <KeyRound className="h-5 w-5 text-muted-foreground" />
-                    <span>{t("auth.resetPassword")}</span>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </button>
+                {/* Password reset - hide for guests */}
+                {!isGuest && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between p-4 border-b text-start transition-colors hover:bg-accent"
+                    onClick={() => navigate("/auth/forgot-password")}
+                  >
+                    <div className="flex items-center gap-3">
+                      <KeyRound className="h-5 w-5 text-muted-foreground" />
+                      <span>{t("auth.resetPassword")}</span>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </button>
+                )}
 
-                <div className="flex items-center gap-3 p-4 border-b transition-colors hover:bg-accent">
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <Bell className="h-5 w-5 text-muted-foreground" />
-                    <span className="truncate">
-                      {t("profile.notifications")}
-                    </span>
+                {/* Notifications - hide for guests */}
+                {!isGuest && (
+                  <div className="flex items-center gap-3 p-4 border-b transition-colors hover:bg-accent">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <Bell className="h-5 w-5 text-muted-foreground" />
+                      <span className="truncate">
+                        {t("profile.notifications")}
+                      </span>
+                    </div>
+                    <Switch
+                      className="shrink-0"
+                      checked={notificationsEnabled}
+                      onCheckedChange={async (checked) => {
+                        setNotificationsEnabled(checked);
+                        if (user) {
+                          await updateUserProfile(user.uid, {
+                            notificationsEnabled: checked,
+                          });
+                          await refreshUser();
+                        }
+                      }}
+                    />
                   </div>
-                  <Switch
-                    className="shrink-0"
-                    checked={notificationsEnabled}
-                    onCheckedChange={async (checked) => {
-                      setNotificationsEnabled(checked);
-                      if (user) {
-                        await updateUserProfile(user.uid, {
-                          notificationsEnabled: checked,
-                        });
-                        await refreshUser();
-                      }
-                    }}
-                  />
-                </div>
+                )}
 
-                <div className="flex items-center gap-3 p-4 border-b transition-colors hover:bg-accent">
+                <div className={`flex items-center gap-3 p-4 ${!isGuest ? 'border-b' : ''} transition-colors hover:bg-accent`}>
                   <Globe className="h-5 w-5 text-muted-foreground" />
                   <span>{t("profile.language")}</span>
                   <div className="ms-auto">
@@ -496,29 +506,52 @@ const ClientProfilePage: React.FC = () => {
             </Card>
           </motion.section>
 
-          {/* Logout */}
-          <motion.div variants={fadeInUp}>
-            <Button
-              variant="destructive"
-              className="w-full gap-2"
-              onClick={() => setLogoutDialogOpen(true)}
-            >
-              <LogOut className="h-5 w-5" />
-              {t("auth.logout")}
-            </Button>
-          </motion.div>
+          {/* Logout - Hide for guests */}
+          {!isGuest && (
+            <motion.div variants={fadeInUp}>
+              <Button
+                variant="destructive"
+                className="w-full gap-2"
+                onClick={() => setLogoutDialogOpen(true)}
+              >
+                <LogOut className="h-5 w-5" />
+                {t("auth.logout")}
+              </Button>
+            </motion.div>
+          )}
 
-          {/* Delete Account */}
-          <motion.div variants={fadeInUp}>
-            <Button
-              variant="outline"
-              className="w-full gap-2 text-destructive border-destructive/50 hover:bg-destructive/10"
-              onClick={() => setDeleteAccountDialogOpen(true)}
-            >
-              <Trash2 className="h-5 w-5" />
-              {t("profile.deleteAccount")}
-            </Button>
-          </motion.div>
+          {/* Delete Account - Hide for guests */}
+          {!isGuest && (
+            <motion.div variants={fadeInUp}>
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-destructive border-destructive/50 hover:bg-destructive/10"
+                onClick={() => setDeleteAccountDialogOpen(true)}
+              >
+                <Trash2 className="h-5 w-5" />
+                {t("profile.deleteAccount")}
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Sign Up CTA for guests */}
+          {isGuest && (
+            <motion.div variants={fadeInUp} className="space-y-3">
+              <Button
+                className="w-full gap-2"
+                onClick={() => navigate("/auth/signup")}
+              >
+                {t("auth.signup")}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => navigate("/auth/login")}
+              >
+                {t("auth.login")}
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
       </main>
 

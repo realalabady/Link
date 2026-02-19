@@ -156,11 +156,11 @@ const AppRoutes = () => {
         <Route path="become-provider" element={<BecomeProviderPage />} />
       </Route>
 
-      {/* Provider routes */}
+      {/* Provider routes - allow guests to browse */}
       <Route
         path="/provider"
         element={
-          <ProtectedRoute allowedRoles={["PROVIDER"]}>
+          <ProtectedRoute allowedRoles={["PROVIDER"]} allowGuest={true}>
             <ProviderLayout />
           </ProtectedRoute>
         }

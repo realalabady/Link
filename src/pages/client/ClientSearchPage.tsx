@@ -31,6 +31,7 @@ import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useProvidersByIds } from "@/hooks/queries/useProviders";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGuest } from "@/contexts/GuestContext";
 import {
   useGeolocation,
   calculateDistanceKm,
@@ -44,6 +45,7 @@ const ClientSearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const isArabic = i18n.language === "ar";
   const { user } = useAuth();
+  const { isGuest } = useGuest();
   const {
     location,
     requestLocation,
@@ -312,6 +314,10 @@ const ClientSearchPage: React.FC = () => {
   ]);
 
   const handleServiceClick = (service: Service) => {
+    // Guests can only view, not navigate to provider/booking
+    if (isGuest) {
+      return;
+    }
     navigate(`/client/provider/${service.providerId}`);
   };
 
