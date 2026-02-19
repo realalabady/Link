@@ -527,6 +527,14 @@
     "providerBenefit2": "Manage bookings easily",
     "providerBenefit3": "Get paid securely"
   },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "help": "Help Center",
+    "contact": "Contact Us",
+    "rights": "All rights reserved.",
+    "location": "Kingdom of Saudi Arabia"
+  },
   "admin": {
     "title": "Admin",
     "nav": {

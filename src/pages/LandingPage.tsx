@@ -289,8 +289,37 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-8">
-        <div className="container text-center text-muted-foreground">
-          <p>© 2025 {t("common.appName")}. All rights reserved.</p>
+        <div className="container">
+          <div className="mb-6 flex flex-wrap justify-center gap-6">
+            <Link
+              to="/privacy"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("footer.privacy")}
+            </Link>
+            <Link
+              to="/terms"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("footer.terms")}
+            </Link>
+            <Link
+              to="/help"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("footer.help")}
+            </Link>
+            <a
+              href="mailto:azsazs112217@gmail.com"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("footer.contact")}
+            </a>
+          </div>
+          <div className="text-center text-muted-foreground">
+            <p>© 2026 {t("common.appName")}. {t("footer.rights")}</p>
+            <p className="mt-2 text-sm">{t("footer.location")}</p>
+          </div>
         </div>
       </footer>
     </div>

@@ -113,6 +113,14 @@ const SignupPage: React.FC = () => {
 
       {/* Right side - Form */}
       <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+        <div className="absolute start-4 top-4">
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+              {t("common.back")}
+            </Button>
+          </Link>
+        </div>
         <div className="absolute end-4 top-4">
           <LanguageSwitcher />
         </div>
