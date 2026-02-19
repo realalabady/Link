@@ -1700,32 +1700,34 @@ const DEFAULT_PROVIDER_BANNER: ProviderBannerSettings = {
   updatedAt: new Date(),
 };
 
-export const getProviderBannerSettings = async (): Promise<ProviderBannerSettings> => {
-  try {
-    const bannerRef = doc(db, COLLECTIONS.SETTINGS, "provider-banner");
-    const bannerSnap = await getDoc(bannerRef);
+export const getProviderBannerSettings =
+  async (): Promise<ProviderBannerSettings> => {
+    try {
+      const bannerRef = doc(db, COLLECTIONS.SETTINGS, "provider-banner");
+      const bannerSnap = await getDoc(bannerRef);
 
-    if (!bannerSnap.exists()) {
+      if (!bannerSnap.exists()) {
+        return DEFAULT_PROVIDER_BANNER;
+      }
+
+      const data = bannerSnap.data();
+      return {
+        isActive: data.isActive ?? false,
+        titleEn: data.titleEn ?? DEFAULT_PROVIDER_BANNER.titleEn,
+        titleAr: data.titleAr ?? DEFAULT_PROVIDER_BANNER.titleAr,
+        subtitleEn: data.subtitleEn ?? DEFAULT_PROVIDER_BANNER.subtitleEn,
+        subtitleAr: data.subtitleAr ?? DEFAULT_PROVIDER_BANNER.subtitleAr,
+        backgroundColor:
+          data.backgroundColor ?? DEFAULT_PROVIDER_BANNER.backgroundColor,
+        textColor: data.textColor ?? DEFAULT_PROVIDER_BANNER.textColor,
+        linkUrl: data.linkUrl ?? "",
+        updatedAt: timestampToDate(data.updatedAt),
+      };
+    } catch (error) {
+      console.warn("Error fetching provider banner settings:", error);
       return DEFAULT_PROVIDER_BANNER;
     }
-
-    const data = bannerSnap.data();
-    return {
-      isActive: data.isActive ?? false,
-      titleEn: data.titleEn ?? DEFAULT_PROVIDER_BANNER.titleEn,
-      titleAr: data.titleAr ?? DEFAULT_PROVIDER_BANNER.titleAr,
-      subtitleEn: data.subtitleEn ?? DEFAULT_PROVIDER_BANNER.subtitleEn,
-      subtitleAr: data.subtitleAr ?? DEFAULT_PROVIDER_BANNER.subtitleAr,
-      backgroundColor: data.backgroundColor ?? DEFAULT_PROVIDER_BANNER.backgroundColor,
-      textColor: data.textColor ?? DEFAULT_PROVIDER_BANNER.textColor,
-      linkUrl: data.linkUrl ?? "",
-      updatedAt: timestampToDate(data.updatedAt),
-    };
-  } catch (error) {
-    console.warn("Error fetching provider banner settings:", error);
-    return DEFAULT_PROVIDER_BANNER;
-  }
-};
+  };
 
 export const updateProviderBannerSettings = async (
   settings: Partial<ProviderBannerSettings>,

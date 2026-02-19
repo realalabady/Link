@@ -5,12 +5,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { GuestProvider, useGuest } from "@/contexts/GuestContext";
 import { ThemeProvider } from "next-themes";
 import { useTranslation } from "react-i18next";
 import { sendEmailVerification } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { getAuthErrorMessage } from "@/lib/authErrors";
+import { TrackingConsent } from "@/components/TrackingConsent";
 
 // Layouts
 import { ClientLayout } from "@/components/layout/ClientLayout";
@@ -74,6 +76,12 @@ const queryClient = new QueryClient({
 // Root redirect based on user's active role
 const RoleBasedRedirect = () => {
   const { user, isAuthenticated } = useAuth();
+  const { isGuest } = useGuest();
+
+  // If guest mode is active, redirect to client area
+  if (isGuest) {
+    return <Navigate to="/client" replace />;
+  }
 
   if (!isAuthenticated) {
     return <LandingPage />;
@@ -128,7 +136,7 @@ const AppRoutes = () => {
       <Route
         path="/client"
         element={
-          <ProtectedRoute allowedRoles={["CLIENT"]}>
+          <ProtectedRoute allowedRoles={["CLIENT"]} allowGuest={true}>
             <ClientLayout />
           </ProtectedRoute>
         }
@@ -244,14 +252,17 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <VerifyEmailBanner />
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
+        <GuestProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <TrackingConsent />
+              <VerifyEmailBanner />
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </GuestProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

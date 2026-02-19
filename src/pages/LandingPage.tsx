@@ -1,8 +1,9 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
+import { useGuest } from "@/contexts/GuestContext";
 import {
   ArrowRight,
   ArrowLeft,
@@ -22,8 +23,15 @@ import logo from "@/assets/logo.jpeg";
 export default function LandingPage() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
+  const { enterGuestMode } = useGuest();
+  const navigate = useNavigate();
   const isRTL = i18n.dir() === "rtl";
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
+
+  const handleBrowseAsGuest = () => {
+    enterGuestMode();
+    navigate("/client");
+  };
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
@@ -150,15 +158,14 @@ export default function LandingPage() {
                   <ArrowIcon className="ms-2 h-5 w-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
                 </Button>
               </Link>
-              <a href="#benefits">
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  className="min-w-48 text-lg text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                >
-                  {t("landing.learnMore")}
-                </Button>
-              </a>
+              <Button
+                size="lg"
+                variant="ghost"
+                onClick={handleBrowseAsGuest}
+                className="min-w-48 text-lg text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              >
+                {t("guest.browseAsGuest")}
+              </Button>
             </motion.div>
           </motion.div>
 

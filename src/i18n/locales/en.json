@@ -870,5 +870,27 @@
     "rejectedTitle": "Verification Rejected",
     "rejectedDefault": "Your verification was rejected. Please submit new documents.",
     "goToVerification": "Verify Account"
+  },
+  "tracking": {
+    "title": "Help Us Improve Your Experience",
+    "description": "We'd like to use data to personalize your experience, show relevant services, and improve our app. You can change this anytime in settings.",
+    "whatWeCollect": "What we collect:",
+    "item1": "App usage to improve features",
+    "item2": "Approximate location for nearby services",
+    "item3": "Performance data to fix issues",
+    "allow": "Allow Tracking",
+    "deny": "Ask App Not to Track",
+    "changeAnytime": "You can change this anytime in your profile settings."
+  },
+  "guest": {
+    "browseAsGuest": "Browse as Guest",
+    "continueAsGuest": "Continue as Guest",
+    "bannerTitle": "You're browsing as a guest",
+    "bannerDescription": "Sign up to book services and message providers",
+    "loginRequired": "Login Required",
+    "loginRequiredDescription": "Please sign up or log in to {{action}}.",
+    "bookServices": "book services",
+    "messageProviders": "message providers",
+    "saveBookings": "save your bookings"
   }
 }

@@ -41,7 +41,12 @@ import { useUsers } from "@/hooks/queries/useUsers";
 import { usePendingVerifications } from "@/hooks/queries/useVerifications";
 import { usePayouts } from "@/hooks/queries/usePayouts";
 import { usePayments } from "@/hooks/queries/usePayments";
-import { useBanner, useUpdateBanner, useProviderBanner, useUpdateProviderBanner } from "@/hooks/queries/useBanner";
+import {
+  useBanner,
+  useUpdateBanner,
+  useProviderBanner,
+  useUpdateProviderBanner,
+} from "@/hooks/queries/useBanner";
 import {
   useSubscriptionSettings,
   useUpdateSubscriptionSettings,
@@ -59,7 +64,12 @@ import {
   getProviderProfile,
 } from "@/lib/firestore";
 import { toast } from "@/components/ui/sonner";
-import { BookingStatus, BannerSettings, ProviderBannerSettings, Category } from "@/types";
+import {
+  BookingStatus,
+  BannerSettings,
+  ProviderBannerSettings,
+  Category,
+} from "@/types";
 
 const AdminDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -85,7 +95,9 @@ const AdminDashboardPage: React.FC = () => {
   const [bannerForm, setBannerForm] = useState<Partial<BannerSettings>>({});
 
   // Provider Banner form state
-  const [providerBannerForm, setProviderBannerForm] = useState<Partial<ProviderBannerSettings>>({});
+  const [providerBannerForm, setProviderBannerForm] = useState<
+    Partial<ProviderBannerSettings>
+  >({});
 
   // Subscription settings form state
   const [subscriptionForm, setSubscriptionForm] = useState({
@@ -1338,7 +1350,10 @@ const AdminDashboardPage: React.FC = () => {
               id="provider-banner-active"
               checked={providerBannerForm.isActive ?? false}
               onCheckedChange={(checked) =>
-                setProviderBannerForm((prev) => ({ ...prev, isActive: checked }))
+                setProviderBannerForm((prev) => ({
+                  ...prev,
+                  isActive: checked,
+                }))
               }
             />
           </div>
@@ -1349,7 +1364,8 @@ const AdminDashboardPage: React.FC = () => {
             <div
               className="mb-4 rounded-xl p-4"
               style={{
-                backgroundColor: providerBannerForm.backgroundColor || "#7c3aed",
+                backgroundColor:
+                  providerBannerForm.backgroundColor || "#7c3aed",
                 color: providerBannerForm.textColor || "#ffffff",
               }}
             >
@@ -1492,7 +1508,9 @@ const AdminDashboardPage: React.FC = () => {
               </div>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="provider-banner-link">{t("admin.bannerLink")}</Label>
+              <Label htmlFor="provider-banner-link">
+                {t("admin.bannerLink")}
+              </Label>
               <Input
                 id="provider-banner-link"
                 value={providerBannerForm.linkUrl || ""}
