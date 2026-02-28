@@ -178,7 +178,8 @@
     "showingNearest": "عرض الأقرب أولاً",
     "kmAway": "{{distance}} كم",
     "permissionDenied": "تم رفض إذن الموقع",
-    "unavailable": "الموقع غير متاح"
+    "unavailable": "الموقع غير متاح",
+    "locationEnabled": "تم تفعيل الموقع"
   },
   "search": {
     "placeholder": "البحث عن خدمات...",

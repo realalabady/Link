@@ -178,7 +178,8 @@
     "showingNearest": "Showing nearest providers first",
     "kmAway": "{{distance}} km away",
     "permissionDenied": "Location permission denied",
-    "unavailable": "Location unavailable"
+    "unavailable": "Location unavailable",
+    "locationEnabled": "Location enabled"
   },
   "search": {
     "placeholder": "Search services...",

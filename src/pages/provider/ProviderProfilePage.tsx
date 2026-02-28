@@ -47,6 +47,7 @@ import {
 import { toast } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuest } from "@/contexts/GuestContext";
+import { useRequestTrackingConsent } from "@/components/TrackingConsent";
 import { updateUserProfile } from "@/lib/firestore";
 import { useProviderBookings } from "@/hooks/queries/useBookings";
 import {
@@ -103,6 +104,7 @@ const ProviderProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, firebaseUser, logout, deleteAccount, refreshUser } = useAuth();
   const { isGuest } = useGuest();
+  const { requestTrackingConsent, consentStatus } = useRequestTrackingConsent();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const isArabic = i18n.language === "ar";
@@ -359,20 +361,32 @@ const ProviderProfilePage: React.FC = () => {
   };
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setFormValues((prev) => ({
-          ...prev,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        }));
-      },
-      () => {
-        // Ignore location errors
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 600000 },
-    );
+    const doGetLocation = () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormValues((prev) => ({
+            ...prev,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }));
+          toast.success(t("location.locationEnabled"));
+        },
+        () => {
+          toast.error(t("location.permissionDenied"));
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 600000 },
+      );
+    };
+
+    // Show tracking consent first if pending
+    if (consentStatus === "pending") {
+      requestTrackingConsent(() => {
+        doGetLocation();
+      });
+    } else {
+      doGetLocation();
+    }
   };
 
   const fadeInUp = {
