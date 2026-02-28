@@ -38,7 +38,8 @@
     "sending": "جاري الإرسال...",
     "email": "البريد الإلكتروني",
     "name": "الاسم",
-    "optional": "اختياري"
+    "optional": "اختياري",
+    "notNow": "ليس الآن"
   },
   "bookingStatus": {
     "PENDING": "قيد الانتظار",

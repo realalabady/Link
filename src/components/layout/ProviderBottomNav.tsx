@@ -65,7 +65,7 @@ export const ProviderBottomNav: React.FC = () => {
 
   // Filter nav items based on guest status
   const visibleNavItems = isGuest
-    ? providerNavItems.filter(item => item.guestAllowed)
+    ? providerNavItems.filter((item) => item.guestAllowed)
     : providerNavItems;
 
   return (

@@ -259,9 +259,10 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <TrackingConsent />
-              <VerifyEmailBanner />
-              <AppRoutes />
+              <TrackingConsent>
+                <VerifyEmailBanner />
+                <AppRoutes />
+              </TrackingConsent>
             </BrowserRouter>
           </TooltipProvider>
         </GuestProvider>

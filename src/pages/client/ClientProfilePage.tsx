@@ -218,7 +218,9 @@ const ClientProfilePage: React.FC = () => {
                   </div>
                   <Progress value={completionPercent} className="h-2" />
                   <p className="mt-2 text-xs text-muted-foreground">
-                    {t("profile.completePercent", { percent: completionPercent })}
+                    {t("profile.completePercent", {
+                      percent: completionPercent,
+                    })}
                   </p>
                 </CardContent>
               </Card>
@@ -459,7 +461,9 @@ const ClientProfilePage: React.FC = () => {
                   </div>
                 )}
 
-                <div className={`flex items-center gap-3 p-4 ${!isGuest ? 'border-b' : ''} transition-colors hover:bg-accent`}>
+                <div
+                  className={`flex items-center gap-3 p-4 ${!isGuest ? "border-b" : ""} transition-colors hover:bg-accent`}
+                >
                   <Globe className="h-5 w-5 text-muted-foreground" />
                   <span>{t("profile.language")}</span>
                   <div className="ms-auto">

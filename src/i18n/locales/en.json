@@ -38,7 +38,8 @@
     "sending": "Sending...",
     "email": "Email",
     "name": "Name",
-    "optional": "optional"
+    "optional": "optional",
+    "notNow": "Not Now"
   },
   "bookingStatus": {
     "PENDING": "Pending",

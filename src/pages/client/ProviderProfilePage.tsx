@@ -20,6 +20,7 @@ import { useProviderProfile, useProviderServices } from "@/hooks/queries";
 import { useReviews } from "@/hooks/queries/useReviews";
 import { useCreateChat } from "@/hooks/queries/useChats";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRequestTrackingConsent } from "@/components/TrackingConsent";
 import {
   useGeolocation,
   calculateDistanceKm,
@@ -38,13 +39,14 @@ const ProviderProfilePage: React.FC = () => {
 
   // Geolocation for distance calculation
   const { location, requestLocation } = useGeolocation();
+  const { consentStatus } = useRequestTrackingConsent();
 
-  // Request location on mount
+  // Request location on mount only if already consented
   React.useEffect(() => {
-    if (!location) {
+    if (!location && consentStatus === "granted") {
       requestLocation();
     }
-  }, []);
+  }, [consentStatus]);
 
   // Fetch data
   const { data: provider, isLoading: loadingProvider } = useProviderProfile(

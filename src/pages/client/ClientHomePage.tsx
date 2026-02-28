@@ -23,6 +23,7 @@ import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuest } from "@/contexts/GuestContext";
+import { useRequestTrackingConsent } from "@/components/TrackingConsent";
 import { useCategories } from "@/hooks/queries/useCategories";
 import { useServices } from "@/hooks/queries/useServices";
 import { useVerifiedProviders } from "@/hooks/queries/useProviders";
@@ -46,6 +47,18 @@ const ClientHomePage: React.FC = () => {
     loading: locationLoading,
     requestLocation,
   } = useGeolocation();
+  const { requestTrackingConsent, consentStatus } = useRequestTrackingConsent();
+
+  // Wrapper to show tracking consent before requesting location
+  const handleRequestLocation = () => {
+    if (consentStatus === "pending") {
+      requestTrackingConsent(() => {
+        requestLocation();
+      });
+    } else {
+      requestLocation();
+    }
+  };
 
   const { data: categories = [], isLoading: loadingCategories } =
     useCategories();
@@ -226,7 +239,7 @@ const ClientHomePage: React.FC = () => {
                 </div>
                 <Button
                   size="sm"
-                  onClick={requestLocation}
+                  onClick={handleRequestLocation}
                   disabled={locationLoading}
                 >
                   {locationLoading ? (

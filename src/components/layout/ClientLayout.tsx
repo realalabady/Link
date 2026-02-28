@@ -1,7 +1,7 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { ClientBottomNav } from './ClientBottomNav';
-import { GuestBanner } from '@/components/GuestBanner';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { ClientBottomNav } from "./ClientBottomNav";
+import { GuestBanner } from "@/components/GuestBanner";
 
 export const ClientLayout: React.FC = () => {
   return (

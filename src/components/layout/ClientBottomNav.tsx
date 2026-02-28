@@ -13,7 +13,12 @@ interface NavItem {
 }
 
 const clientNavItems: NavItem[] = [
-  { path: "/client", labelKey: "nav.home", icon: <Home className="h-5 w-5" />, guestAllowed: true },
+  {
+    path: "/client",
+    labelKey: "nav.home",
+    icon: <Home className="h-5 w-5" />,
+    guestAllowed: true,
+  },
   {
     path: "/client/search",
     labelKey: "nav.search",
@@ -46,8 +51,8 @@ export const ClientBottomNav: React.FC = () => {
   const { isGuest } = useGuest();
 
   // Filter nav items based on guest status
-  const visibleNavItems = isGuest 
-    ? clientNavItems.filter(item => item.guestAllowed)
+  const visibleNavItems = isGuest
+    ? clientNavItems.filter((item) => item.guestAllowed)
     : clientNavItems;
 
   return (

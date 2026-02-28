@@ -51,15 +51,17 @@ export const GuestBanner: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           {/* View Switcher */}
-          <Button 
-            size="sm" 
-            variant="outline" 
+          <Button
+            size="sm"
+            variant="outline"
             onClick={handleSwitchView}
             className="gap-1"
           >
             <ArrowLeftRight className="h-4 w-4" />
             <span className="hidden sm:inline">
-              {isProviderView ? t("guest.viewAsClient") : t("guest.viewAsProvider")}
+              {isProviderView
+                ? t("guest.viewAsClient")
+                : t("guest.viewAsProvider")}
             </span>
           </Button>
           <Button size="sm" variant="default" onClick={handleSignUp}>

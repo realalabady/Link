@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, createContext, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -37,37 +37,65 @@ export const useTrackingConsent = () => {
   return { consentStatus, grantConsent, denyConsent };
 };
 
-export const TrackingConsent: React.FC = () => {
-  const { t } = useTranslation();
-  const { consentStatus, grantConsent, denyConsent } = useTrackingConsent();
-  const [isOpen, setIsOpen] = useState(false);
+// Context to trigger tracking consent dialog from anywhere
+type TrackingConsentContextType = {
+  requestTrackingConsent: (onGranted?: () => void) => void;
+  consentStatus: ConsentStatus;
+};
 
-  useEffect(() => {
-    // Show dialog only if consent is pending and user hasn't made a choice
-    if (consentStatus === "pending") {
-      // Small delay to let the app render first
-      const timer = setTimeout(() => setIsOpen(true), 1000);
-      return () => clearTimeout(timer);
+const TrackingConsentContext = createContext<TrackingConsentContextType | null>(null);
+
+export const useRequestTrackingConsent = () => {
+  const context = useContext(TrackingConsentContext);
+  if (!context) {
+    throw new Error("useRequestTrackingConsent must be used within TrackingConsentProvider");
+  }
+  return context;
+};
+
+export const TrackingConsent: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const { t } = useTranslation();
+  const { consentStatus, grantConsent } = useTrackingConsent();
+  const [isOpen, setIsOpen] = useState(false);
+  const [onGrantedCallback, setOnGrantedCallback] = useState<(() => void) | null>(null);
+
+  // Function to request tracking consent - called when user tries to use a feature that needs tracking
+  const requestTrackingConsent = useCallback((onGranted?: () => void) => {
+    if (consentStatus === "granted") {
+      // Already granted, just run the callback
+      onGranted?.();
+      return;
     }
+    if (consentStatus === "denied") {
+      // Previously denied - could show a "go to settings" message, but for now just don't show dialog
+      return;
+    }
+    // Pending - show the dialog
+    if (onGranted) {
+      setOnGrantedCallback(() => onGranted);
+    }
+    setIsOpen(true);
   }, [consentStatus]);
 
   const handleAllow = () => {
     grantConsent();
     setIsOpen(false);
+    // Run the callback after granting
+    onGrantedCallback?.();
+    setOnGrantedCallback(null);
   };
 
-  const handleDeny = () => {
-    denyConsent();
+  // User delays - just close dialog, don't set consent (stays pending for next time)
+  const handleNotNow = () => {
     setIsOpen(false);
+    setOnGrantedCallback(null);
   };
-
-  if (consentStatus !== "pending") {
-    return null;
-  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-md">
+    <TrackingConsentContext.Provider value={{ requestTrackingConsent, consentStatus }}>
+      {children}
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleNotNow()}>
+        <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Shield className="h-8 w-8 text-primary" />
@@ -93,10 +121,10 @@ export const TrackingConsent: React.FC = () => {
 
         <div className="mt-6 flex flex-col gap-3">
           <Button onClick={handleAllow} className="w-full">
-            {t("tracking.allow")}
+            {t("common.next")}
           </Button>
-          <Button variant="outline" onClick={handleDeny} className="w-full">
-            {t("tracking.deny")}
+          <Button variant="ghost" onClick={handleNotNow} className="w-full text-muted-foreground">
+            {t("common.notNow")}
           </Button>
         </div>
 
@@ -105,6 +133,7 @@ export const TrackingConsent: React.FC = () => {
         </p>
       </DialogContent>
     </Dialog>
+    </TrackingConsentContext.Provider>
   );
 };
 

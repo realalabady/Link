@@ -52,18 +52,18 @@ const SignupPage: React.FC = () => {
       return;
     }
 
-    // Validate phone number (Saudi format)
+    // Validate phone number (Saudi format) - only if provided
     const phoneRegex = /^(05|5)\d{8}$/;
     const cleanPhone = phone.replace(/\s/g, "");
-    if (!phoneRegex.test(cleanPhone)) {
+    if (cleanPhone && !phoneRegex.test(cleanPhone)) {
       setError(t("auth.invalidPhone"));
       return;
     }
 
-    // Normalize phone number to start with 05
-    const normalizedPhone = cleanPhone.startsWith("5")
-      ? "0" + cleanPhone
-      : cleanPhone;
+    // Normalize phone number to start with 05 (only if provided)
+    const normalizedPhone = cleanPhone 
+      ? (cleanPhone.startsWith("5") ? "0" + cleanPhone : cleanPhone)
+      : "";
 
     if (!isStrongPassword(password)) {
       setError(t("auth.passwordRequirements"));
@@ -193,7 +193,10 @@ const SignupPage: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">{t("auth.phone")}</Label>
+              <Label htmlFor="phone">
+                {t("auth.phone")}
+                <span className="text-muted-foreground text-xs ms-1">({t("common.optional")})</span>
+              </Label>
               <div className="relative">
                 <Phone className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -204,7 +207,6 @@ const SignupPage: React.FC = () => {
                   placeholder="05XXXXXXXX"
                   className="ps-10"
                   dir="ltr"
-                  required
                 />
               </div>
             </div>
@@ -276,8 +278,11 @@ const SignupPage: React.FC = () => {
                 {t("auth.iAccept")}{" "}
                 <Link
                   to="/privacy"
-                  target="_blank"
                   className="text-primary hover:underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/privacy");
+                  }}
                 >
                   {t("auth.privacyPolicy")}
                 </Link>

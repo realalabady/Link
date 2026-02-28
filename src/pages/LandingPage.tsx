@@ -317,7 +317,9 @@ export default function LandingPage() {
             </a>
           </div>
           <div className="text-center text-muted-foreground">
-            <p>© 2026 {t("common.appName")}. {t("footer.rights")}</p>
+            <p>
+              © 2026 {t("common.appName")}. {t("footer.rights")}
+            </p>
             <p className="mt-2 text-sm">{t("footer.location")}</p>
           </div>
         </div>

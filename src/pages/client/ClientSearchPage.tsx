@@ -32,6 +32,7 @@ import { useServices } from "@/hooks/queries/useServices";
 import { useProvidersByIds } from "@/hooks/queries/useProviders";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuest } from "@/contexts/GuestContext";
+import { useRequestTrackingConsent } from "@/components/TrackingConsent";
 import {
   useGeolocation,
   calculateDistanceKm,
@@ -52,13 +53,25 @@ const ClientSearchPage: React.FC = () => {
     hasPermission,
     loading: locationLoading,
   } = useGeolocation();
+  const { requestTrackingConsent, consentStatus } = useRequestTrackingConsent();
 
-  // Auto-request location on mount if permission was previously granted or not yet asked
-  useEffect(() => {
-    if (!location && hasPermission !== false) {
+  // Wrapper to show tracking consent before requesting location
+  const handleRequestLocation = () => {
+    if (consentStatus === "pending") {
+      requestTrackingConsent(() => {
+        requestLocation();
+      });
+    } else {
       requestLocation();
     }
-  }, [hasPermission]);
+  };
+
+  // Auto-request location on mount only if already consented and permission granted
+  useEffect(() => {
+    if (!location && hasPermission !== false && consentStatus === "granted") {
+      requestLocation();
+    }
+  }, [hasPermission, consentStatus]);
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
@@ -476,7 +489,7 @@ const ClientSearchPage: React.FC = () => {
 
                   {!location && (
                     <button
-                      onClick={requestLocation}
+                      onClick={handleRequestLocation}
                       disabled={locationLoading}
                       className="w-full rounded-lg bg-primary/10 p-3 text-start transition-colors hover:bg-primary/20"
                     >
@@ -553,7 +566,7 @@ const ClientSearchPage: React.FC = () => {
             className="mb-4"
           >
             <button
-              onClick={requestLocation}
+              onClick={handleRequestLocation}
               disabled={locationLoading}
               className="flex w-full items-center justify-between rounded-xl bg-primary/10 p-4 text-start transition-colors hover:bg-primary/20"
             >
@@ -643,7 +656,7 @@ const ClientSearchPage: React.FC = () => {
                 <Badge
                   variant="outline"
                   className="cursor-pointer gap-1 text-muted-foreground hover:text-primary"
-                  onClick={requestLocation}
+                  onClick={handleRequestLocation}
                 >
                   <Navigation className="h-3 w-3" />
                   {t("search.enableLocation")}
